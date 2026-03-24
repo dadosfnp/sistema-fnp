@@ -1,0 +1,7 @@
+-r base.txt
+
+# Debug
+django-debug-toolbar>=4.4,<5
+
+# Qualidade de código
+ruff>=0.5,<1

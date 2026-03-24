@@ -1,0 +1,203 @@
+"""
+Configurações base do Django para o Sistema FNP.
+Configurações compartilhadas entre todos os ambientes.
+"""
+
+import os
+from pathlib import Path
+
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = os.environ.get('SECRET_KEY', 'chave-insegura-troque-em-producao')
+
+DEBUG = False
+
+ALLOWED_HOSTS = []
+
+# ---------------------------------------------------------------------------
+# Apps
+# ---------------------------------------------------------------------------
+DJANGO_APPS = [
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+
+THIRD_PARTY_APPS = [
+    'unfold',
+    'unfold.contrib.filters',
+    'unfold.contrib.forms',
+    'django.contrib.admin',  # deve vir após unfold
+]
+
+LOCAL_APPS = [
+    'aplicacoes.nucleo',
+    'aplicacoes.cadastro',
+    'aplicacoes.adimplencia',
+    'aplicacoes.engajamento',
+    'aplicacoes.eventos',
+    'aplicacoes.relatorios',
+]
+
+INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + LOCAL_APPS
+
+# ---------------------------------------------------------------------------
+# Middleware
+# ---------------------------------------------------------------------------
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'configuracao.urls'
+
+# ---------------------------------------------------------------------------
+# Templates
+# ---------------------------------------------------------------------------
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'configuracao.wsgi.application'
+
+# ---------------------------------------------------------------------------
+# Banco de dados
+# ---------------------------------------------------------------------------
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'sistema_fnp'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Validação de senha
+# ---------------------------------------------------------------------------
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+# ---------------------------------------------------------------------------
+# Internacionalização
+# ---------------------------------------------------------------------------
+LANGUAGE_CODE = 'pt-br'
+TIME_ZONE = 'America/Sao_Paulo'
+USE_I18N = True
+USE_TZ = True
+
+# ---------------------------------------------------------------------------
+# Arquivos estáticos
+# ---------------------------------------------------------------------------
+STATIC_URL = 'estaticos/'
+STATICFILES_DIRS = [BASE_DIR / 'estaticos']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# ---------------------------------------------------------------------------
+# Campo auto padrão
+# ---------------------------------------------------------------------------
+DEFAULT_AUTO_FIELD = 'django.db.models.UUIDField'
+
+# ---------------------------------------------------------------------------
+# Django Unfold — configuração do admin
+# ---------------------------------------------------------------------------
+UNFOLD = {
+    "SITE_TITLE": "Sistema FNP",
+    "SITE_HEADER": "Sistema FNP",
+    "SITE_SYMBOL": "groups",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": False,
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": "Cadastro",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Pessoas",
+                        "icon": "person",
+                        "link": reverse_lazy("admin:cadastro_pessoa_changelist"),
+                    },
+                    {
+                        "title": "Municípios",
+                        "icon": "location_city",
+                        "link": reverse_lazy("admin:cadastro_municipio_changelist"),
+                    },
+                    {
+                        "title": "Vínculos",
+                        "icon": "link",
+                        "link": reverse_lazy("admin:cadastro_vinculomunicipio_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Financeiro",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Adimplência",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:adimplencia_adimplencia_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Engajamento",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Engajamento",
+                        "icon": "trending_up",
+                        "link": reverse_lazy("admin:engajamento_engajamento_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Eventos",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Eventos",
+                        "icon": "event",
+                        "link": reverse_lazy("admin:eventos_evento_changelist"),
+                    },
+                    {
+                        "title": "Participações",
+                        "icon": "how_to_reg",
+                        "link": reverse_lazy("admin:eventos_participacao_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+}

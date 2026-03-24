@@ -1,0 +1,4 @@
+-r base.txt
+
+# Servidor WSGI
+gunicorn>=22,<23

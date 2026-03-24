@@ -1,0 +1,8 @@
+# .claudeignore — Arquivos que o Claude Code NÃO deve ler
+.env
+*.csv
+*.xlsx
+dados/
+midia/
+copia_seguranca/
+aplicacoes/*/fixtures/*.json
