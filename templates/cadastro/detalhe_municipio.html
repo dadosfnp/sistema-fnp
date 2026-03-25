@@ -225,14 +225,13 @@ document.addEventListener('DOMContentLoaded', function() {
         attributionControl: false,
     }).setView([lat, lng], zoom);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
     }).addTo(map);
 
     if (temCoord) {
-        L.marker([lat, lng]).addTo(map)
-            .bindPopup('<strong>{{ municipio.nome }}/{{ municipio.uf }}</strong>')
-            .openPopup();
+        L.marker([lat, lng]).addTo(map);
     }
 
     // Garante que o mapa renderize em qualquer situacao de layout
