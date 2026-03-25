@@ -93,7 +93,7 @@ def lista_municipios(request):
     busca = request.GET.get('busca', '').strip()
     uf = request.GET.get('uf', '')
     regiao = request.GET.get('regiao', '')
-    associado = request.GET.get('associado', '')
+    adimplencia = request.GET.get('adimplencia', '')
     municipios = Municipio.objects.all().order_by('nome')
     if busca:
         municipios = municipios.filter(Q(nome__icontains=busca) | Q(uf__icontains=busca))
@@ -101,13 +101,14 @@ def lista_municipios(request):
         municipios = municipios.filter(uf=uf)
     if regiao:
         municipios = municipios.filter(regiao=regiao)
-    if associado:
-        municipios = municipios.filter(associado_fnp=(associado == 'sim'))
+    if adimplencia:
+        municipios = municipios.filter(adimplencias__status=adimplencia, adimplencias__ano_referencia=2026).distinct()
     ufs = Municipio.objects.values_list('uf', flat=True).distinct().order_by('uf')
     regioes = Municipio.Regiao.choices
     ctx = {
         'municipios': municipios, 'busca': busca,
-        'uf': uf, 'ufs': ufs, 'regiao': regiao, 'regioes': regioes, 'associado': associado,
+        'uf': uf, 'ufs': ufs, 'regiao': regiao, 'regioes': regioes,
+        'adimplencia_filtro': adimplencia,
     }
     template = 'cadastro/parciais/lista_municipios_tabela.html' if request.headers.get('HX-Request') else 'cadastro/lista_municipios.html'
     return render(request, template, ctx)

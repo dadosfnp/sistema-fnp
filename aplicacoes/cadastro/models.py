@@ -130,6 +130,12 @@ class Municipio(ModeloBase):
     def __str__(self):
         return f'{self.nome}/{self.uf}'
 
+    @property
+    def adimplencia_atual(self):
+        """Retorna o status de adimplencia do ano mais recente, ou None."""
+        adimplencia = self.adimplencias.order_by('-ano_referencia').first()
+        return adimplencia.status if adimplencia else None
+
 
 class Pauta(ModeloBase):
     """Eixo temático institucional da FNP (ex.: saúde, mobilidade, segurança)."""

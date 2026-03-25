@@ -28,12 +28,12 @@
                 <option value="">Todas regioes</option>
                 {% for val, label in regioes %}<option value="{{ val }}" {% if val == regiao %}selected{% endif %}>{{ label }}</option>{% endfor %}
             </select>
-            <select name="associado"
+            <select name="adimplencia"
                     class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
                     hx-get="{% url 'cadastro:lista_municipios' %}" hx-trigger="change" hx-target="#tabela-municipios" hx-include="closest .filtros-container">
-                <option value="">Associacao</option>
-                <option value="sim" {% if associado == 'sim' %}selected{% endif %}>Associados</option>
-                <option value="nao" {% if associado == 'nao' %}selected{% endif %}>Nao associados</option>
+                <option value="">Adimplencia</option>
+                <option value="adimplente" {% if adimplencia_filtro == 'adimplente' %}selected{% endif %}>Adimplentes</option>
+                <option value="inadimplente" {% if adimplencia_filtro == 'inadimplente' %}selected{% endif %}>Inadimplentes</option>
             </select>
             <div class="relative">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>

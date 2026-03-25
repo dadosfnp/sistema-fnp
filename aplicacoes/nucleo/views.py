@@ -32,7 +32,6 @@ def inicio(request):
     contexto = {
         'total_pessoas': Pessoa.objects.filter(ativo=True).count(),
         'total_municipios': Municipio.objects.count(),
-        'total_associados': Municipio.objects.filter(associado_fnp=True).count(),
         'total_eventos': Evento.objects.count(),
         'total_adimplentes': Adimplencia.objects.filter(ano_referencia=2026, status='adimplente').count(),
         'total_inadimplentes': Adimplencia.objects.filter(ano_referencia=2026, status='inadimplente').count(),
