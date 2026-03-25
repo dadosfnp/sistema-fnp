@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load fnp_tags %}
 
 {% block titulo %}{{ municipio.nome }} — Sistema FNP{% endblock %}
 {% block titulo_pagina %}
@@ -29,8 +30,8 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-sm ring-2 ring-gray-100">
-                            <img src="https://api.dicebear.com/9.x/shapes/svg?seed={{ municipio.nome|urlencode }}&backgroundColor=059669,0284c7,7c3aed,d97706,dc2626&shape1Color=ffffff&shape2Color=ffffff&shape3Color=ffffff" alt="{{ municipio.nome }}" class="w-full h-full">
+                        <div class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-sm ring-2 ring-gray-100 bg-white p-1">
+                            {% brasao_municipio municipio as brasao_url %}<img src="{{ brasao_url }}" alt="{{ municipio.nome }}" class="w-full h-full object-contain">
                         </div>
                         <div>
                             <h1 class="text-2xl font-bold text-gray-900">{{ municipio.nome }}</h1>
@@ -100,7 +101,7 @@
                 {% for v in vinculos %}
                 <a href="{% url 'cadastro:detalhe_pessoa' v.pessoa.pk %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
                     <div class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
-                        <img src="https://api.dicebear.com/9.x/initials/svg?seed={{ v.pessoa.nome|urlencode }}&backgroundColor=1e3a5f&textColor=ffffff&fontSize=36" alt="{{ v.pessoa.nome.0 }}" class="w-full h-full">
+                        {% avatar_pessoa v.pessoa 64 as foto_url %}<img src="{{ foto_url }}" alt="{{ v.pessoa.nome.0 }}" class="w-full h-full object-cover">
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-900 truncate group-hover:text-fnp-500">{{ v.pessoa.nome }}</p>

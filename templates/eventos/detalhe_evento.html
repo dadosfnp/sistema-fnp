@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load fnp_tags %}
 
 {% block titulo %}{{ evento.titulo }} — Sistema FNP{% endblock %}
 {% block titulo_pagina %}
@@ -99,7 +100,7 @@
                         <td class="px-6 py-3">
                             <a href="{% url 'cadastro:detalhe_pessoa' p.pessoa.pk %}" class="flex items-center gap-2 group">
                                 <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
-                                    <img src="https://api.dicebear.com/9.x/initials/svg?seed={{ p.pessoa.nome|urlencode }}&backgroundColor=1e3a5f&textColor=ffffff&fontSize=36" alt="{{ p.pessoa.nome.0 }}" class="w-full h-full">
+                                    {% avatar_pessoa p.pessoa 64 as foto_url %}<img src="{{ foto_url }}" alt="{{ p.pessoa.nome.0 }}" class="w-full h-full object-cover">
                                 </div>
                                 <span class="text-sm font-medium text-gray-900 group-hover:text-fnp-500">{{ p.pessoa.nome }}</span>
                             </a>

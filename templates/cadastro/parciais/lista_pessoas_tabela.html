@@ -1,3 +1,4 @@
+{% load fnp_tags %}
 <div class="overflow-x-auto">
     <table class="min-w-full">
         <thead>
@@ -15,7 +16,7 @@
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
-                            <img src="https://api.dicebear.com/9.x/initials/svg?seed={{ pessoa.nome|urlencode }}&backgroundColor=1e3a5f&textColor=ffffff&fontSize=36" alt="{{ pessoa.nome.0 }}" class="w-full h-full">
+                            {% avatar_pessoa pessoa 64 as foto_url %}<img src="{{ foto_url }}" alt="{{ pessoa.nome.0 }}" class="w-full h-full object-cover">
                         </div>
                         <p class="text-sm font-semibold text-gray-900">{{ pessoa.nome }}</p>
                     </div>

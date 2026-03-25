@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load fnp_tags %}
 
 {% block titulo %}{{ pessoa.nome }} — Sistema FNP{% endblock %}
 {% block titulo_pagina %}
@@ -18,11 +19,7 @@
             <!-- Avatar -->
             <div class="flex-shrink-0">
                 <div class="w-24 h-24 rounded-2xl overflow-hidden shadow-md ring-4 ring-gray-100">
-                    {% if pessoa.foto %}
-                    <img src="{{ pessoa.foto.url }}" alt="{{ pessoa.nome }}" class="w-full h-full object-cover">
-                    {% else %}
-                    <img src="https://api.dicebear.com/9.x/initials/svg?seed={{ pessoa.nome|urlencode }}&backgroundColor=1e3a5f&textColor=ffffff&fontSize=36" alt="{{ pessoa.nome }}" class="w-full h-full object-cover">
-                    {% endif %}
+                    {% avatar_pessoa pessoa 200 as foto_url %}<img src="{{ foto_url }}" alt="{{ pessoa.nome }}" class="w-full h-full object-cover">
                 </div>
             </div>
 
@@ -105,8 +102,8 @@
             <div class="space-y-2">
                 {% for v in vinculos %}
                 <a href="{% url 'cadastro:detalhe_municipio' v.municipio.pk %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
-                    <div class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 shadow-sm">
-                        <img src="https://api.dicebear.com/9.x/shapes/svg?seed={{ v.municipio.nome|urlencode }}&backgroundColor=059669,0284c7,7c3aed,d97706,dc2626&shape1Color=ffffff&shape2Color=ffffff&shape3Color=ffffff" alt="{{ v.municipio.nome }}" class="w-full h-full">
+                    <div class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 shadow-sm bg-white p-0.5 ring-1 ring-gray-100">
+                        {% brasao_municipio v.municipio as brasao_url %}<img src="{{ brasao_url }}" alt="{{ v.municipio.nome }}" class="w-full h-full object-contain">
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-900 truncate group-hover:text-fnp-500">{{ v.municipio.nome }}/{{ v.municipio.uf }}</p>

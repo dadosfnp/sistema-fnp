@@ -1,3 +1,4 @@
+{% load fnp_tags %}
 <div class="overflow-x-auto">
     <table class="min-w-full">
         <thead>
@@ -14,8 +15,8 @@
             <tr class="hover:bg-fnp-50/50 cursor-pointer transition-colors" onclick="window.location='{% url 'cadastro:detalhe_municipio' municipio.pk %}'">
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
-                            <img src="https://api.dicebear.com/9.x/shapes/svg?seed={{ municipio.nome|urlencode }}&backgroundColor=059669,0284c7,7c3aed,d97706,dc2626&shape1Color=ffffff&shape2Color=ffffff&shape3Color=ffffff" alt="{{ municipio.uf }}" class="w-full h-full">
+                        <div class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-gray-100 bg-white p-0.5">
+                            {% brasao_municipio municipio as brasao_url %}<img src="{{ brasao_url }}" alt="{{ municipio.uf }}" class="w-full h-full object-contain">
                         </div>
                         <div>
                             <p class="text-sm font-semibold text-gray-900">{{ municipio.nome }}</p>
