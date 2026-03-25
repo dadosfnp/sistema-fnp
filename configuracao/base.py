@@ -122,6 +122,9 @@ STATIC_URL = 'estaticos/'
 STATICFILES_DIRS = [BASE_DIR / 'estaticos']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # ---------------------------------------------------------------------------
 # Campo auto padrão
 # ---------------------------------------------------------------------------

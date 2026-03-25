@@ -50,7 +50,7 @@ def editar_pessoa(request, pk):
         return redirect('cadastro:detalhe_pessoa', pk=pk)
     pessoa = get_object_or_404(Pessoa, pk=pk)
     if request.method == 'POST':
-        form = PessoaForm(request.POST, instance=pessoa)
+        form = PessoaForm(request.POST, request.FILES, instance=pessoa)
         if form.is_valid():
             alteracoes = detectar_alteracoes(pessoa, form.cleaned_data)
             form.save()
@@ -68,7 +68,7 @@ def criar_pessoa(request):
         messages.error(request, 'Voce nao tem permissao para cadastrar.')
         return redirect('cadastro:lista_pessoas')
     if request.method == 'POST':
-        form = PessoaForm(request.POST)
+        form = PessoaForm(request.POST, request.FILES)
         if form.is_valid():
             pessoa = form.save()
             registrar_criacao(request.user, pessoa)
@@ -115,7 +115,7 @@ def editar_municipio(request, pk):
         return redirect('cadastro:detalhe_municipio', pk=pk)
     municipio = get_object_or_404(Municipio, pk=pk)
     if request.method == 'POST':
-        form = MunicipioForm(request.POST, instance=municipio)
+        form = MunicipioForm(request.POST, request.FILES, instance=municipio)
         if form.is_valid():
             alteracoes = detectar_alteracoes(municipio, form.cleaned_data)
             form.save()
@@ -133,7 +133,7 @@ def criar_municipio(request):
         messages.error(request, 'Voce nao tem permissao para cadastrar.')
         return redirect('cadastro:lista_municipios')
     if request.method == 'POST':
-        form = MunicipioForm(request.POST)
+        form = MunicipioForm(request.POST, request.FILES)
         if form.is_valid():
             municipio = form.save()
             registrar_criacao(request.user, municipio)

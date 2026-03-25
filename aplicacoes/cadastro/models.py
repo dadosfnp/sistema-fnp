@@ -101,6 +101,7 @@ class Municipio(ModeloBase):
         choices=Regiao.choices,
         blank=True,
     )
+    brasao = models.ImageField('brasao', upload_to='municipios/brasoes/', blank=True)
     eh_capital = models.BooleanField('é capital?', default=False)
     associado_fnp = models.BooleanField('associado FNP?', default=False)
     latitude = models.DecimalField(

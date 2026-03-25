@@ -16,7 +16,7 @@
             <i data-lucide="{% if pessoa %}edit{% else %}user-plus{% endif %}" class="w-4 h-4 text-gray-400"></i>
             <h2 class="text-sm font-semibold text-gray-900">{% if pessoa %}Editar Pessoa{% else %}Cadastrar Nova Pessoa{% endif %}</h2>
         </div>
-        <form method="post" class="p-6 space-y-4">
+        <form method="post" enctype="multipart/form-data" class="p-6 space-y-4">
             {% csrf_token %}
             {% for field in form %}
             <div>
