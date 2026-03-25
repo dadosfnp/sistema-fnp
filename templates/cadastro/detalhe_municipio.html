@@ -207,9 +207,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    {% load l10n %}
     {% if municipio.latitude and municipio.longitude %}
-    var lat = {{ municipio.latitude }};
-    var lng = {{ municipio.longitude }};
+    var lat = {{ municipio.latitude|unlocalize }};
+    var lng = {{ municipio.longitude|unlocalize }};
     var temCoord = true;
     {% else %}
     var lat = -15.7801;
