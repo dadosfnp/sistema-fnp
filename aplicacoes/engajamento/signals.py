@@ -1,27 +1,35 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
-from django.utils import timezone
 
+from aplicacoes.adimplencia.models import Adimplencia
 from aplicacoes.eventos.models import Participacao
 
 
+def _recalcular_engajamento_municipio(municipio):
+    """Recalcula o engajamento do município no biênio atual."""
+    from aplicacoes.engajamento.models import ConfiguracaoEngajamento, Engajamento
+
+    config = ConfiguracaoEngajamento.atual()
+    engajamento, _ = Engajamento.objects.get_or_create(
+        municipio=municipio,
+        bienio=config.bienio_atual,
+    )
+    engajamento.recalcular()
+
+
 @receiver(post_save, sender=Participacao)
-def atualizar_engajamento_ao_registrar_participacao(sender, instance, created, **kwargs):
-    """Recalcula engajamento do município ao registrar participação."""
-    if not created:
-        return
+def recalcular_engajamento_ao_salvar_participacao(sender, instance, **kwargs):
+    """Recalcula engajamento quando uma participação é salva."""
+    _recalcular_engajamento_municipio(instance.municipio)
 
-    pessoa = instance.pessoa
-    vinculos = pessoa.vinculos.filter(vigente=True)
 
-    for vinculo in vinculos:
-        from aplicacoes.engajamento.models import Engajamento
+@receiver(post_delete, sender=Participacao)
+def recalcular_engajamento_ao_deletar_participacao(sender, instance, **kwargs):
+    """Recalcula engajamento quando uma participação é removida."""
+    _recalcular_engajamento_municipio(instance.municipio)
 
-        engajamento, _ = Engajamento.objects.get_or_create(
-            municipio=vinculo.municipio,
-        )
-        engajamento.pontuacao_total += instance.evento.peso_engajamento
-        engajamento.total_participacoes += 1
-        engajamento.ultima_interacao = timezone.now()
-        engajamento.recalcular_nivel()
-        engajamento.save()
+
+@receiver(post_save, sender=Adimplencia)
+def recalcular_engajamento_ao_mudar_adimplencia(sender, instance, **kwargs):
+    """Recalcula engajamento quando a adimplência muda (penalidade)."""
+    _recalcular_engajamento_municipio(instance.municipio)

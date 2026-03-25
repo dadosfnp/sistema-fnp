@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block titulo %}Inicio — Sistema FNP{% endblock %}
+{% block titulo_pagina %}Painel Geral{% endblock %}
+
+{% block conteudo %}
+<div class="space-y-6">
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Pessoas</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_pessoas }}</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+                </div>
+            </div>
+            <a href="{% url 'cadastro:lista_pessoas' %}" class="inline-block mt-3 text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver todas &rarr;</a>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Municipios</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_municipios }}</p>
+                    <p class="text-xs text-emerald-600 mt-0.5">{{ total_associados }} associados</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5M3.75 3v18m4.5-18v18M12.75 3v18m4.5-18v18M20.25 3v18"/></svg>
+                </div>
+            </div>
+            <a href="{% url 'cadastro:lista_municipios' %}" class="inline-block mt-3 text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver todos &rarr;</a>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Eventos</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_eventos }}</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+                </div>
+            </div>
+            <a href="{% url 'eventos:lista_eventos' %}" class="inline-block mt-3 text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver todos &rarr;</a>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Adimplencia 2026</p>
+                    <p class="text-2xl font-bold text-emerald-600 mt-1">{{ total_adimplentes }}</p>
+                    <p class="text-xs text-red-500 mt-0.5">{{ total_inadimplentes }} inadimplentes</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
+                </div>
+            </div>
+            <a href="{% url 'adimplencia:lista_adimplencia' %}" class="inline-block mt-3 text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver detalhes &rarr;</a>
+        </div>
+    </div>
+
+    <!-- Conteudo principal -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Eventos recentes -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-900">Eventos Recentes</h3>
+                <a href="{% url 'eventos:lista_eventos' %}" class="text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver todos</a>
+            </div>
+            <div class="divide-y divide-gray-50">
+                {% for evento in eventos_recentes %}
+                <a href="{% url 'eventos:detalhe_evento' evento.pk %}" class="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50/50 transition-colors group">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0
+                        {% if evento.tipo == 'reuniao_geral' %}bg-fnp-100 text-fnp-600
+                        {% elif evento.tipo == 'forum' %}bg-indigo-50 text-indigo-600
+                        {% elif evento.tipo == 'congresso' %}bg-purple-50 text-purple-600
+                        {% elif evento.tipo == 'webinar' or evento.tipo == 'reuniao_online' %}bg-sky-50 text-sky-600
+                        {% else %}bg-gray-50 text-gray-600{% endif %}">
+                        {{ evento.data_inicio|date:"d" }}<br>{{ evento.data_inicio|date:"M" }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate group-hover:text-fnp-500">{{ evento.titulo }}</p>
+                        <p class="text-xs text-gray-400">{{ evento.get_tipo_display }} — {{ evento.local|default:"Online" }}</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-300 group-hover:text-fnp-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Top engajamento -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-900">Top Engajamento</h3>
+                <a href="{% url 'engajamento:lista_engajamento' %}" class="text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver ranking</a>
+            </div>
+            <div class="divide-y divide-gray-50">
+                {% for eng in top_engajamento %}
+                <a href="{% url 'cadastro:detalhe_municipio' eng.municipio.pk %}" class="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50/50 transition-colors group">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
+                        {% if forloop.counter == 1 %}bg-amber-100 text-amber-700
+                        {% elif forloop.counter == 2 %}bg-gray-200 text-gray-600
+                        {% elif forloop.counter == 3 %}bg-orange-100 text-orange-700
+                        {% else %}bg-gray-50 text-gray-500{% endif %}">
+                        {{ forloop.counter }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate group-hover:text-fnp-500">{{ eng.municipio.nome }}/{{ eng.municipio.uf }}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <div class="flex-1 h-1.5 bg-gray-100 rounded-full max-w-[120px]">
+                                <div class="h-1.5 rounded-full
+                                    {% if eng.pontuacao_normalizada >= 70 %}bg-emerald-500
+                                    {% elif eng.pontuacao_normalizada >= 40 %}bg-blue-500
+                                    {% elif eng.pontuacao_normalizada >= 10 %}bg-amber-500
+                                    {% else %}bg-gray-300{% endif %}"
+                                    style="width: {{ eng.pontuacao_normalizada }}%"></div>
+                            </div>
+                            <span class="text-xs font-semibold text-gray-500 tabular-nums">{{ eng.pontuacao_normalizada }}/100</span>
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full
+                        {% if eng.nivel == 'alto' %}bg-emerald-50 text-emerald-700
+                        {% elif eng.nivel == 'medio' %}bg-blue-50 text-blue-700
+                        {% elif eng.nivel == 'baixo' %}bg-amber-50 text-amber-700
+                        {% else %}bg-gray-100 text-gray-500{% endif %}">
+                        {{ eng.get_nivel_display }}
+                    </span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Acesso rapido -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <a href="{% url 'cadastro:lista_pessoas' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
+                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+            </div>
+            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Pessoas</span>
+        </a>
+        <a href="{% url 'cadastro:lista_municipios' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5M3.75 3v18m4.5-18v18M12.75 3v18m4.5-18v18M20.25 3v18"/></svg>
+            </div>
+            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Municipios</span>
+        </a>
+        <a href="{% url 'adimplencia:lista_adimplencia' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center transition-colors">
+                <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
+            </div>
+            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Adimplencia</span>
+        </a>
+        <a href="{% url 'eventos:lista_eventos' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
+                <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+            </div>
+            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Eventos</span>
+        </a>
+        <a href="{% url 'engajamento:lista_engajamento' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-orange-50 group-hover:bg-orange-100 flex items-center justify-center transition-colors">
+                <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75z"/></svg>
+            </div>
+            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Engajamento</span>
+        </a>
+        <a href="{% url 'relatorios:painel' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
+            <div class="w-10 h-10 rounded-xl bg-rose-50 group-hover:bg-rose-100 flex items-center justify-center transition-colors">
+                <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"/></svg>
+            </div>
+            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Relatorios</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

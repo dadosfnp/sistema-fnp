@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(source .venv/Scripts/activate)",
+      "Bash(pip install:*)",
+      "Bash(rm -f db.sqlite3)",
+      "Bash(python manage.py makemigrations nucleo cadastro adimplencia engajamento eventos relatorios)",
+      "Bash(python manage.py migrate)",
+      "Bash(python manage.py check)"
+    ]
+  }
+}

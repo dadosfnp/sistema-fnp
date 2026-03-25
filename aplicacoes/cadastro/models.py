@@ -9,13 +9,22 @@ class Pessoa(ModeloBase):
     class TipoPessoa(models.TextChoices):
         INTERNO = 'interno', 'Interno'
         PREFEITO = 'prefeito', 'Prefeito(a)'
+        VICE_PREFEITO = 'vice_prefeito', 'Vice-prefeito(a)'
         SECRETARIO = 'secretario', 'Secretário(a)'
         ASSESSOR = 'assessor', 'Assessor(a)'
+        VEREADOR = 'vereador', 'Vereador(a)'
         OUTRO = 'outro', 'Outro'
+
+    class Genero(models.TextChoices):
+        MASCULINO = 'masculino', 'Masculino'
+        FEMININO = 'feminino', 'Feminino'
+        OUTRO = 'outro', 'Outro'
+        NAO_INFORMADO = 'nao_informado', 'Não informado'
 
     nome = models.CharField('nome', max_length=255)
     email = models.EmailField('e-mail', unique=True, blank=True, null=True)
     telefone = models.CharField('telefone', max_length=20, blank=True)
+    foto = models.ImageField('foto', upload_to='pessoas/fotos/', blank=True)
     tipo = models.CharField(
         'tipo',
         max_length=20,
@@ -24,6 +33,22 @@ class Pessoa(ModeloBase):
     )
     cargo = models.CharField('cargo', max_length=150, blank=True)
     partido = models.CharField('partido', max_length=50, blank=True)
+    genero = models.CharField(
+        'gênero',
+        max_length=20,
+        choices=Genero.choices,
+        default=Genero.NAO_INFORMADO,
+    )
+    redes_sociais = models.JSONField(
+        'redes sociais',
+        default=dict,
+        blank=True,
+        help_text='Ex: {"instagram": "@prefeito", "twitter": "@prefeito"}',
+    )
+    biografia_curta = models.TextField('biografia curta', blank=True)
+    mandato_inicio = models.DateField('início do mandato', blank=True, null=True)
+    mandato_fim = models.DateField('fim do mandato', blank=True, null=True)
+    observacoes = models.TextField('observações', blank=True)
     ativo = models.BooleanField('ativo', default=True)
 
     class Meta:
@@ -33,6 +58,14 @@ class Pessoa(ModeloBase):
 
     def __str__(self):
         return self.nome
+
+    @property
+    def mandato_vigente(self):
+        from django.utils import timezone
+        hoje = timezone.now().date()
+        if self.mandato_inicio and self.mandato_fim:
+            return self.mandato_inicio <= hoje <= self.mandato_fim
+        return False
 
 
 class Municipio(ModeloBase):
@@ -51,13 +84,39 @@ class Municipio(ModeloBase):
         ('SP', 'São Paulo'), ('SE', 'Sergipe'), ('TO', 'Tocantins'),
     ]
 
+    class Regiao(models.TextChoices):
+        NORTE = 'norte', 'Norte'
+        NORDESTE = 'nordeste', 'Nordeste'
+        CENTRO_OESTE = 'centro_oeste', 'Centro-Oeste'
+        SUDESTE = 'sudeste', 'Sudeste'
+        SUL = 'sul', 'Sul'
+
     nome = models.CharField('nome', max_length=255)
     uf = models.CharField('UF', max_length=2, choices=UF_CHOICES)
     codigo_ibge = models.IntegerField('código IBGE', unique=True)
     populacao = models.IntegerField('população', default=0)
-    regiao = models.CharField('região', max_length=50, blank=True)
+    regiao = models.CharField(
+        'região',
+        max_length=20,
+        choices=Regiao.choices,
+        blank=True,
+    )
     eh_capital = models.BooleanField('é capital?', default=False)
     associado_fnp = models.BooleanField('associado FNP?', default=False)
+    latitude = models.DecimalField(
+        'latitude',
+        max_digits=10,
+        decimal_places=7,
+        blank=True,
+        null=True,
+    )
+    longitude = models.DecimalField(
+        'longitude',
+        max_digits=10,
+        decimal_places=7,
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         verbose_name = 'município'
@@ -68,13 +127,69 @@ class Municipio(ModeloBase):
         return f'{self.nome}/{self.uf}'
 
 
+class Pauta(ModeloBase):
+    """Eixo temático / pauta institucional da FNP."""
+
+    nome = models.CharField('nome', max_length=100, unique=True)
+    descricao = models.TextField('descrição', blank=True)
+    icone = models.CharField('ícone', max_length=50, blank=True, help_text='Nome do ícone (ex: heart, book)')
+    ativa = models.BooleanField('ativa?', default=True)
+
+    class Meta:
+        verbose_name = 'pauta'
+        verbose_name_plural = 'pautas'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
+
+class EnvolvimentoPauta(ModeloBase):
+    """Envolvimento de uma pessoa com um eixo temático."""
+
+    class NivelEnvolvimento(models.TextChoices):
+        APOIADOR = 'apoiador', 'Apoiador'
+        ENGAJADO = 'engajado', 'Engajado'
+        LIDER = 'lider', 'Líder'
+
+    pessoa = models.ForeignKey(
+        Pessoa,
+        on_delete=models.CASCADE,
+        related_name='envolvimentos_pauta',
+        verbose_name='pessoa',
+    )
+    pauta = models.ForeignKey(
+        Pauta,
+        on_delete=models.CASCADE,
+        related_name='envolvimentos',
+        verbose_name='pauta',
+    )
+    nivel = models.CharField(
+        'nível de envolvimento',
+        max_length=20,
+        choices=NivelEnvolvimento.choices,
+        default=NivelEnvolvimento.APOIADOR,
+    )
+    observacao = models.TextField('observação', blank=True)
+
+    class Meta:
+        verbose_name = 'envolvimento em pauta'
+        verbose_name_plural = 'envolvimentos em pautas'
+        unique_together = ['pessoa', 'pauta']
+
+    def __str__(self):
+        return f'{self.pessoa} — {self.pauta} ({self.get_nivel_display()})'
+
+
 class VinculoMunicipio(ModeloBase):
     """Vínculo entre uma pessoa e um município (mandato, cargo, etc.)."""
 
     class Papel(models.TextChoices):
         PREFEITO = 'prefeito', 'Prefeito(a)'
+        VICE_PREFEITO = 'vice_prefeito', 'Vice-prefeito(a)'
         SECRETARIO = 'secretario', 'Secretário(a)'
         ASSESSOR = 'assessor', 'Assessor(a)'
+        VEREADOR = 'vereador', 'Vereador(a)'
         CONTATO = 'contato', 'Contato'
 
     pessoa = models.ForeignKey(

@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar — Sistema FNP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fnp: {
+                            50:  '#f0f5ff',
+                            100: '#e0ebff',
+                            500: '#1e3a5f',
+                            600: '#17304f',
+                            700: '#112640',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="h-full font-sans antialiased bg-gray-50">
+
+    <div class="min-h-full flex">
+        <!-- Lado esquerdo: branding -->
+        <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-fnp-500 via-fnp-600 to-fnp-700 relative overflow-hidden">
+            <div class="absolute inset-0 opacity-10">
+                <svg class="w-full h-full" viewBox="0 0 400 400" fill="none">
+                    <circle cx="200" cy="200" r="180" stroke="white" stroke-width="0.5"/>
+                    <circle cx="200" cy="200" r="140" stroke="white" stroke-width="0.5"/>
+                    <circle cx="200" cy="200" r="100" stroke="white" stroke-width="0.5"/>
+                    <circle cx="200" cy="200" r="60" stroke="white" stroke-width="0.5"/>
+                </svg>
+            </div>
+            <div class="relative z-10 flex flex-col justify-center px-16">
+                <img src="{% static 'img/logo-fnp.png' %}" alt="FNP" class="h-14 w-auto mb-8 brightness-0 invert self-start">
+                <h1 class="text-4xl font-bold text-white leading-tight">Sistema de Gestao<br>Institucional</h1>
+                <p class="mt-4 text-lg text-white/60 max-w-md">Plataforma de cadastro, adimplencia, eventos e engajamento da Frente Nacional de Prefeitos.</p>
+                <div class="flex items-center gap-6 mt-10">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-white">5.568</p>
+                        <p class="text-xs text-white/50 mt-0.5">Municipios</p>
+                    </div>
+                    <div class="w-px h-10 bg-white/20"></div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-white">27</p>
+                        <p class="text-xs text-white/50 mt-0.5">Estados</p>
+                    </div>
+                    <div class="w-px h-10 bg-white/20"></div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-white">2025</p>
+                        <p class="text-xs text-white/50 mt-0.5">Fundacao</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lado direito: formulario -->
+        <div class="flex-1 flex items-center justify-center px-6 py-12">
+            <div class="w-full max-w-sm">
+                <!-- Logo mobile -->
+                <div class="lg:hidden flex justify-center mb-8">
+                    <img src="{% static 'img/logo-fnp.png' %}" alt="FNP" class="h-12">
+                </div>
+
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-900">Bem-vindo</h2>
+                    <p class="text-sm text-gray-500 mt-1">Entre com suas credenciais para acessar o sistema</p>
+                </div>
+
+                {% if erro %}
+                <div class="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                    <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+                    {{ erro }}
+                </div>
+                {% endif %}
+
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label for="usuario" class="block text-sm font-medium text-gray-700 mb-1.5">Usuario</label>
+                        <div class="relative">
+                            <i data-lucide="user" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                            <input type="text" id="usuario" name="usuario" required autofocus
+                                   class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-fnp-500/20 focus:border-fnp-500 transition-all"
+                                   placeholder="Seu nome de usuario">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="senha" class="block text-sm font-medium text-gray-700 mb-1.5">Senha</label>
+                        <div class="relative">
+                            <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                            <input type="password" id="senha" name="senha" required
+                                   class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-fnp-500/20 focus:border-fnp-500 transition-all"
+                                   placeholder="Sua senha">
+                        </div>
+                    </div>
+                    <button type="submit"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-fnp-500 rounded-xl hover:bg-fnp-600 focus:outline-none focus:ring-2 focus:ring-fnp-500/30 transition-all shadow-sm">
+                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                        Entrar
+                    </button>
+                </form>
+
+                <p class="mt-8 text-center text-xs text-gray-400">
+                    Frente Nacional de Prefeitos &copy; 2025
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ evento.titulo }} — Sistema FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <a href="{% url 'eventos:lista_eventos' %}" class="text-gray-400 hover:text-fnp-500 transition-colors">Eventos</a>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold truncate">{{ evento.titulo }}</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Header do evento -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="h-3
+            {% if evento.tipo == 'reuniao_geral' %}bg-fnp-500
+            {% elif evento.tipo == 'forum' %}bg-indigo-500
+            {% elif evento.tipo == 'congresso' %}bg-purple-500
+            {% elif evento.tipo == 'webinar' or evento.tipo == 'reuniao_online' %}bg-sky-500
+            {% else %}bg-gray-400{% endif %}"></div>
+        <div class="p-6">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ evento.titulo }}</h1>
+                    <div class="flex flex-wrap items-center gap-2 mt-2">
+                        <span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg
+                            {% if evento.tipo == 'reuniao_geral' %}bg-fnp-100 text-fnp-700
+                            {% elif evento.tipo == 'forum' %}bg-indigo-50 text-indigo-700
+                            {% elif evento.tipo == 'congresso' %}bg-purple-50 text-purple-700
+                            {% elif evento.tipo == 'webinar' or evento.tipo == 'reuniao_online' %}bg-sky-50 text-sky-700
+                            {% else %}bg-gray-50 text-gray-700{% endif %}">
+                            {{ evento.get_tipo_display }}
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg
+                            {% if evento.modalidade == 'presencial' %}bg-emerald-50 text-emerald-700
+                            {% elif evento.modalidade == 'online' %}bg-sky-50 text-sky-700
+                            {% else %}bg-violet-50 text-violet-700{% endif %}">
+                            {{ evento.get_modalidade_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-600 sm:text-right">
+                    <p class="font-semibold tabular-nums">{{ evento.data_inicio|date:"d/m/Y" }}{% if evento.data_fim %} — {{ evento.data_fim|date:"d/m/Y" }}{% endif %}</p>
+                    {% if evento.local %}<p class="text-gray-400 mt-0.5">{{ evento.local }}</p>{% endif %}
+                </div>
+            </div>
+
+            {% if evento.descricao %}
+            <p class="mt-4 text-sm text-gray-600 leading-relaxed">{{ evento.descricao }}</p>
+            {% endif %}
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5">
+                <div class="text-center p-3 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500">Pts Presencial</p>
+                    <p class="text-lg font-bold text-gray-900">{{ evento.pontos_presencial }}</p>
+                </div>
+                <div class="text-center p-3 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500">Pts Online</p>
+                    <p class="text-lg font-bold text-gray-900">{{ evento.pontos_online }}</p>
+                </div>
+                <div class="text-center p-3 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500">Bonus Palestrante</p>
+                    <p class="text-lg font-bold text-gray-900">+{{ evento.pontos_palestrante_bonus }}</p>
+                </div>
+                <div class="text-center p-3 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500">Bonus Organizador</p>
+                    <p class="text-lg font-bold text-gray-900">+{{ evento.pontos_organizador_bonus }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de participantes -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-50">
+            <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <i data-lucide="users" class="w-4 h-4 text-gray-400"></i>
+                Participantes Confirmados
+                <span class="text-xs font-normal text-gray-400">({{ participacoes|length }})</span>
+            </h3>
+        </div>
+        {% if participacoes %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b border-gray-50">
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Participante</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Municipio</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Forma</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Papel</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Pontos</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    {% for p in participacoes %}
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="px-6 py-3">
+                            <a href="{% url 'cadastro:detalhe_pessoa' p.pessoa.pk %}" class="flex items-center gap-2 group">
+                                <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
+                                    <img src="https://api.dicebear.com/9.x/initials/svg?seed={{ p.pessoa.nome|urlencode }}&backgroundColor=1e3a5f&textColor=ffffff&fontSize=36" alt="{{ p.pessoa.nome.0 }}" class="w-full h-full">
+                                </div>
+                                <span class="text-sm font-medium text-gray-900 group-hover:text-fnp-500">{{ p.pessoa.nome }}</span>
+                            </a>
+                        </td>
+                        <td class="px-6 py-3 text-sm text-gray-600">{{ p.municipio.nome }}/{{ p.municipio.uf }}</td>
+                        <td class="px-6 py-3"><span class="text-xs font-medium px-2 py-0.5 rounded-lg {% if p.forma_participacao == 'presencial' %}bg-emerald-50 text-emerald-700{% else %}bg-sky-50 text-sky-700{% endif %}">{{ p.get_forma_participacao_display }}</span></td>
+                        <td class="px-6 py-3 text-sm text-gray-600">{{ p.get_papel_no_evento_display }}</td>
+                        <td class="px-6 py-3 text-sm font-semibold text-gray-700 text-right tabular-nums">{{ p.pontos_calculados }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-8 text-center">
+            <p class="text-sm text-gray-400">Nenhum participante confirmado.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}
+<script>lucide.createIcons();</script>
+{% endblock %}

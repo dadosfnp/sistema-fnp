@@ -1,15 +1,237 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block titulo %}Sistema FNP{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fnp: {
+                            50:  '#f0f5ff',
+                            100: '#e0ebff',
+                            200: '#c2d6ff',
+                            300: '#94b8ff',
+                            400: '#5a8fd4',
+                            500: '#1e3a5f',
+                            600: '#17304f',
+                            700: '#112640',
+                            800: '#0b1c30',
+                            900: '#061220',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+        .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+
     {% block css_extra %}{% endblock %}
 </head>
-<body>
-    <main>
-        {% block conteudo %}{% endblock %}
-    </main>
+<body class="h-full bg-gray-50 font-sans antialiased" x-data="{ sidebarAberta: true }" x-cloak>
+
+    <div class="flex h-full">
+        <!-- Sidebar -->
+        <aside
+            class="flex flex-col bg-fnp-700 text-white transition-all duration-300 shadow-xl relative z-10 overflow-hidden"
+            :class="sidebarAberta ? 'w-60' : 'w-[60px]'"
+        >
+            <!-- Logo -->
+            <div class="flex items-center justify-center bg-white px-2"
+                 :class="sidebarAberta ? 'h-14' : 'h-14'">
+                <a href="{% url 'nucleo:inicio' %}" class="flex items-center justify-center">
+                    <img src="{% static 'img/logo-fnp.png' %}" alt="FNP"
+                         class="transition-all duration-300 object-contain"
+                         :class="sidebarAberta ? 'h-9' : 'h-6'">
+                </a>
+            </div>
+
+            <!-- Navegacao -->
+            <nav class="flex-1 py-3 overflow-y-auto" :class="sidebarAberta ? 'px-3' : 'px-2'">
+                {% with request.resolver_match.url_name as url_atual %}
+
+                <!-- Inicio -->
+                <a href="{% url 'nucleo:inicio' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
+                          {% if url_atual == 'inicio' %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   {% if url_atual != 'inicio' and not sidebarAberta %}title="Inicio"{% endif %}>
+                    <i data-lucide="layout-dashboard" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Inicio</span>
+                </a>
+
+                <!-- Separador: Cadastro -->
+                <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Cadastro</p>
+                    <hr x-show="!sidebarAberta" class="border-white/10">
+                </div>
+
+                <a href="{% url 'cadastro:lista_pessoas' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
+                          {% if 'pessoas' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Pessoas">
+                    <i data-lucide="users" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Pessoas</span>
+                </a>
+
+                <a href="{% url 'cadastro:lista_municipios' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if 'municipios' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Municipios">
+                    <i data-lucide="building-2" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Municipios</span>
+                </a>
+
+                <!-- Separador: Gestao -->
+                <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Gestao</p>
+                    <hr x-show="!sidebarAberta" class="border-white/10">
+                </div>
+
+                <a href="{% url 'adimplencia:lista_adimplencia' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
+                          {% if 'adimplencia' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Adimplencia">
+                    <i data-lucide="wallet" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Adimplencia</span>
+                </a>
+
+                <a href="{% url 'eventos:lista_eventos' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if 'eventos' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Eventos">
+                    <i data-lucide="calendar-days" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Eventos</span>
+                </a>
+
+                <a href="{% url 'engajamento:lista_engajamento' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if 'engajamento' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Engajamento">
+                    <i data-lucide="trending-up" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Engajamento</span>
+                </a>
+
+                <!-- Separador: Analise -->
+                <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Analise</p>
+                    <hr x-show="!sidebarAberta" class="border-white/10">
+                </div>
+
+                <a href="{% url 'relatorios:painel' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
+                          {% if 'relatorios' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Relatorios">
+                    <i data-lucide="pie-chart" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Relatorios</span>
+                </a>
+
+                {% endwith %}
+            </nav>
+
+            <!-- Recolher -->
+            <div class="border-t border-white/10" :class="sidebarAberta ? 'px-3 py-2' : 'px-2 py-2'">
+                <button
+                    @click="sidebarAberta = !sidebarAberta"
+                    class="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-[13px] font-medium text-white/50 hover:text-white hover:bg-white/10 transition-all duration-150"
+                    :class="!sidebarAberta && 'justify-center !px-0'"
+                    title="Recolher menu"
+                >
+                    <i data-lucide="panel-left-close" class="w-[18px] h-[18px] flex-shrink-0 transition-transform duration-300" :class="!sidebarAberta && 'rotate-180'"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Recolher</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteudo principal -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Barra superior -->
+            <header class="flex items-center justify-between h-14 px-6 bg-white border-b border-gray-100">
+                <div class="flex items-center space-x-3">
+                    {% block breadcrumb %}
+                    <h1 class="text-sm font-semibold text-gray-800">
+                        {% block titulo_pagina %}Sistema FNP{% endblock %}
+                    </h1>
+                    {% endblock %}
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if user.is_authenticated %}
+                    <div class="flex items-center space-x-2 pl-3 border-l border-gray-200">
+                        <div class="w-7 h-7 rounded-full bg-fnp-500 flex items-center justify-center">
+                            <span class="text-[11px] font-semibold text-white">{{ user.first_name.0|default:user.username.0|upper }}</span>
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">{{ user.get_full_name|default:user.username }}</span>
+                    </div>
+                    <a href="{% url 'admin:index' %}" class="text-xs text-gray-500 hover:text-fnp-500 transition-colors font-medium px-2 py-1 rounded hover:bg-gray-50">Admin</a>
+                    <a href="{% url 'nucleo:sair' %}" class="text-xs text-gray-400 hover:text-red-500 transition-colors font-medium px-2 py-1 rounded hover:bg-red-50">Sair</a>
+                    {% endif %}
+                </div>
+            </header>
+
+            <!-- Mensagens -->
+            {% if messages %}
+            <div class="px-6 pt-4 space-y-2" x-data="{ mostrar: true }" x-show="mostrar" x-transition>
+                {% for message in messages %}
+                <div class="flex items-center px-4 py-3 rounded-lg text-sm shadow-sm
+                    {% if message.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200
+                    {% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
+                    {% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border border-amber-200
+                    {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                    <span class="flex-1">{{ message }}</span>
+                    <button @click="mostrar = false" class="ml-3 opacity-50 hover:opacity-100">&times;</button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Area de conteudo -->
+            <main class="flex-1 overflow-y-auto p-6 bg-gray-50/80">
+                {% block conteudo %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
+    <!-- Inicializar Lucide icons -->
+    <script>lucide.createIcons();</script>
+
     {% block js_extra %}{% endblock %}
 </body>
 </html>

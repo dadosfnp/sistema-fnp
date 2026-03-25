@@ -1,0 +1,61 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full">
+        <thead>
+            <tr class="border-b border-gray-100">
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Municipio</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">UF</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Regiao</th>
+                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Populacao</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Associado</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for municipio in municipios %}
+            <tr class="hover:bg-fnp-50/50 cursor-pointer transition-colors" onclick="window.location='{% url 'cadastro:detalhe_municipio' municipio.pk %}'">
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
+                            <img src="https://api.dicebear.com/9.x/shapes/svg?seed={{ municipio.nome|urlencode }}&backgroundColor=059669,0284c7,7c3aed,d97706,dc2626&shape1Color=ffffff&shape2Color=ffffff&shape3Color=ffffff" alt="{{ municipio.uf }}" class="w-full h-full">
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">{{ municipio.nome }}</p>
+                            {% if municipio.eh_capital %}<p class="text-xs text-gray-400">Capital</p>{% endif %}
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">{{ municipio.uf }}</td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg
+                        {% if municipio.regiao == 'norte' %}bg-emerald-50 text-emerald-700
+                        {% elif municipio.regiao == 'nordeste' %}bg-orange-50 text-orange-700
+                        {% elif municipio.regiao == 'centro_oeste' %}bg-yellow-50 text-yellow-700
+                        {% elif municipio.regiao == 'sudeste' %}bg-blue-50 text-blue-700
+                        {% elif municipio.regiao == 'sul' %}bg-purple-50 text-purple-700
+                        {% else %}bg-gray-50 text-gray-600{% endif %}">
+                        {{ municipio.get_regiao_display|default:"—" }}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600 text-right tabular-nums">{{ municipio.populacao|floatformat:"0" }}</td>
+                <td class="px-6 py-4">
+                    {% if municipio.associado_fnp %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Sim
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Nao
+                    </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="px-6 py-12 text-center">
+                    <svg class="mx-auto w-10 h-10 text-gray-300" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5M3.75 3v18m4.5-18v18M12.75 3v18m4.5-18v18M20.25 3v18"/></svg>
+                    <p class="mt-2 text-sm text-gray-400">Nenhum municipio encontrado.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

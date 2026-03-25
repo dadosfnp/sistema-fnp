@@ -1,0 +1,50 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full">
+        <thead>
+            <tr class="border-b border-gray-100">
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Evento</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Modalidade</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Local</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for evento in eventos %}
+            <tr class="hover:bg-fnp-50/50 cursor-pointer transition-colors" onclick="window.location='{% url 'eventos:detalhe_evento' evento.pk %}'">
+                <td class="px-6 py-4">
+                    <p class="text-sm font-semibold text-gray-900">{{ evento.titulo }}</p>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg
+                        {% if evento.tipo == 'reuniao_geral' %}bg-fnp-100 text-fnp-700
+                        {% elif evento.tipo == 'forum' %}bg-indigo-50 text-indigo-700
+                        {% elif evento.tipo == 'congresso' %}bg-purple-50 text-purple-700
+                        {% elif evento.tipo == 'webinar' or evento.tipo == 'reuniao_online' %}bg-sky-50 text-sky-700
+                        {% else %}bg-gray-50 text-gray-700{% endif %}">
+                        {{ evento.get_tipo_display }}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg
+                        {% if evento.modalidade == 'presencial' %}bg-emerald-50 text-emerald-700
+                        {% elif evento.modalidade == 'online' %}bg-sky-50 text-sky-700
+                        {% else %}bg-violet-50 text-violet-700{% endif %}">
+                        {{ evento.get_modalidade_display }}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600 tabular-nums">
+                    {{ evento.data_inicio|date:"d/m/Y" }}{% if evento.data_fim %} — {{ evento.data_fim|date:"d/m/Y" }}{% endif %}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500">{{ evento.local|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="px-6 py-12 text-center">
+                    <p class="text-sm text-gray-400">Nenhum evento encontrado.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

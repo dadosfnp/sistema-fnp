@@ -1,0 +1,68 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full">
+        <thead>
+            <tr class="border-b border-gray-100">
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-8">#</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Municipio</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Bienio</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Score</th>
+                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Pts Brutos</th>
+                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Participacoes</th>
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nivel</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for eng in engajamentos %}
+            <tr class="hover:bg-fnp-50/50 cursor-pointer transition-colors" onclick="window.location='{% url 'cadastro:detalhe_municipio' eng.municipio.pk %}'">
+                <td class="px-6 py-4 text-sm font-bold text-gray-300">{{ forloop.counter }}</td>
+                <td class="px-6 py-4">
+                    <p class="text-sm font-semibold text-gray-900">{{ eng.municipio.nome }}</p>
+                    <p class="text-xs text-gray-400">{{ eng.municipio.uf }}</p>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-500">{{ eng.bienio }}</td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 h-2 bg-gray-100 rounded-full max-w-[80px]">
+                            <div class="h-2 rounded-full transition-all
+                                {% if eng.pontuacao_normalizada >= 70 %}bg-emerald-500
+                                {% elif eng.pontuacao_normalizada >= 40 %}bg-blue-500
+                                {% elif eng.pontuacao_normalizada >= 10 %}bg-amber-500
+                                {% else %}bg-gray-300{% endif %}"
+                                style="width: {{ eng.pontuacao_normalizada }}%"></div>
+                        </div>
+                        <span class="text-sm font-semibold text-gray-700 tabular-nums">{{ eng.pontuacao_normalizada }}</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600 text-right tabular-nums">{{ eng.pontuacao_bruta }}</td>
+                <td class="px-6 py-4 text-sm text-gray-600 text-right tabular-nums">{{ eng.total_participacoes }}</td>
+                <td class="px-6 py-4">
+                    {% if eng.nivel == 'alto' %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clip-rule="evenodd"/></svg>
+                        Alto
+                    </span>
+                    {% elif eng.nivel == 'medio' %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg>
+                        Medio
+                    </span>
+                    {% elif eng.nivel == 'baixo' %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-amber-50 text-amber-700">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clip-rule="evenodd"/></svg>
+                        Baixo
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500">Inativo</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="px-6 py-12 text-center">
+                    <p class="text-sm text-gray-400">Nenhum registro de engajamento encontrado.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

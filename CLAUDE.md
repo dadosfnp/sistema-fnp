@@ -56,3 +56,12 @@ sistema-fnp/
 - Sempre usar UUID como chave primária nos models
 - Campos de data: `criado_em`, `atualizado_em` (gerenciados automaticamente)
 - Ao criar templates HTMX, fragmentos parciais retornam apenas HTML, não página completa
+- name: Nunca incluir Co-Authored-By do Claude
+description: Não adicionar Co-Authored-By do Claude nos commits — o usuário não quer que o Claude apareça no histórico do Git
+
+## Segurança
+
+- NUNCA ler, exibir ou logar dados pessoais (telefones, CPFs, emails de prefeitos/secretários)
+- NUNCA incluir dados reais em fixtures, seeds ou exemplos — sempre usar dados fictícios
+- Variáveis de ambiente sensíveis ficam exclusivamente no .env (nunca commitadas)
+- Chave de criptografia do banco: variável CHAVE_CRIPTOGRAFIA no .env

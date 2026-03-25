@@ -5,5 +5,8 @@ psycopg[binary]>=3.1,<4
 # Admin
 django-unfold>=0.40,<1
 
+# Imagens (foto de pessoa)
+Pillow>=10.0,<11
+
 # Variáveis de ambiente
 python-dotenv>=1.0,<2

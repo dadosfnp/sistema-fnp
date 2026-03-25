@@ -75,6 +75,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'aplicacoes.nucleo.context_processors.perfil_usuario',
             ],
         },
     },
@@ -124,7 +125,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # ---------------------------------------------------------------------------
 # Campo auto padrão
 # ---------------------------------------------------------------------------
-DEFAULT_AUTO_FIELD = 'django.db.models.UUIDField'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGIN_URL = '/entrar/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/entrar/'
 
 # ---------------------------------------------------------------------------
 # Django Unfold — configuração do admin

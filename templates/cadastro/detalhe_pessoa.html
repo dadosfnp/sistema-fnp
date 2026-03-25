@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ pessoa.nome }} — Sistema FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <a href="{% url 'cadastro:lista_pessoas' %}" class="text-gray-400 hover:text-fnp-500 transition-colors">Pessoas</a>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold">{{ pessoa.nome }}</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Cabecalho -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex flex-col sm:flex-row gap-5">
+            <!-- Avatar -->
+            <div class="flex-shrink-0">
+                <div class="w-24 h-24 rounded-2xl overflow-hidden shadow-md ring-4 ring-gray-100">
+                    {% if pessoa.foto %}
+                    <img src="{{ pessoa.foto.url }}" alt="{{ pessoa.nome }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <img src="https://api.dicebear.com/9.x/initials/svg?seed={{ pessoa.nome|urlencode }}&backgroundColor=1e3a5f&textColor=ffffff&fontSize=36" alt="{{ pessoa.nome }}" class="w-full h-full object-cover">
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">{{ pessoa.nome }}</h1>
+                        <p class="text-sm text-gray-500 mt-0.5">{{ pessoa.cargo|default:pessoa.get_tipo_display }}</p>
+                    </div>
+                    <div class="flex items-center gap-2 self-start">
+                    {% if eh_editor %}
+                    <a href="{% url 'cadastro:editar_pessoa' pessoa.pk %}" class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-fnp-600 bg-fnp-50 rounded-lg hover:bg-fnp-100 border border-fnp-200 transition-colors">
+                        <i data-lucide="edit-3" class="w-3 h-3"></i> Editar
+                    </a>
+                    {% endif %}
+                    {% if pessoa.ativo %}
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 self-start">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Ativo
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-500 border border-gray-200 self-start">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Inativo
+                    </span>
+                    {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 mt-3">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg
+                        {% if pessoa.tipo == 'prefeito' %}bg-blue-50 text-blue-700
+                        {% elif pessoa.tipo == 'secretario' %}bg-purple-50 text-purple-700
+                        {% elif pessoa.tipo == 'assessor' %}bg-amber-50 text-amber-700
+                        {% elif pessoa.tipo == 'interno' %}bg-gray-100 text-gray-700
+                        {% else %}bg-gray-50 text-gray-600{% endif %}">
+                        <i data-lucide="badge-check" class="w-3 h-3"></i>
+                        {{ pessoa.get_tipo_display }}
+                    </span>
+                    {% if pessoa.partido %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-50 text-gray-600">
+                        <i data-lucide="flag" class="w-3 h-3"></i>
+                        {{ pessoa.partido }}
+                    </span>
+                    {% endif %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-50 text-gray-600">
+                        <i data-lucide="user" class="w-3 h-3"></i>
+                        {{ pessoa.get_genero_display }}
+                    </span>
+                </div>
+
+                {% if pessoa.mandato_inicio %}
+                <div class="flex items-center gap-1.5 mt-3 text-sm text-gray-500">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                    Mandato: {{ pessoa.mandato_inicio|date:"d/m/Y" }} — {{ pessoa.mandato_fim|date:"d/m/Y"|default:"atual" }}
+                    {% if pessoa.mandato_vigente %}
+                    <span class="ml-1 inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded bg-emerald-50 text-emerald-600">Vigente</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if pessoa.biografia_curta %}
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <p class="text-sm text-gray-600 leading-relaxed">{{ pessoa.biografia_curta }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Vinculos com Municipios -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="building-2" class="w-4 h-4 text-gray-400"></i>
+                Vinculos com Municipios
+            </h3>
+            {% if vinculos %}
+            <div class="space-y-2">
+                {% for v in vinculos %}
+                <a href="{% url 'cadastro:detalhe_municipio' v.municipio.pk %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
+                    <div class="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 shadow-sm">
+                        <img src="https://api.dicebear.com/9.x/shapes/svg?seed={{ v.municipio.nome|urlencode }}&backgroundColor=059669,0284c7,7c3aed,d97706,dc2626&shape1Color=ffffff&shape2Color=ffffff&shape3Color=ffffff" alt="{{ v.municipio.nome }}" class="w-full h-full">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate group-hover:text-fnp-500">{{ v.municipio.nome }}/{{ v.municipio.uf }}</p>
+                        <p class="text-xs text-gray-400">{{ v.get_papel_display }} {% if v.inicio_mandato %}desde {{ v.inicio_mandato|date:"Y" }}{% endif %}</p>
+                    </div>
+                    {% if v.vigente %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-50 text-emerald-600">Vigente</span>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-400 py-2">Nenhum vinculo registrado.</p>
+            {% endif %}
+        </div>
+
+        <!-- Dados adicionais -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-gray-400"></i>
+                Informacoes
+            </h3>
+            <dl class="space-y-3">
+                <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                    <dt class="text-sm text-gray-500 flex items-center gap-1.5"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i> Cargo</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ pessoa.cargo|default:"—" }}</dd>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                    <dt class="text-sm text-gray-500 flex items-center gap-1.5"><i data-lucide="user" class="w-3.5 h-3.5"></i> Tipo</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ pessoa.get_tipo_display }}</dd>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                    <dt class="text-sm text-gray-500 flex items-center gap-1.5"><i data-lucide="flag" class="w-3.5 h-3.5"></i> Partido</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ pessoa.partido|default:"—" }}</dd>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-gray-50">
+                    <dt class="text-sm text-gray-500 flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Cadastro</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ pessoa.criado_em|date:"d/m/Y" }}</dd>
+                </div>
+                <div class="flex items-center justify-between py-2">
+                    <dt class="text-sm text-gray-500 flex items-center gap-1.5"><i data-lucide="activity" class="w-3.5 h-3.5"></i> Participacoes</dt>
+                    <dd class="text-sm font-semibold text-fnp-500">{{ participacoes|length }}</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Participacoes em eventos -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <i data-lucide="calendar-days" class="w-4 h-4 text-gray-400"></i>
+                Participacoes em Eventos
+                <span class="text-xs font-normal text-gray-400">({{ participacoes|length }})</span>
+            </h3>
+        </div>
+        {% if participacoes %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b border-gray-100 bg-gray-50/50">
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Evento</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Forma</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Papel</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Pontos</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    {% for p in participacoes %}
+                    <tr class="hover:bg-fnp-50/30 cursor-pointer transition-colors" onclick="window.location='{% url 'eventos:detalhe_evento' p.evento.pk %}'">
+                        <td class="px-6 py-3.5 text-sm font-medium text-gray-900">{{ p.evento.titulo }}</td>
+                        <td class="px-6 py-3.5 text-sm text-gray-500 tabular-nums">{{ p.evento.data_inicio|date:"d/m/Y" }}</td>
+                        <td class="px-6 py-3.5"><span class="text-xs font-medium px-2 py-0.5 rounded-lg {% if p.forma_participacao == 'presencial' %}bg-emerald-50 text-emerald-700{% else %}bg-sky-50 text-sky-700{% endif %}">{{ p.get_forma_participacao_display }}</span></td>
+                        <td class="px-6 py-3.5 text-sm text-gray-600">{{ p.get_papel_no_evento_display }}</td>
+                        <td class="px-6 py-3.5 text-sm font-semibold text-gray-700 text-right tabular-nums">{{ p.pontos_calculados }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-10 text-center">
+            <i data-lucide="calendar-x" class="w-8 h-8 text-gray-300 mx-auto"></i>
+            <p class="mt-2 text-sm text-gray-400">Nenhuma participacao registrada.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}
+<script>lucide.createIcons();</script>
+{% endblock %}
