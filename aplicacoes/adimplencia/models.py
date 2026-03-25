@@ -1,3 +1,5 @@
+"""Model de adimplência — controle anual de pagamentos dos municípios à FNP."""
+
 from django.db import models
 
 from aplicacoes.cadastro.models import Municipio
@@ -5,7 +7,7 @@ from aplicacoes.nucleo.models import ModeloBase
 
 
 class Adimplencia(ModeloBase):
-    """Registro anual de adimplência de um município."""
+    """Registro anual de adimplência de um município (adimplente/inadimplente/parcial)."""
 
     class Status(models.TextChoices):
         ADIMPLENTE = 'adimplente', 'Adimplente'

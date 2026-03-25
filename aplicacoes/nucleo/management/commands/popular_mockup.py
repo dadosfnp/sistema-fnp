@@ -1,4 +1,4 @@
-"""Popula o banco com dados de demonstracao usando municipios reais."""
+"""Management command para popular o banco com dados fictícios de demonstração."""
 
 import random
 import urllib.request
@@ -94,10 +94,12 @@ EVENTOS = [
 
 
 class Command(BaseCommand):
+    """Cria municípios, pessoas, vínculos, eventos, adimplência e engajamento de mockup."""
+
     help = 'Popula o banco com dados de demonstracao (municipios reais)'
 
     def _baixar_brasoes(self):
-        """Baixa brasoes reais do Wikimedia Commons."""
+        """Baixa brasões do Wikimedia Commons para o diretório de estáticos."""
         destino = Path(settings.BASE_DIR) / 'estaticos' / 'img' / 'brasoes'
         destino.mkdir(parents=True, exist_ok=True)
         base_url = 'https://commons.wikimedia.org/wiki/Special:FilePath/'
@@ -119,6 +121,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f'    Falha ao baixar brasao de {nome}: {e}'))
 
     def handle(self, *args, **options):
+        """Limpa dados existentes e recria toda a base de demonstração."""
         self.stdout.write('Limpando dados antigos de mockup...')
         Participacao.objects.all().delete()
         Engajamento.objects.all().delete()

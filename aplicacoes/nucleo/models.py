@@ -1,3 +1,5 @@
+"""Models base do núcleo: ModeloBase (UUID + timestamps), Perfil de acesso e LogAlteracao."""
+
 import uuid
 
 from django.conf import settings
@@ -5,7 +7,7 @@ from django.db import models
 
 
 class ModeloBase(models.Model):
-    """Modelo abstrato base para todos os models do sistema."""
+    """Modelo abstrato com UUID como PK e campos automáticos de auditoria temporal."""
 
     id = models.UUIDField(
         primary_key=True,
@@ -20,7 +22,7 @@ class ModeloBase(models.Model):
 
 
 class Perfil(models.Model):
-    """Perfil do usuario com nivel de acesso ao sistema."""
+    """Perfil de acesso vinculado 1:1 ao User Django (visualizador ou editor)."""
 
     class TipoPerfil(models.TextChoices):
         VISUALIZADOR = 'visualizador', 'Visualizador'
@@ -48,11 +50,12 @@ class Perfil(models.Model):
 
     @property
     def eh_editor(self):
+        """Retorna True se o perfil possui permissão de edição."""
         return self.tipo == self.TipoPerfil.EDITOR
 
 
 class LogAlteracao(models.Model):
-    """Registro de auditoria — quem alterou o que e quando."""
+    """Registro imutável de auditoria — grava criação, edição e exclusão de objetos."""
 
     class TipoAcao(models.TextChoices):
         CRIACAO = 'criacao', 'Criacao'

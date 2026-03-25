@@ -1,3 +1,5 @@
+"""Views de adimplência — listagem com busca por município, UF ou status."""
+
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import render
@@ -7,6 +9,7 @@ from aplicacoes.adimplencia.models import Adimplencia
 
 @login_required
 def lista_adimplencia(request):
+    """Lista registros de adimplência com busca e suporte a HTMX."""
     busca = request.GET.get('busca', '').strip()
     registros = Adimplencia.objects.select_related('municipio').order_by('-ano_referencia', 'municipio__nome')
     if busca:

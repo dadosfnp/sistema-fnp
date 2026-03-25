@@ -1,3 +1,5 @@
+"""Configuração do admin para ConfiguracaoEngajamento (singleton) e Engajamento."""
+
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
@@ -6,6 +8,7 @@ from .models import ConfiguracaoEngajamento, Engajamento
 
 @admin.register(ConfiguracaoEngajamento)
 class ConfiguracaoEngajamentoAdmin(ModelAdmin):
+    """Admin singleton — permite no máximo um registro de configuração."""
     list_display = ['bienio_atual', 'meta_bienio', 'fator_decaimento', 'penalidade_inadimplente']
     fieldsets = (
         ('Biênio', {
@@ -17,15 +20,17 @@ class ConfiguracaoEngajamentoAdmin(ModelAdmin):
     )
 
     def has_add_permission(self, request):
-        # Singleton: só permite adicionar se não existir nenhum
+        """Permite criar apenas se não existir configuração."""
         return not ConfiguracaoEngajamento.objects.exists()
 
     def has_delete_permission(self, request, obj=None):
+        """Configuração não pode ser excluída pelo admin."""
         return False
 
 
 @admin.register(Engajamento)
 class EngajamentoAdmin(ModelAdmin):
+    """Admin de Engajamento — campos calculados são somente-leitura."""
     list_display = [
         'municipio', 'bienio', 'pontuacao_normalizada', 'pontuacao_bruta',
         'penalidade_adimplencia', 'total_participacoes', 'nivel',

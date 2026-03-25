@@ -1,10 +1,12 @@
+"""Models de cadastro: Pessoa, Município, Pauta, EnvolvimentoPauta e VínculoMunicípio."""
+
 from django.db import models
 
 from aplicacoes.nucleo.models import ModeloBase
 
 
 class Pessoa(ModeloBase):
-    """Pessoa vinculada à FNP (equipe interna, prefeito, secretário, etc.)."""
+    """Pessoa física vinculada à FNP — prefeito, secretário, assessor ou equipe interna."""
 
     class TipoPessoa(models.TextChoices):
         INTERNO = 'interno', 'Interno'
@@ -61,6 +63,7 @@ class Pessoa(ModeloBase):
 
     @property
     def mandato_vigente(self):
+        """Retorna True se a data atual está dentro do período de mandato."""
         from django.utils import timezone
         hoje = timezone.now().date()
         if self.mandato_inicio and self.mandato_fim:
@@ -69,7 +72,7 @@ class Pessoa(ModeloBase):
 
 
 class Municipio(ModeloBase):
-    """Município brasileiro, possivelmente associado à FNP."""
+    """Município brasileiro com dados geográficos, demográficos e vínculo FNP."""
 
     UF_CHOICES = [
         ('AC', 'Acre'), ('AL', 'Alagoas'), ('AP', 'Amapá'),
@@ -129,7 +132,7 @@ class Municipio(ModeloBase):
 
 
 class Pauta(ModeloBase):
-    """Eixo temático / pauta institucional da FNP."""
+    """Eixo temático institucional da FNP (ex.: saúde, mobilidade, segurança)."""
 
     nome = models.CharField('nome', max_length=100, unique=True)
     descricao = models.TextField('descrição', blank=True)
@@ -146,7 +149,7 @@ class Pauta(ModeloBase):
 
 
 class EnvolvimentoPauta(ModeloBase):
-    """Envolvimento de uma pessoa com um eixo temático."""
+    """Relação N:N entre Pessoa e Pauta com nível de envolvimento (apoiador/engajado/líder)."""
 
     class NivelEnvolvimento(models.TextChoices):
         APOIADOR = 'apoiador', 'Apoiador'
@@ -183,7 +186,7 @@ class EnvolvimentoPauta(ModeloBase):
 
 
 class VinculoMunicipio(ModeloBase):
-    """Vínculo entre uma pessoa e um município (mandato, cargo, etc.)."""
+    """Vínculo formal entre uma Pessoa e um Município — define papel e período de mandato."""
 
     class Papel(models.TextChoices):
         PREFEITO = 'prefeito', 'Prefeito(a)'

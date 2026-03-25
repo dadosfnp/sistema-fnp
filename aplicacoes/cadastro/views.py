@@ -1,3 +1,5 @@
+"""Views de cadastro: CRUD de Pessoa e Município com controle de permissão."""
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
@@ -9,6 +11,7 @@ from aplicacoes.nucleo.servicos.auditoria import detectar_alteracoes, registrar_
 
 
 def _eh_editor(request):
+    """Verifica se o usuário logado possui permissão de edição (superuser ou perfil editor)."""
     if request.user.is_superuser:
         return True
     try:
@@ -19,6 +22,7 @@ def _eh_editor(request):
 
 @login_required
 def lista_pessoas(request):
+    """Lista pessoas ativas com busca por nome, cargo ou partido. Suporta HTMX."""
     busca = request.GET.get('busca', '').strip()
     pessoas = Pessoa.objects.filter(ativo=True).order_by('nome')
     if busca:
@@ -33,6 +37,7 @@ def lista_pessoas(request):
 
 @login_required
 def detalhe_pessoa(request, pk):
+    """Exibe detalhes de uma pessoa com vínculos municipais e participações em eventos."""
     pessoa = get_object_or_404(Pessoa, pk=pk)
     vinculos = pessoa.vinculos.select_related('municipio').order_by('-vigente', '-inicio_mandato')
     participacoes = pessoa.participacoes.select_related('evento', 'municipio').order_by('-evento__data_inicio')[:20]
@@ -45,6 +50,7 @@ def detalhe_pessoa(request, pk):
 
 @login_required
 def editar_pessoa(request, pk):
+    """Formulário de edição de pessoa com auditoria de campos alterados."""
     if not _eh_editor(request):
         messages.error(request, 'Voce nao tem permissao para editar.')
         return redirect('cadastro:detalhe_pessoa', pk=pk)
@@ -64,6 +70,7 @@ def editar_pessoa(request, pk):
 
 @login_required
 def criar_pessoa(request):
+    """Formulário de criação de pessoa com registro de auditoria."""
     if not _eh_editor(request):
         messages.error(request, 'Voce nao tem permissao para cadastrar.')
         return redirect('cadastro:lista_pessoas')
@@ -81,6 +88,7 @@ def criar_pessoa(request):
 
 @login_required
 def lista_municipios(request):
+    """Lista municípios com busca por nome ou UF. Suporta HTMX."""
     busca = request.GET.get('busca', '').strip()
     municipios = Municipio.objects.all().order_by('nome')
     if busca:
@@ -94,6 +102,7 @@ def lista_municipios(request):
 
 @login_required
 def detalhe_municipio(request, pk):
+    """Exibe detalhes do município com vínculos, adimplência, engajamento e participações."""
     municipio = get_object_or_404(Municipio, pk=pk)
     vinculos = municipio.vinculos.select_related('pessoa').filter(vigente=True).order_by('papel')
     adimplencias = municipio.adimplencias.order_by('-ano_referencia')[:5]
@@ -110,6 +119,7 @@ def detalhe_municipio(request, pk):
 
 @login_required
 def editar_municipio(request, pk):
+    """Formulário de edição de município com auditoria de campos alterados."""
     if not _eh_editor(request):
         messages.error(request, 'Voce nao tem permissao para editar.')
         return redirect('cadastro:detalhe_municipio', pk=pk)
@@ -129,6 +139,7 @@ def editar_municipio(request, pk):
 
 @login_required
 def criar_municipio(request):
+    """Formulário de criação de município com registro de auditoria."""
     if not _eh_editor(request):
         messages.error(request, 'Voce nao tem permissao para cadastrar.')
         return redirect('cadastro:lista_municipios')

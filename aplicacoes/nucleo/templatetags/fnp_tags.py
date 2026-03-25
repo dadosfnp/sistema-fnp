@@ -1,3 +1,5 @@
+"""Template tags customizadas do sistema FNP — avatares e brasões com fallback."""
+
 import hashlib
 from pathlib import Path
 
@@ -10,9 +12,14 @@ register = template.Library()
 
 @register.simple_tag
 def avatar_pessoa(pessoa, tamanho=150):
-    """Retorna URL de foto da pessoa.
+    """Retorna URL do avatar da pessoa com fallback para pravatar.cc.
 
-    Prioridade: foto uploaded > placeholder pravatar.
+    Args:
+        pessoa: Instância de Pessoa.
+        tamanho: Dimensão em pixels para o placeholder.
+
+    Returns:
+        URL da foto uploadada ou placeholder determinístico baseado no nome.
     """
     if pessoa.foto:
         return pessoa.foto.url
@@ -22,9 +29,15 @@ def avatar_pessoa(pessoa, tamanho=150):
 
 @register.simple_tag
 def brasao_municipio(municipio):
-    """Retorna URL do brasao do municipio.
+    """Retorna URL do brasão do município com cadeia de fallback.
 
-    Prioridade: brasao uploaded > arquivo estatico > fallback DiceBear.
+    Ordem de prioridade: upload do editor > arquivo estático (Wikimedia) > DiceBear.
+
+    Args:
+        municipio: Instância de Municipio.
+
+    Returns:
+        URL do brasão encontrado na primeira fonte disponível.
     """
     # 1. Campo brasao do model (upload pelo editor)
     if municipio.brasao:

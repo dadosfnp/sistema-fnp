@@ -1,3 +1,5 @@
+"""Views de engajamento — ranking de municípios por pontuação."""
+
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import render
@@ -7,6 +9,7 @@ from aplicacoes.engajamento.models import Engajamento
 
 @login_required
 def lista_engajamento(request):
+    """Lista engajamentos ordenados por pontuação com busca e suporte a HTMX."""
     busca = request.GET.get('busca', '').strip()
     engajamentos = Engajamento.objects.select_related('municipio').order_by('-pontuacao_bruta')
     if busca:

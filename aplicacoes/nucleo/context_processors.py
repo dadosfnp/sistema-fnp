@@ -1,5 +1,8 @@
+"""Context processors do núcleo — injetam dados de perfil em todos os templates."""
+
+
 def perfil_usuario(request):
-    """Disponibiliza informacoes de perfil em todos os templates."""
+    """Injeta ``eh_editor`` no contexto global para controle de permissão nos templates."""
     if request.user.is_authenticated:
         eh_editor = request.user.is_superuser
         if not eh_editor:

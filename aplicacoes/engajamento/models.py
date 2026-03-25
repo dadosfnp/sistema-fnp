@@ -1,3 +1,5 @@
+"""Models de engajamento — configuração singleton e pontuação bienal por município."""
+
 from django.db import models
 from django.utils import timezone
 
@@ -6,7 +8,7 @@ from aplicacoes.nucleo.models import ModeloBase
 
 
 class ConfiguracaoEngajamento(ModeloBase):
-    """Configurações globais do sistema de engajamento."""
+    """Singleton com parâmetros globais do cálculo de engajamento (meta, decaimento, penalidades)."""
 
     bienio_atual = models.CharField(
         'biênio atual',
@@ -49,12 +51,13 @@ class ConfiguracaoEngajamento(ModeloBase):
         return f'Configuração — Biênio {self.bienio_atual}'
 
     def save(self, *args, **kwargs):
-        # Singleton: garante que só existe uma configuração
+        """Garante comportamento singleton reutilizando o PK existente."""
         self.pk = self.pk or ConfiguracaoEngajamento.objects.first() and ConfiguracaoEngajamento.objects.first().pk
         super().save(*args, **kwargs)
 
     @classmethod
     def atual(cls):
+        """Retorna a configuração vigente, criando uma com defaults se necessário."""
         obj, _ = cls.objects.get_or_create(
             pk=cls.objects.first().pk if cls.objects.exists() else None,
             defaults={'bienio_atual': '2025-2026'},
@@ -63,7 +66,7 @@ class ConfiguracaoEngajamento(ModeloBase):
 
 
 class Engajamento(ModeloBase):
-    """Pontuação de engajamento de um município no biênio."""
+    """Score de engajamento de um município em um biênio — calculado a partir de participações."""
 
     class Nivel(models.TextChoices):
         ALTO = 'alto', 'Alto'

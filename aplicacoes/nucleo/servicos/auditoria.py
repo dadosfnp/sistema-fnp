@@ -1,8 +1,15 @@
+"""Serviço de auditoria — funções para registrar criação, edição e exclusão de objetos."""
+
 from aplicacoes.nucleo.models import LogAlteracao
 
 
 def registrar_criacao(usuario, objeto):
-    """Registra log de criacao de um objeto."""
+    """Cria um LogAlteracao do tipo CRIACAO para o objeto informado.
+
+    Args:
+        usuario: User que realizou a ação.
+        objeto: Instância do model criado.
+    """
     LogAlteracao.objects.create(
         usuario=usuario,
         acao=LogAlteracao.TipoAcao.CRIACAO,
@@ -13,7 +20,13 @@ def registrar_criacao(usuario, objeto):
 
 
 def registrar_edicao(usuario, objeto, campos_alterados):
-    """Registra log de edicao com os campos que mudaram."""
+    """Cria um LogAlteracao do tipo EDICAO se houver campos alterados.
+
+    Args:
+        usuario: User que realizou a ação.
+        objeto: Instância do model editado.
+        campos_alterados: Dict ``{campo: {antes, depois}}`` retornado por ``detectar_alteracoes``.
+    """
     if not campos_alterados:
         return
     LogAlteracao.objects.create(
@@ -27,7 +40,12 @@ def registrar_edicao(usuario, objeto, campos_alterados):
 
 
 def registrar_exclusao(usuario, objeto):
-    """Registra log de exclusao de um objeto."""
+    """Cria um LogAlteracao do tipo EXCLUSAO para o objeto informado.
+
+    Args:
+        usuario: User que realizou a ação.
+        objeto: Instância do model excluído.
+    """
     LogAlteracao.objects.create(
         usuario=usuario,
         acao=LogAlteracao.TipoAcao.EXCLUSAO,
@@ -38,7 +56,15 @@ def registrar_exclusao(usuario, objeto):
 
 
 def detectar_alteracoes(objeto, dados_novos):
-    """Compara campos do objeto com dados novos e retorna dict de mudancas."""
+    """Compara valores atuais do objeto com dados novos (form.cleaned_data).
+
+    Args:
+        objeto: Instância do model antes da edição.
+        dados_novos: Dict com os novos valores dos campos.
+
+    Returns:
+        Dict ``{campo: {'antes': str, 'depois': str}}`` apenas para campos modificados.
+    """
     alteracoes = {}
     for campo, valor_novo in dados_novos.items():
         valor_atual = getattr(objeto, campo, None)

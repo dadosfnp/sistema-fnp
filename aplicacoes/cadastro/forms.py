@@ -1,9 +1,12 @@
+"""Formulários ModelForm para criação e edição de Pessoa e Município."""
+
 from django import forms
 
 from aplicacoes.cadastro.models import Municipio, Pessoa
 
 
 class PessoaForm(forms.ModelForm):
+    """Formulário de Pessoa com widgets estilizados para o frontend Tailwind."""
     class Meta:
         model = Pessoa
         fields = [
@@ -28,6 +31,7 @@ class PessoaForm(forms.ModelForm):
 
 
 class MunicipioForm(forms.ModelForm):
+    """Formulário de Município com widgets estilizados para o frontend Tailwind."""
     class Meta:
         model = Municipio
         fields = [

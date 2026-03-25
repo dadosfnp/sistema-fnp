@@ -1,3 +1,5 @@
+"""Views do núcleo: autenticação (login/logout) e dashboard inicial."""
+
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
@@ -9,6 +11,7 @@ from aplicacoes.eventos.models import Evento
 
 
 def entrar(request):
+    """Processa login via POST (usuario/senha) e renderiza tela de entrada."""
     erro = ''
     if request.method == 'POST':
         usuario = request.POST.get('usuario', '').strip()
@@ -25,6 +28,7 @@ def entrar(request):
 
 @login_required
 def inicio(request):
+    """Renderiza o dashboard principal com indicadores agregados do sistema."""
     contexto = {
         'total_pessoas': Pessoa.objects.filter(ativo=True).count(),
         'total_municipios': Municipio.objects.count(),
@@ -39,5 +43,6 @@ def inicio(request):
 
 
 def sair(request):
+    """Encerra a sessão do usuário e redireciona para a tela de login."""
     logout(request)
     return redirect('nucleo:entrar')

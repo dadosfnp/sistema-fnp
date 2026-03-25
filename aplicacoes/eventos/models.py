@@ -1,3 +1,5 @@
+"""Models de eventos — Evento institucional e Participação (pontuação de engajamento)."""
+
 from django.db import models
 
 from aplicacoes.cadastro.models import Municipio, Pessoa
@@ -5,7 +7,7 @@ from aplicacoes.nucleo.models import ModeloBase
 
 
 class Evento(ModeloBase):
-    """Evento institucional da FNP."""
+    """Evento institucional da FNP com configuração de pontos por modalidade e papel."""
 
     class TipoEvento(models.TextChoices):
         REUNIAO_GERAL = 'reuniao_geral', 'Reunião Geral da FNP'
@@ -70,7 +72,7 @@ class Evento(ModeloBase):
 
 
 class Participacao(ModeloBase):
-    """Registro de participação de uma pessoa em um evento."""
+    """Participação de uma pessoa em um evento — gera pontos para o município vinculado."""
 
     class FormaParticipacao(models.TextChoices):
         PRESENCIAL = 'presencial', 'Presencial'
@@ -131,7 +133,11 @@ class Participacao(ModeloBase):
         return f'{self.pessoa} em {self.evento}'
 
     def calcular_pontos(self):
-        """Calcula pontos com base no evento, forma e papel."""
+        """Calcula pontos com base na forma de participação e papel no evento.
+
+        Returns:
+            int: Pontos base (presencial/online) + bônus por papel (palestrante/organizador).
+        """
         evento = self.evento
         if self.forma_participacao == self.FormaParticipacao.PRESENCIAL:
             pontos = evento.pontos_presencial
@@ -146,5 +152,6 @@ class Participacao(ModeloBase):
         return pontos
 
     def save(self, *args, **kwargs):
+        """Recalcula pontos automaticamente antes de persistir."""
         self.pontos_calculados = self.calcular_pontos()
         super().save(*args, **kwargs)
