@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatorio FNP</title>
+    <style>
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1f2a37; margin: 40px; }
+        h1 { color: #1e3a5f; font-size: 22px; border-bottom: 2px solid #1e3a5f; padding-bottom: 8px; }
+        h2 { color: #1e3a5f; font-size: 14px; margin-top: 24px; margin-bottom: 8px; }
+        .kpis { display: flex; gap: 20px; margin: 16px 0; }
+        .kpi { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 20px; text-align: center; flex: 1; }
+        .kpi-valor { font-size: 24px; font-weight: bold; color: #1e3a5f; }
+        .kpi-label { font-size: 9px; color: #6b7280; text-transform: uppercase; margin-top: 2px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th { background: #1e3a5f; color: white; padding: 6px 10px; text-align: left; font-size: 10px; }
+        td { padding: 5px 10px; border-bottom: 1px solid #e5e7eb; font-size: 10px; }
+        tr:nth-child(even) td { background: #f9fafb; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: bold; }
+        .badge-alto { background: #d1fae5; color: #065f46; }
+        .badge-medio { background: #dbeafe; color: #1e40af; }
+        .badge-baixo { background: #fef3c7; color: #92400e; }
+        .badge-inativo { background: #f3f4f6; color: #6b7280; }
+        .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Relatorio — Sistema FNP</h1>
+
+    <div class="kpis">
+        <div class="kpi"><div class="kpi-valor">{{ total_pessoas }}</div><div class="kpi-label">Pessoas Ativas</div></div>
+        <div class="kpi"><div class="kpi-valor">{{ total_municipios }}</div><div class="kpi-label">Municipios</div></div>
+        <div class="kpi"><div class="kpi-valor">{{ total_eventos }}</div><div class="kpi-label">Eventos</div></div>
+    </div>
+
+    <h2>Ranking de Engajamento (Top 20)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Municipio</th>
+                <th>UF</th>
+                <th>Regiao</th>
+                <th>Pts Brutos</th>
+                <th>Score</th>
+                <th>Participacoes</th>
+                <th>Nivel</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for eng in engajamentos %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ eng.municipio.nome }}</td>
+                <td>{{ eng.municipio.uf }}</td>
+                <td>{{ eng.municipio.get_regiao_display }}</td>
+                <td>{{ eng.pontuacao_bruta }}</td>
+                <td>{{ eng.pontuacao_normalizada }}/100</td>
+                <td>{{ eng.total_participacoes }}</td>
+                <td><span class="badge badge-{{ eng.nivel }}">{{ eng.get_nivel_display }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Adimplencia {{ dados.ano_adimplencia }}</h2>
+    <table>
+        <thead><tr><th>Status</th><th>Quantidade</th></tr></thead>
+        <tbody>
+            <tr><td>Adimplente</td><td>{{ dados.adimplencia_status.adimplente|default:"0" }}</td></tr>
+            <tr><td>Inadimplente</td><td>{{ dados.adimplencia_status.inadimplente|default:"0" }}</td></tr>
+            <tr><td>Parcial</td><td>{{ dados.adimplencia_status.parcial|default:"0" }}</td></tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Frente Nacional de Prefeitos — Relatorio gerado pelo Sistema FNP
+    </div>
+</body>
+</html>

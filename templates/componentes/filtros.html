@@ -1,0 +1,15 @@
+{% comment %}
+Componente de filtro dropdown reutilizavel.
+Uso: {% include "componentes/filtros.html" with nome="tipo" valor=tipo opcoes=tipos url=url_lista target=target_id %}
+{% endcomment %}
+<select name="{{ nome }}"
+        class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30 focus:border-fnp-400 transition-all appearance-auto"
+        hx-get="{{ url }}"
+        hx-trigger="change"
+        hx-target="#{{ target }}"
+        hx-include="closest .filtros-container">
+    <option value="">{{ placeholder }}</option>
+    {% for val, label in opcoes %}
+    <option value="{{ val }}" {% if val == valor %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+</select>

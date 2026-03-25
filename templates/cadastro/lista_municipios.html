@@ -10,25 +10,39 @@
             <h2 class="text-xl font-bold text-gray-900">Municipios</h2>
             <p class="text-sm text-gray-500 mt-0.5">{{ municipios|length }} registro{{ municipios|length|pluralize:"s" }}</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 flex-wrap filtros-container">
             {% if eh_editor %}
-            <a href="{% url 'cadastro:criar_municipio' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-semibold text-white bg-fnp-500 rounded-xl hover:bg-fnp-600 transition-colors shadow-sm whitespace-nowrap">
+            <a href="{% url 'cadastro:criar_municipio' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors shadow-sm whitespace-nowrap">
                 <i data-lucide="plus" class="w-4 h-4"></i> Novo Municipio
             </a>
             {% endif %}
-            <div class="relative w-full sm:w-80">
+            <select name="uf"
+                    class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
+                    hx-get="{% url 'cadastro:lista_municipios' %}" hx-trigger="change" hx-target="#tabela-municipios" hx-include="closest .filtros-container">
+                <option value="">Todas UFs</option>
+                {% for u in ufs %}<option value="{{ u }}" {% if u == uf %}selected{% endif %}>{{ u }}</option>{% endfor %}
+            </select>
+            <select name="regiao"
+                    class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
+                    hx-get="{% url 'cadastro:lista_municipios' %}" hx-trigger="change" hx-target="#tabela-municipios" hx-include="closest .filtros-container">
+                <option value="">Todas regioes</option>
+                {% for val, label in regioes %}<option value="{{ val }}" {% if val == regiao %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <select name="associado"
+                    class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
+                    hx-get="{% url 'cadastro:lista_municipios' %}" hx-trigger="change" hx-target="#tabela-municipios" hx-include="closest .filtros-container">
+                <option value="">Associacao</option>
+                <option value="sim" {% if associado == 'sim' %}selected{% endif %}>Associados</option>
+                <option value="nao" {% if associado == 'nao' %}selected{% endif %}>Nao associados</option>
+            </select>
+            <div class="relative">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                <input type="text" name="busca" value="{{ busca }}"
-                       placeholder="Pesquisar municipios..."
-                       class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-fnp-400/30 focus:border-fnp-400 transition-all"
-                       hx-get="{% url 'cadastro:lista_municipios' %}"
-                       hx-trigger="keyup changed delay:300ms"
-                       hx-target="#tabela-municipios"
-                       hx-include="this">
+                <input type="text" name="busca" value="{{ busca }}" placeholder="Pesquisar..."
+                       class="pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-fnp-400/30 transition-all w-56"
+                       hx-get="{% url 'cadastro:lista_municipios' %}" hx-trigger="keyup changed delay:300ms" hx-target="#tabela-municipios" hx-include="closest .filtros-container">
             </div>
         </div>
     </div>
-
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" id="tabela-municipios">
         {% include "cadastro/parciais/lista_municipios_tabela.html" %}
     </div>
