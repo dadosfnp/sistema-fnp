@@ -193,9 +193,11 @@ def exportar_pdf(request):
     }
     html = render(request, 'relatorios/pdf_relatorio.html', ctx).content.decode('utf-8')
 
-    from weasyprint import HTML
-    pdf = HTML(string=html).write_pdf()
+    from xhtml2pdf import pisa
+    pdf_buffer = BytesIO()
+    pisa.CreatePDF(html, dest=pdf_buffer)
+    pdf_buffer.seek(0)
 
-    response = HttpResponse(pdf, content_type='application/pdf')
+    response = HttpResponse(pdf_buffer.read(), content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="relatorio-fnp.pdf"'
     return response
