@@ -12,6 +12,11 @@
 
 {% block css_extra %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #mapa-municipio { height: 320px; width: 100%; z-index: 1; }
+    @media (min-width: 1024px) { #mapa-municipio { height: 100%; min-height: 320px; } }
+    .leaflet-container { background: #f3f4f6; }
+</style>
 {% endblock %}
 
 {% block conteudo %}
@@ -20,8 +25,8 @@
     <!-- Mapa + Info Header -->
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <!-- Mapa -->
-        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div id="mapa-municipio" class="h-64 lg:h-full min-h-[250px] bg-gray-100"></div>
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="min-height: 320px;">
+            <div id="mapa-municipio"></div>
         </div>
 
         <!-- Info do municipio -->
@@ -229,9 +234,17 @@ document.addEventListener('DOMContentLoaded', function() {
             .openPopup();
     }
 
-    // Garante que o mapa renderize corretamente apos o layout carregar
-    setTimeout(function() { map.invalidateSize(); }, 300);
-    setTimeout(function() { map.invalidateSize(); }, 1000);
+    // Garante que o mapa renderize em qualquer situacao de layout
+    function fixMap() { map.invalidateSize(); }
+    setTimeout(fixMap, 100);
+    setTimeout(fixMap, 500);
+    setTimeout(fixMap, 1500);
+
+    // Observer para quando o container muda de tamanho (sidebar recolher, etc)
+    var container = document.getElementById('mapa-municipio');
+    if (window.ResizeObserver) {
+        new ResizeObserver(fixMap).observe(container);
+    }
 });
 </script>
 <script>lucide.createIcons();</script>
