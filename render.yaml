@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: sistema-fnp
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn configuracao.wsgi:application"
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: configuracao.producao
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sistema-fnp-db
+          property: connectionString
+
+databases:
+  - name: sistema-fnp-db
+    plan: free
+    region: oregon
+    databaseName: sistema_fnp
+    user: sistema_fnp

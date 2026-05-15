@@ -31,3 +31,7 @@ Thumbs.db
 
 # Tasks (uso local do Claude)
 tasks/
+mnt/
+
+# Office lock files
+~$*
