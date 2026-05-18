@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Certidão — {{ municipio.nome }}/{{ municipio.uf }}</title>
+    <style>
+        @page { size: A4; margin: 2.5cm 2cm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11pt; color: #1f2937; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 3pt double #1e3a5f; padding-bottom: 12pt; margin-bottom: 24pt; }
+        .header .marca { font-size: 10pt; color: #6b7280; letter-spacing: 0.15em; text-transform: uppercase; }
+        h1 { font-size: 18pt; color: #1e3a5f; margin: 4pt 0; }
+        .titulo-doc { font-size: 13pt; font-weight: bold; text-align: center; margin: 24pt 0 16pt; color: #1e3a5f; }
+        .corpo { text-align: justify; }
+        .corpo p { margin: 8pt 0; }
+        .destaque { background: #eff6ff; padding: 10pt 14pt; border-left: 4pt solid #1e3a5f; margin: 14pt 0; }
+        .destaque strong { color: #1e3a5f; }
+        table { width: 100%; border-collapse: collapse; margin: 10pt 0; font-size: 10pt; }
+        th { background: #f3f4f6; padding: 5pt 7pt; text-align: left; border-bottom: 1pt solid #d1d5db; }
+        td { padding: 4pt 7pt; border-bottom: 1pt solid #f3f4f6; }
+        .assinatura { margin-top: 56pt; text-align: center; }
+        .assinatura .linha { border-top: 1pt solid #1f2937; width: 60%; margin: 0 auto 4pt; }
+        .footer { margin-top: 36pt; padding-top: 12pt; border-top: 1pt solid #e5e7eb; font-size: 8.5pt; color: #6b7280; text-align: center; }
+        .codigo { font-family: monospace; background: #f9fafb; padding: 2pt 6pt; border-radius: 3pt; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <p class="marca">Frente Nacional de Prefeitos</p>
+        <h1>Certidão Institucional</h1>
+        <p style="font-size: 9pt; color: #9ca3af;">Emitida em {{ data_emissao|date:"d \d\e F \d\e Y" }}</p>
+    </div>
+
+    <p class="titulo-doc">CERTIFICAMOS QUE</p>
+
+    <div class="corpo">
+        <p>O município de <strong>{{ municipio.nome }}/{{ municipio.uf }}</strong>
+        ({% if municipio.eh_capital %}capital{% else %}não-capital{% endif %},
+        região {{ municipio.get_regiao_display|default:"não classificada" }},
+        código IBGE {{ municipio.codigo_ibge }}, população {{ municipio.populacao|floatformat:"0" }} habitantes)
+        {% if municipio.associado_fnp %}
+        encontra-se <strong>associado</strong> à Frente Nacional de Prefeitos.
+        {% else %}
+        <strong>não consta</strong> como associado à Frente Nacional de Prefeitos
+        no momento desta emissão.
+        {% endif %}
+        </p>
+
+        <div class="destaque">
+            <p><strong>Situação em {{ ano_atual }}:</strong></p>
+            <ul>
+                <li><strong>Adimplência:</strong>
+                {% if adimplencia %}
+                    {{ adimplencia.get_status_display }}{% if adimplencia.status == 'adimplente' %} (em dia com obrigações financeiras){% endif %}
+                {% else %}
+                    sem registro para o ano corrente
+                {% endif %}
+                </li>
+                {% if engajamento %}
+                <li><strong>Engajamento institucional:</strong> {{ engajamento.pontuacao_normalizada }}/100 — nível {{ engajamento.get_nivel_display }} (biênio {{ engajamento.bienio }})</li>
+                {% endif %}
+                <li><strong>Participações em eventos da FNP em {{ ano_atual }}:</strong> {{ participacoes_ano }}</li>
+                <li><strong>Representações vigentes em instâncias institucionais:</strong> {{ representacoes|length }}</li>
+            </ul>
+        </div>
+
+        {% if representacoes %}
+        <p><strong>Detalhamento das representações vigentes:</strong></p>
+        <table>
+            <thead><tr><th>Pessoa</th><th>Instância</th><th>Função</th></tr></thead>
+            <tbody>
+                {% for r in representacoes %}
+                <tr>
+                    <td>{{ r.pessoa.nome }}</td>
+                    <td>{{ r.instancia.nome }}</td>
+                    <td>{{ r.get_funcao_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <p>Esta certidão é válida para fins institucionais e tem prazo de validade
+        de <strong>30 dias</strong> a contar da data de emissão. Os dados nela
+        contidos refletem os registros mantidos no Sistema FNP no momento da
+        consulta automatizada.</p>
+    </div>
+
+    <div class="assinatura">
+        <p>Brasília, {{ data_emissao|date:"d \d\e F \d\e Y" }}</p>
+        <div style="margin-top: 50pt;">
+            <div class="linha"></div>
+            <p style="font-size: 10pt;"><strong>Frente Nacional de Prefeitos</strong></p>
+            <p style="font-size: 9pt; color: #6b7280;">Documento gerado eletronicamente</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Identificador único da certidão: <span class="codigo">{{ municipio.pk }}/{{ data_emissao|date:"Ymd" }}</span></p>
+        <p>Documento auditável no Sistema FNP — qualquer alteração subsequente nos dados invalida esta certidão.</p>
+    </div>
+</body>
+</html>

@@ -19,6 +19,9 @@ urlpatterns = [
     path('api/v1/', include(api_router.urls)),
     path('api/v1/token/', obtain_auth_token, name='api-token'),
     path('portal/', __import__('aplicacoes.nucleo.views', fromlist=['portal_prefeito']).portal_prefeito, name='portal_prefeito'),
+    # PWA — manifest e service worker precisam estar em /raiz para escopo total
+    path('manifest.json', __import__('aplicacoes.nucleo.views', fromlist=['pwa_manifest']).pwa_manifest, name='pwa_manifest'),
+    path('service-worker.js', __import__('aplicacoes.nucleo.views', fromlist=['pwa_service_worker']).pwa_service_worker, name='pwa_service_worker'),
     path('', include('aplicacoes.nucleo.urls')),
     path('cadastro/', include('aplicacoes.cadastro.urls')),
     path('instancias/', include('aplicacoes.instancias.urls')),

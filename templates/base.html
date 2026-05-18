@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block titulo %}Sistema FNP{% endblock %}</title>
 
+    {# PWA — instalavel + offline para recepcao #}
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e3a5f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="FNP">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));
+        }
+    </script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -266,6 +277,15 @@
                     <span x-show="sidebarAberta" x-transition.opacity class="truncate">Mapa</span>
                 </a>
 
+                <a href="{% url 'relatorios:calendario' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if request.resolver_match.url_name == 'calendario' %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Calendário">
+                    <i data-lucide="calendar" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Calendário</span>
+                </a>
+
                 <!-- Separador: Ajuda -->
                 <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
                     <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Ajuda</p>
@@ -400,6 +420,50 @@
     </div>
 
     {% if user.is_authenticated %}
+    <!-- Onboarding tour — primeira vez, mostra 5 telas-chave -->
+    <div id="tour-overlay"
+         x-data="tourOnboarding()"
+         x-init="iniciarSeNovo()"
+         x-show="mostrar"
+         class="fixed inset-0 z-[75] bg-black/60 flex items-center justify-center p-4"
+         style="display: none;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="bg-gradient-to-r from-fnp-500 to-fnp-700 px-6 py-4 text-white">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold">Bem-vindo(a) ao Sistema FNP</h3>
+                    <span class="text-xs text-white/80" x-text="`${passo + 1} de ${passos.length}`"></span>
+                </div>
+                <div class="flex gap-1 mt-2">
+                    <template x-for="(p, i) in passos" :key="i">
+                        <div class="flex-1 h-1 rounded-full transition-colors"
+                             :class="i <= passo ? 'bg-white' : 'bg-white/30'"></div>
+                    </template>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-fnp-50 flex items-center justify-center flex-shrink-0">
+                        <i :data-lucide="passos[passo].icone" class="w-5 h-5 text-fnp-500"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-base font-bold text-gray-900" x-text="passos[passo].titulo"></h4>
+                        <p class="text-sm text-gray-600 mt-1 leading-relaxed" x-text="passos[passo].texto"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                <button @click="dispensar()" class="text-xs text-gray-500 hover:text-gray-700">Pular tour</button>
+                <div class="flex items-center gap-2">
+                    <button @click="passo > 0 && passo--" :disabled="passo === 0"
+                            class="px-3 py-1.5 text-sm text-gray-600 disabled:opacity-30">Voltar</button>
+                    <button @click="proximo()"
+                            class="px-4 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600"
+                            x-text="passo === passos.length - 1 ? 'Concluir' : 'Próximo'"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Command palette (Ctrl+K / Cmd+K) — busca global -->
     <div id="paleta-comandos" x-data="paletaComandos()" x-init="iniciar()"
          x-show="aberta" x-transition.opacity
@@ -620,6 +684,43 @@
                 if (body && body._x_dataStack) body._x_dataStack[0].alternarApresentacao();
             }
         });
+
+        // Onboarding tour — exibido na primeira visita autenticada
+        window.tourOnboarding = function() {
+            return {
+                mostrar: false,
+                passo: 0,
+                passos: [
+                    {icone: 'layout-dashboard', titulo: 'Visão geral',
+                     texto: 'O Início mostra KPIs principais. Mapa, Calendário e Relatórios dão visões profundas. Use a sidebar à esquerda para navegar entre módulos.'},
+                    {icone: 'search', titulo: 'Busca global (Ctrl+K)',
+                     texto: 'Em qualquer lugar do sistema, pressione Ctrl+K (ou ⌘+K no Mac) para abrir a busca global. Encontra pessoa, município, instância, evento — tudo de uma vez.'},
+                    {icone: 'door-open', titulo: 'Recepção',
+                     texto: 'A secretaria registra visitantes no menu Recepção. Botão grande "Registrar visitante" e marcar saída em 1 clique.'},
+                    {icone: 'award', titulo: 'Índice FNP',
+                     texto: 'O Índice FNP combina engajamento, adimplência, participação e presença em uma nota única 0–100 por município.'},
+                    {icone: 'bell', titulo: 'Notificações às 9h e 14h',
+                     texto: 'O sininho destaca alertas duas vezes por dia: faltas consecutivas, mandatos terminando, inadimplência crítica. Clique a qualquer momento para ver detalhes.'},
+                ],
+                iniciarSeNovo() {
+                    if (localStorage.getItem('fnp:tour:concluido') !== '1') {
+                        setTimeout(() => { this.mostrar = true; this.$nextTick(() => { if (window.lucide) lucide.createIcons(); }); }, 800);
+                    }
+                },
+                proximo() {
+                    if (this.passo < this.passos.length - 1) {
+                        this.passo++;
+                        this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+                    } else {
+                        this.dispensar();
+                    }
+                },
+                dispensar() {
+                    localStorage.setItem('fnp:tour:concluido', '1');
+                    this.mostrar = false;
+                },
+            };
+        };
 
         // Paleta de comandos: atalhos de teclado + abertura programática
         window.abrirPaleta = function() {

@@ -154,6 +154,87 @@ def portal_prefeito(request):
     })
 
 
+def pwa_manifest(request):
+    """Manifest.json do PWA — instalavel via 'Adicionar a tela inicial'."""
+    from django.http import JsonResponse
+    return JsonResponse({
+        'name': 'Sistema FNP',
+        'short_name': 'FNP',
+        'description': 'Plataforma institucional da Frente Nacional de Prefeitos.',
+        'start_url': '/',
+        'scope': '/',
+        'display': 'standalone',
+        'orientation': 'portrait',
+        'background_color': '#f9fafb',
+        'theme_color': '#1e3a5f',
+        'lang': 'pt-BR',
+        'icons': [
+            {'src': '/static/img/logo-fnp.png', 'sizes': '192x192', 'type': 'image/png'},
+            {'src': '/static/img/logo-fnp.png', 'sizes': '512x512', 'type': 'image/png'},
+        ],
+    })
+
+
+def pwa_service_worker(request):
+    """Service worker servido na raiz para escopo total da aplicacao.
+
+    Cacheia assets estaticos + paginas-chave para uso offline pela recepcao.
+    Strategy: stale-while-revalidate para HTML, cache-first para estatico.
+    """
+    from django.http import HttpResponse
+
+    js = '''
+const CACHE_VERSION = 'fnp-v1';
+const ASSETS_STATICOS = [
+    '/static/img/logo-fnp.png',
+];
+
+self.addEventListener('install', e => {
+    e.waitUntil(caches.open(CACHE_VERSION).then(c => c.addAll(ASSETS_STATICOS)));
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+    e.waitUntil(
+        caches.keys().then(keys => Promise.all(
+            keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))
+        ))
+    );
+    self.clients.claim();
+});
+
+self.addEventListener('fetch', e => {
+    const url = new URL(e.request.url);
+    // Nunca cacheia POST nem JSON de API (dados vivos)
+    if (e.request.method !== 'GET' || url.pathname.startsWith('/api/')) {
+        return;
+    }
+    // Estatico — cache-first
+    if (url.pathname.startsWith('/static/')) {
+        e.respondWith(
+            caches.match(e.request).then(r => r || fetch(e.request).then(resp => {
+                const clone = resp.clone();
+                caches.open(CACHE_VERSION).then(c => c.put(e.request, clone));
+                return resp;
+            }))
+        );
+        return;
+    }
+    // HTML — network-first com fallback no cache
+    if (e.request.headers.get('accept')?.includes('text/html')) {
+        e.respondWith(
+            fetch(e.request).then(resp => {
+                const clone = resp.clone();
+                caches.open(CACHE_VERSION).then(c => c.put(e.request, clone));
+                return resp;
+            }).catch(() => caches.match(e.request))
+        );
+    }
+});
+'''
+    return HttpResponse(js, content_type='application/javascript')
+
+
 @login_required
 def busca_global(request):
     """Endpoint JSON de busca global usado pela paleta de comandos (Ctrl+K).

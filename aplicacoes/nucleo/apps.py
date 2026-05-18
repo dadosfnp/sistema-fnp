@@ -8,3 +8,5 @@ class NucleoConfig(AppConfig):
 
     def ready(self):
         import aplicacoes.nucleo.signals  # noqa: F401
+        from aplicacoes.nucleo.signals import conectar_signals_webhooks
+        conectar_signals_webhooks()

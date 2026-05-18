@@ -306,6 +306,219 @@ CAPITAIS_UF_COORD = {
 }
 
 
+def calendario_ics(request):
+    """Feed iCal (.ics) com todos os eventos, atividades e missoes da FNP.
+
+    Sem login_required para permitir subscribe direto no Google Calendar/Outlook
+    via URL publica. Em prod, ativar acesso via token unico por usuario.
+    """
+    from datetime import datetime
+
+    from django.http import HttpResponse
+
+    from aplicacoes.atividades.models import Atividade
+    from aplicacoes.eventos.models import Evento
+    from aplicacoes.missoes.models import Missao
+
+    linhas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FNP//Sistema FNP//PT-BR', 'X-WR-CALNAME:Agenda FNP', 'X-WR-TIMEZONE:America/Sao_Paulo']
+
+    def _fmt(dt):
+        if hasattr(dt, 'hour'):
+            return dt.strftime('%Y%m%dT%H%M%S')
+        return dt.strftime('%Y%m%d')
+
+    def _ical_text(s):
+        """Escapa caracteres especiais do iCal."""
+        return (s or '').replace('\\', '\\\\').replace(',', '\\,').replace(';', '\\;').replace('\n', '\\n')
+
+    agora = datetime.now()
+    timestamp = agora.strftime('%Y%m%dT%H%M%SZ')
+
+    # Eventos
+    for ev in Evento.objects.all()[:500]:
+        linhas.extend([
+            'BEGIN:VEVENT',
+            f'UID:evento-{ev.pk}@sistema-fnp',
+            f'DTSTAMP:{timestamp}',
+            f'DTSTART;VALUE=DATE:{_fmt(ev.data_inicio)}',
+            f'DTEND;VALUE=DATE:{_fmt(ev.data_fim or ev.data_inicio)}',
+            f'SUMMARY:{_ical_text(ev.titulo)}',
+            f'DESCRIPTION:{_ical_text(ev.get_tipo_display())} · {_ical_text(ev.descricao or "")}',
+            f'LOCATION:{_ical_text((ev.local or "") + " " + (ev.cidade or ""))}',
+            'CATEGORIES:Evento FNP',
+            'END:VEVENT',
+        ])
+
+    # Atividades
+    for atv in Atividade.objects.select_related('instancia')[:500]:
+        if atv.horario:
+            dtstart = datetime.combine(atv.data_reuniao, atv.horario)
+            linhas.extend([
+                'BEGIN:VEVENT',
+                f'UID:atividade-{atv.pk}@sistema-fnp',
+                f'DTSTAMP:{timestamp}',
+                f'DTSTART:{_fmt(dtstart)}',
+                f'SUMMARY:{_ical_text(atv.titulo or atv.instancia.nome)}',
+                f'DESCRIPTION:{_ical_text(atv.instancia.nome)} · {_ical_text(atv.get_tipo_calendario_display())}',
+                f'LOCATION:{_ical_text(atv.local or "")}',
+                'CATEGORIES:Atividade de Instância',
+                'END:VEVENT',
+            ])
+        else:
+            linhas.extend([
+                'BEGIN:VEVENT',
+                f'UID:atividade-{atv.pk}@sistema-fnp',
+                f'DTSTAMP:{timestamp}',
+                f'DTSTART;VALUE=DATE:{_fmt(atv.data_reuniao)}',
+                f'SUMMARY:{_ical_text(atv.titulo or atv.instancia.nome)}',
+                'CATEGORIES:Atividade de Instância',
+                'END:VEVENT',
+            ])
+
+    # Missões
+    for miss in Missao.objects.all()[:300]:
+        linhas.extend([
+            'BEGIN:VEVENT',
+            f'UID:missao-{miss.pk}@sistema-fnp',
+            f'DTSTAMP:{timestamp}',
+            f'DTSTART;VALUE=DATE:{_fmt(miss.data_inicio)}',
+            f'DTEND;VALUE=DATE:{_fmt(miss.data_fim or miss.data_inicio)}',
+            f'SUMMARY:Missão: {_ical_text(miss.titulo)}',
+            f'LOCATION:{_ical_text((miss.cidade or "") + ", " + (miss.pais or ""))}',
+            'CATEGORIES:Missão',
+            'END:VEVENT',
+        ])
+
+    linhas.append('END:VCALENDAR')
+
+    response = HttpResponse('\r\n'.join(linhas), content_type='text/calendar; charset=utf-8')
+    response['Content-Disposition'] = 'inline; filename="agenda-fnp.ics"'
+    return response
+
+
+@login_required
+def calendario(request):
+    """Pagina visual do calendario com FullCalendar.js (4 visoes).
+
+    Renderiza um shell HTML e busca eventos via /api/calendario/eventos/.
+    """
+    return render(request, 'relatorios/calendario.html')
+
+
+@login_required
+def calendario_eventos_json(request):
+    """JSON consumido pelo FullCalendar — eventos + atividades + missoes."""
+    from django.http import JsonResponse
+
+    from aplicacoes.atividades.models import Atividade
+    from aplicacoes.eventos.models import Evento
+    from aplicacoes.missoes.models import Missao
+
+    start = request.GET.get('start')
+    end = request.GET.get('end')
+
+    eventos_json = []
+
+    qs_ev = Evento.objects.all()
+    if start and end:
+        qs_ev = qs_ev.filter(data_inicio__gte=start[:10], data_inicio__lte=end[:10])
+    for ev in qs_ev[:500]:
+        eventos_json.append({
+            'id': f'ev-{ev.pk}',
+            'title': ev.titulo,
+            'start': ev.data_inicio.isoformat(),
+            'end': (ev.data_fim or ev.data_inicio).isoformat(),
+            'url': f'/eventos/{ev.pk}/',
+            'backgroundColor': '#3b82f6', 'borderColor': '#2563eb',
+            'extendedProps': {'tipo': 'Evento', 'subtipo': ev.get_tipo_display(), 'local': ev.local or ''},
+        })
+
+    qs_atv = Atividade.objects.select_related('instancia')
+    if start and end:
+        qs_atv = qs_atv.filter(data_reuniao__gte=start[:10], data_reuniao__lte=end[:10])
+    for atv in qs_atv[:500]:
+        start_iso = atv.data_reuniao.isoformat()
+        if atv.horario:
+            start_iso = f'{atv.data_reuniao.isoformat()}T{atv.horario.isoformat()}'
+        eventos_json.append({
+            'id': f'atv-{atv.pk}',
+            'title': atv.titulo or atv.instancia.nome,
+            'start': start_iso,
+            'url': f'/atividades/{atv.pk}/',
+            'backgroundColor': '#14b8a6', 'borderColor': '#0d9488',
+            'extendedProps': {'tipo': 'Atividade', 'subtipo': atv.instancia.nome, 'local': atv.local or ''},
+        })
+
+    qs_miss = Missao.objects.all()
+    if start and end:
+        qs_miss = qs_miss.filter(data_inicio__gte=start[:10], data_inicio__lte=end[:10])
+    for miss in qs_miss[:300]:
+        eventos_json.append({
+            'id': f'miss-{miss.pk}',
+            'title': f'✈️ {miss.titulo}',
+            'start': miss.data_inicio.isoformat(),
+            'end': (miss.data_fim or miss.data_inicio).isoformat(),
+            'url': f'/missoes/{miss.pk}/',
+            'backgroundColor': '#a855f7', 'borderColor': '#9333ea',
+            'extendedProps': {'tipo': 'Missão', 'subtipo': miss.get_tipo_display(), 'local': f'{miss.cidade or ""}, {miss.pais or ""}'},
+        })
+
+    return JsonResponse(eventos_json, safe=False)
+
+
+@login_required
+def heatmap_pautas(request):
+    """Cruza Pauta x Regiao para mostrar onde cada agenda tem mais envolvidos.
+
+    Visualiza atraves de chart.js (heatmap-like via grid colorido). Insumo
+    estrategico: "Norte foca seguranca, Sul mobilidade" -> direciona campanhas.
+    """
+    from django.db.models import Count
+
+    from aplicacoes.cadastro.models import EnvolvimentoPauta, Municipio, Pauta
+
+    pautas = list(Pauta.objects.filter(ativa=True).order_by('nome'))
+    regioes_choices = Municipio.Regiao.choices
+    regioes_slugs = [r[0] for r in regioes_choices]
+
+    # Matriz [pauta][regiao] = contagem de pessoas com vinculo a municipio dessa regiao
+    matriz = {p.id: {r: 0 for r in regioes_slugs} for p in pautas}
+    envolvimentos = (
+        EnvolvimentoPauta.objects
+        .select_related('pessoa', 'pauta')
+        .prefetch_related('pessoa__vinculos__municipio')
+    )
+    for env in envolvimentos:
+        regioes_pessoa = set()
+        for v in env.pessoa.vinculos.filter(vigente=True).select_related('municipio'):
+            if v.municipio and v.municipio.regiao:
+                regioes_pessoa.add(v.municipio.regiao)
+        for r in regioes_pessoa:
+            if env.pauta_id in matriz and r in matriz[env.pauta_id]:
+                matriz[env.pauta_id][r] += 1
+
+    # Achata para tabela renderizavel
+    linhas = []
+    for p in pautas:
+        valores = [matriz[p.id][r] for r in regioes_slugs]
+        max_val = max(valores) if valores else 0
+        linhas.append({
+            'pauta': p,
+            'celulas': [
+                {'regiao_label': dict(regioes_choices)[r], 'valor': matriz[p.id][r],
+                 'intensidade': (matriz[p.id][r] / max_val * 100) if max_val else 0}
+                for r in regioes_slugs
+            ],
+            'total': sum(valores),
+        })
+    linhas.sort(key=lambda x: x['total'], reverse=True)
+
+    return render(request, 'relatorios/heatmap_pautas.html', {
+        'linhas': linhas,
+        'regioes_labels': [dict(regioes_choices)[r] for r in regioes_slugs],
+    })
+
+
 @login_required
 def equipe_interna(request):
     """Visão de produtividade da equipe FNP interna.

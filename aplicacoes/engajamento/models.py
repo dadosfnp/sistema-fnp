@@ -150,6 +150,41 @@ class PesoEngajamento(ModeloBase):
         return peso.peso if peso else fallback
 
 
+class SnapshotEngajamento(ModeloBase):
+    """Foto congelada do Engajamento ao final de um bienio.
+
+    Diferente de ``Engajamento`` (vivo, recalculado por signals), o snapshot
+    e imutavel apos criado — preserva o valor historico para comparacao
+    temporal ("Curitiba foi de 47 em 2023→2024 para 62 em 2025→2026").
+
+    Criado pelo comando ``snapshot_engajamento --bienio=2023-2024``.
+    """
+
+    municipio = models.ForeignKey(
+        'cadastro.Municipio', on_delete=models.CASCADE,
+        related_name='snapshots_engajamento',
+    )
+    bienio = models.CharField('biênio', max_length=10)
+    pontuacao_bruta = models.IntegerField('pontuação bruta')
+    pontuacao_normalizada = models.IntegerField('pontuação normalizada (0-100)')
+    nivel = models.CharField('nível', max_length=10)
+    total_participacoes = models.IntegerField('total de participações')
+    data_snapshot = models.DateField('data do snapshot')
+
+    class Meta:
+        verbose_name = 'snapshot de engajamento'
+        verbose_name_plural = 'snapshots de engajamento'
+        ordering = ['-bienio', 'municipio']
+        unique_together = ['municipio', 'bienio']
+        indexes = [
+            models.Index(fields=['bienio']),
+            models.Index(fields=['municipio', 'bienio']),
+        ]
+
+    def __str__(self):
+        return f'{self.municipio} — {self.bienio} (snapshot {self.data_snapshot})'
+
+
 class Engajamento(ModeloBase):
     """Score de engajamento de um município em um biênio — calculado a partir de participações."""
 

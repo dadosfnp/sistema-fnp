@@ -186,6 +186,47 @@ class FiltroSalvo(models.Model):
         return f'{self.usuario} — {self.escopo} — {self.nome}'
 
 
+class WebhookSubscription(models.Model):
+    """Assinatura externa para receber notificacoes de eventos do sistema.
+
+    Cada subscricao registra uma URL HTTPS de destino + secret (HMAC) + lista
+    de tipos de evento a receber. O dispatcher (em servicos/webhooks.py) envia
+    POSTs assincronos quando os eventos ocorrem.
+
+    Eventos disponiveis (slug):
+        - municipio.adimplencia_mudou
+        - evento.criado
+        - atividade.realizada
+        - missao.encerrada
+        - pessoa.cadastrada
+
+    Payload sempre contem: id, tipo, timestamp, dados.
+    """
+
+    nome = models.CharField('nome', max_length=80, help_text='Identificacao amigavel — ex: "PowerBI FNP".')
+    url = models.URLField('URL de destino', help_text='Endpoint HTTPS que recebera os POSTs.')
+    secret = models.CharField(
+        'secret HMAC', max_length=64,
+        help_text='Chave compartilhada — usada em X-FNP-Signature (HMAC-SHA256).',
+    )
+    eventos = models.JSONField(
+        'eventos assinados', default=list,
+        help_text='Lista de slugs. Vazio = nenhum (subscricao desativada).',
+    )
+    ativo = models.BooleanField('ativo?', default=True)
+    criado_em = models.DateTimeField('criado em', auto_now_add=True)
+    ultima_entrega = models.DateTimeField('ultima entrega', null=True, blank=True)
+    ultima_falha = models.DateTimeField('ultima falha', null=True, blank=True)
+    contador_falhas = models.IntegerField('falhas consecutivas', default=0)
+
+    class Meta:
+        verbose_name = 'webhook'
+        verbose_name_plural = 'webhooks'
+
+    def __str__(self):
+        return f'{self.nome} → {self.url}'
+
+
 class LogAlteracao(models.Model):
     """Registro imutável de auditoria — grava criação, edição e exclusão de objetos."""
 

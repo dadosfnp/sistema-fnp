@@ -12,5 +12,6 @@ urlpatterns = [
     path('municipios/', views.lista_municipios, name='lista_municipios'),
     path('municipios/novo/', views.criar_municipio, name='criar_municipio'),
     path('municipios/<uuid:pk>/', views.detalhe_municipio, name='detalhe_municipio'),
+    path('municipios/<uuid:pk>/certidao.pdf', views.certidao_municipio, name='certidao_municipio'),
     path('municipios/<uuid:pk>/editar/', views.editar_municipio, name='editar_municipio'),
 ]

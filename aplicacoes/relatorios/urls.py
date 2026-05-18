@@ -11,6 +11,10 @@ urlpatterns = [
     path('mapa/dados-uf/', views.mapa_dados_uf, name='mapa_dados_uf'),
     path('comparar/municipios/', views.comparar_municipios, name='comparar_municipios'),
     path('equipe-interna/', views.equipe_interna, name='equipe_interna'),
+    path('heatmap-pautas/', views.heatmap_pautas, name='heatmap_pautas'),
+    path('calendario/', views.calendario, name='calendario'),
+    path('calendario/eventos.json', views.calendario_eventos_json, name='calendario_eventos_json'),
+    path('calendario/agenda-fnp.ics', views.calendario_ics, name='calendario_ics'),
     path('exportar/excel/', views.exportar_excel, name='exportar_excel'),
     path('exportar/pdf/', views.exportar_pdf, name='exportar_pdf'),
 ]

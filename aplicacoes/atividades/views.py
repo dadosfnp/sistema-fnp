@@ -117,6 +117,34 @@ def criar_atividade(request):
 
 
 @login_required
+def ata_pdf(request, pk):
+    """Gera ata automatica em PDF a partir dos dados estruturados da atividade.
+
+    Concatena: cabecalho institucional, pauta_resumo, lista de presencas,
+    ata_resumo e documentos vinculados. Substitui processo manual de digitar
+    ata em Word.
+    """
+    from io import BytesIO
+
+    from django.http import HttpResponse
+    from xhtml2pdf import pisa
+
+    atividade = get_object_or_404(Atividade.objects.select_related('instancia'), pk=pk)
+    presencas = atividade.presencas.select_related('pessoa', 'municipio').order_by('pessoa__nome')
+    documentos = atividade.documentos.all()
+    html = render(request, 'atividades/ata_pdf.html', {
+        'atividade': atividade, 'presencas': presencas, 'documentos': documentos,
+    }).content.decode('utf-8')
+
+    pdf_buffer = BytesIO()
+    pisa.CreatePDF(html, dest=pdf_buffer)
+    pdf_buffer.seek(0)
+    response = HttpResponse(pdf_buffer.read(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="ata-{atividade.pk}.pdf"'
+    return response
+
+
+@login_required
 def editar_atividade(request, pk):
     """Formulário de edição de atividade — restrito a editores."""
     if not _eh_editor(request):

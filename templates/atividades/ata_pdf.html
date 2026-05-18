@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Ata — {{ atividade.titulo }}</title>
+    <style>
+        @page { size: A4; margin: 2cm; }
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11pt; color: #1f2937; line-height: 1.5; }
+        h1 { font-size: 16pt; color: #1e3a5f; margin-bottom: 4pt; }
+        h2 { font-size: 12pt; color: #1e3a5f; border-bottom: 1pt solid #e5e7eb; padding-bottom: 4pt; margin-top: 18pt; }
+        .header { text-align: center; border-bottom: 2pt solid #1e3a5f; padding-bottom: 10pt; margin-bottom: 18pt; }
+        .header .marca { font-size: 9pt; color: #6b7280; letter-spacing: 0.1em; text-transform: uppercase; }
+        .meta { background: #f9fafb; padding: 8pt 10pt; border-left: 3pt solid #1e3a5f; margin: 10pt 0; }
+        .meta p { margin: 2pt 0; font-size: 10pt; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8pt; font-size: 10pt; }
+        th { background: #f3f4f6; padding: 6pt 8pt; text-align: left; border-bottom: 1pt solid #d1d5db; }
+        td { padding: 5pt 8pt; border-bottom: 1pt solid #f3f4f6; }
+        .pill { display: inline-block; padding: 2pt 6pt; border-radius: 8pt; font-size: 9pt; }
+        .pill.presente { background: #d1fae5; color: #065f46; }
+        .pill.ausente { background: #fee2e2; color: #991b1b; }
+        .pill.justificada { background: #fef3c7; color: #92400e; }
+        .footer { margin-top: 40pt; padding-top: 10pt; border-top: 1pt solid #e5e7eb; font-size: 9pt; color: #6b7280; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <p class="marca">Frente Nacional de Prefeitos · FNP</p>
+        <h1>{{ atividade.titulo }}</h1>
+        <p style="font-size: 10pt; color: #6b7280;">{{ atividade.instancia.nome }} · {{ atividade.get_tipo_calendario_display }}</p>
+    </div>
+
+    <div class="meta">
+        <p><strong>Data:</strong> {{ atividade.data_reuniao|date:"d \d\e F \d\e Y" }}{% if atividade.horario %} às {{ atividade.horario|time:"H:i" }}{% endif %}</p>
+        <p><strong>Formato:</strong> {{ atividade.get_formato_display }}{% if atividade.local %} · <strong>Local:</strong> {{ atividade.local }}{% endif %}</p>
+        <p><strong>Status:</strong> {{ atividade.get_status_display }}</p>
+    </div>
+
+    {% if atividade.pauta_resumo %}
+    <h2>Pauta</h2>
+    <p>{{ atividade.pauta_resumo|linebreaks }}</p>
+    {% endif %}
+
+    <h2>Lista de presença ({{ presencas|length }})</h2>
+    {% if presencas %}
+    <table>
+        <thead>
+            <tr><th>Nome</th><th>Município</th><th>Status</th><th>Forma</th></tr>
+        </thead>
+        <tbody>
+            {% for p in presencas %}
+            <tr>
+                <td>{{ p.pessoa.nome }}</td>
+                <td>{% if p.municipio %}{{ p.municipio.nome }}/{{ p.municipio.uf }}{% else %}—{% endif %}</td>
+                <td><span class="pill {{ p.status }}">{{ p.get_status_display }}</span></td>
+                <td>{{ p.get_forma_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #9ca3af; font-style: italic;">Nenhuma presença registrada.</p>
+    {% endif %}
+
+    {% if atividade.ata_resumo %}
+    <h2>Ata / Deliberações</h2>
+    <p>{{ atividade.ata_resumo|linebreaks }}</p>
+    {% endif %}
+
+    {% if documentos %}
+    <h2>Documentos anexados</h2>
+    <ul>
+        {% for d in documentos %}
+        <li>{{ d.titulo }} — {{ d.get_categoria_display|default:"Documento" }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <div class="footer">
+        Documento gerado automaticamente pelo Sistema FNP em {% now "d/m/Y H:i" %}.<br>
+        ID da atividade: {{ atividade.pk }}
+    </div>
+</body>
+</html>

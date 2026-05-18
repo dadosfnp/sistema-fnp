@@ -166,6 +166,52 @@ def detalhe_municipio(request, pk):
 
 
 @login_required
+def certidao_municipio(request, pk):
+    """Gera certidao institucional em PDF do vinculo municipio x FNP.
+
+    Documento serve para comprovacao em editais, prestacao de contas TCU/MP
+    e relatorios de gestao. Usa dados estruturados — auditável e reproduzivel.
+    """
+    from datetime import date
+    from io import BytesIO
+
+    from django.http import HttpResponse
+    from xhtml2pdf import pisa
+
+    from aplicacoes.eventos.models import Participacao
+    from aplicacoes.instancias.models import Representacao
+
+    municipio = get_object_or_404(Municipio, pk=pk)
+    ano_atual = date.today().year
+    adimplencia = municipio.adimplencias.filter(ano_referencia=ano_atual).first()
+    engajamento = municipio.engajamentos.order_by('-bienio').first()
+    participacoes_ano = Participacao.objects.filter(
+        municipio=municipio, confirmado=True, evento__data_inicio__year=ano_atual,
+    ).count()
+    pessoas_municipio = municipio.vinculos.filter(vigente=True).values_list('pessoa_id', flat=True)
+    representacoes = Representacao.objects.filter(
+        pessoa_id__in=pessoas_municipio, vigente=True,
+    ).select_related('instancia', 'pessoa').order_by('instancia__nome')
+
+    html = render(request, 'cadastro/certidao_pdf.html', {
+        'municipio': municipio,
+        'ano_atual': ano_atual,
+        'adimplencia': adimplencia,
+        'engajamento': engajamento,
+        'participacoes_ano': participacoes_ano,
+        'representacoes': representacoes,
+        'data_emissao': date.today(),
+    }).content.decode('utf-8')
+
+    pdf_buffer = BytesIO()
+    pisa.CreatePDF(html, dest=pdf_buffer)
+    pdf_buffer.seek(0)
+    response = HttpResponse(pdf_buffer.read(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="certidao-{municipio.uf}-{municipio.nome}.pdf"'
+    return response
+
+
+@login_required
 def editar_municipio(request, pk):
     """Formulário de edição de município com auditoria."""
     if not _eh_editor(request):
