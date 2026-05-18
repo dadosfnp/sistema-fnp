@@ -15,5 +15,6 @@ python-dotenv==1.0.1
 Unidecode==1.4.0
 openpyxl==3.1.5
 reportlab==4.5.0
+xhtml2pdf==0.2.16
 qrcode==8.2
 requests==2.32.3
