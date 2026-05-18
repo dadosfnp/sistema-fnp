@@ -192,8 +192,19 @@ function mapaBrasil() {
             }).setView([-14.235, -51.925], 4);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                maxZoom: 18, attribution: '&copy; <a href="https://carto.com/">CARTO</a> · IBGE',
+                maxZoom: 18, subdomains: 'abcd',
+                attribution: '&copy; <a href="https://carto.com/">CARTO</a> · IBGE',
             }).addTo(this._mapa);
+
+            // Garante que o container ja tem altura quando o mapa inicializa.
+            // Sem isso, tiles ficam cinza ate o usuario clicar/zoom.
+            const fixSize = () => this._mapa.invalidateSize();
+            setTimeout(fixSize, 100);
+            setTimeout(fixSize, 500);
+            setTimeout(fixSize, 1500);
+            if (window.ResizeObserver) {
+                new ResizeObserver(fixSize).observe(document.getElementById('mapa-brasil'));
+            }
 
             this._camadaMarkers = L.markerClusterGroup({
                 maxClusterRadius: 50, showCoverageOnHover: false, chunkedLoading: true,
