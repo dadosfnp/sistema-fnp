@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block titulo %}Atividades — Sistema FNP{% endblock %}
+{% block titulo_pagina %}Atividades das Instâncias{% endblock %}
+
+{% block conteudo %}
+<div class="space-y-4">
+    {% include "nucleo/parciais/header_categoria.html" %}
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900">Lista de atividades</h2>
+            <p class="text-sm text-gray-500 mt-0.5">{{ atividades|length }} atividade{{ atividades|length|pluralize:"s" }} listada{{ atividades|length|pluralize:"s" }}</p>
+            <p class="text-xs text-gray-400 mt-1">
+                Indicadores:
+                <span class="font-semibold text-emerald-600">P</span> = Pauta registrada &nbsp;·&nbsp;
+                <span class="font-semibold text-emerald-600">A</span> = Ata registrada &nbsp;·&nbsp;
+                <span class="font-semibold text-emerald-600">L</span> = Lista de presença registrada
+            </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap filtros-container">
+            {% if eh_editor %}
+            <a href="{% url 'atividades:criar_atividade' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors shadow-sm whitespace-nowrap">
+                <i data-lucide="plus" class="w-4 h-4"></i> Nova Atividade
+            </a>
+            {% endif %}
+            <select name="instancia"
+                    class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30 max-w-[200px]"
+                    hx-get="{% url 'atividades:lista_atividades' %}" hx-trigger="change" hx-target="#tabela-atividades" hx-include="closest .filtros-container">
+                <option value="">Todas as instâncias</option>
+                {% for i in instancias %}<option value="{{ i.pk }}" {% if instancia_filtro == i.pk|stringformat:"s" %}selected{% endif %}>{{ i.nome|truncatechars:35 }}</option>{% endfor %}
+            </select>
+            <select name="tipo"
+                    class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
+                    hx-get="{% url 'atividades:lista_atividades' %}" hx-trigger="change" hx-target="#tabela-atividades" hx-include="closest .filtros-container">
+                <option value="">Tipo</option>
+                {% for val, label in tipos %}<option value="{{ val }}" {% if val == tipo_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <select name="formato"
+                    class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
+                    hx-get="{% url 'atividades:lista_atividades' %}" hx-trigger="change" hx-target="#tabela-atividades" hx-include="closest .filtros-container">
+                <option value="">Formato</option>
+                {% for val, label in formatos %}<option value="{{ val }}" {% if val == formato_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <select name="status"
+                    class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
+                    hx-get="{% url 'atividades:lista_atividades' %}" hx-trigger="change" hx-target="#tabela-atividades" hx-include="closest .filtros-container">
+                <option value="">Status</option>
+                {% for val, label in status_choices %}<option value="{{ val }}" {% if val == status_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                <input type="text" name="busca" value="{{ busca }}" placeholder="Pesquisar..."
+                       class="pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-fnp-400/30 transition-all w-56"
+                       hx-get="{% url 'atividades:lista_atividades' %}" hx-trigger="keyup changed delay:300ms" hx-target="#tabela-atividades" hx-include="closest .filtros-container">
+            </div>
+        </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" id="tabela-atividades">
+        {% include "atividades/parciais/lista_atividades_tabela.html" %}
+    </div>
+</div>
+{% endblock %}

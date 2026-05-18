@@ -1,4 +1,10 @@
-"""Models de engajamento — configuração singleton e pontuação bienal por município."""
+"""Models de engajamento — configuração singleton, pesos por categoria e pontuação bienal.
+
+O cálculo final combina contribuições de várias categorias (eventos, instâncias,
+missões, atividades) ponderadas por ``PesoEngajamento``. Esse model é a tabela
+de "metodologia" editável pela equipe FNP — cada peso pode ser ajustado pelo
+admin sem mudança de código.
+"""
 
 from django.db import models
 from django.utils import timezone
@@ -65,6 +71,85 @@ class ConfiguracaoEngajamento(ModeloBase):
         return obj
 
 
+class PesoEngajamento(ModeloBase):
+    """Peso aplicado a cada tipo de contribuição no cálculo do engajamento.
+
+    Cada linha define quantos pontos um município ganha por uma contribuição
+    específica (representação titular, presença em atividade, membro de
+    delegação internacional etc.). Editar pelo admin Unfold ou pelo seed
+    ``popular_pesos_engajamento``.
+    """
+
+    class Chave(models.TextChoices):
+        EVENTO_PRESENCIAL = 'evento_presencial', 'Evento — participação presencial'
+        EVENTO_ONLINE = 'evento_online', 'Evento — participação online'
+        EVENTO_BONUS_PALESTRANTE = 'evento_bonus_palestrante', 'Evento — bônus palestrante'
+        EVENTO_BONUS_ORGANIZADOR = 'evento_bonus_organizador', 'Evento — bônus organizador'
+        REPRESENTACAO_TITULAR = 'representacao_titular', 'Representação titular vigente'
+        REPRESENTACAO_SUPLENTE = 'representacao_suplente', 'Representação suplente vigente'
+        REPRESENTACAO_DIRETIVA = 'representacao_diretiva', 'Representação em função diretiva (presidência etc.)'
+        PRESENCA_ATIVIDADE = 'presenca_atividade', 'Presença em atividade de instância'
+        MISSAO_INTERNACIONAL = 'missao_internacional', 'Membro de delegação internacional'
+        MISSAO_NACIONAL = 'missao_nacional', 'Membro de delegação nacional'
+
+    chave = models.CharField('chave', max_length=40, choices=Chave.choices)
+    peso = models.IntegerField(
+        'peso (pontos)',
+        default=10,
+        help_text='Quantos pontos esta contribuição vale, antes do decaimento e penalidades.',
+    )
+    descricao = models.TextField(
+        'descrição',
+        blank=True,
+        help_text='Explicação institucional do peso — aparece na página de metodologia.',
+    )
+    ativo = models.BooleanField('ativo?', default=True)
+    vigente_de = models.DateField(
+        'vigente desde',
+        null=True, blank=True,
+        help_text='Data a partir da qual este peso passa a valer. Vazio = sempre vigente.',
+    )
+    vigente_ate = models.DateField(
+        'vigente até',
+        null=True, blank=True,
+        help_text='Data até a qual este peso vale. Vazio = sem fim. Mudanças preservam histórico.',
+    )
+
+    class Meta:
+        verbose_name = 'peso do engajamento'
+        verbose_name_plural = 'pesos do engajamento'
+        ordering = ['chave', '-vigente_de']
+        indexes = [
+            models.Index(fields=['chave', 'ativo']),
+            models.Index(fields=['vigente_de', 'vigente_ate']),
+        ]
+
+    def __str__(self):
+        if self.vigente_de or self.vigente_ate:
+            return f'{self.get_chave_display()}: {self.peso} pts ({self.vigente_de or "—"} → {self.vigente_ate or "atual"})'
+        return f'{self.get_chave_display()}: {self.peso} pts'
+
+    @classmethod
+    def valor(cls, chave, fallback=0, na_data=None):
+        """Retorna o peso ativo na data informada (ou hoje), ou ``fallback``.
+
+        Vigência: peso conta se ``vigente_de <= data <= vigente_ate`` (limites
+        null são tratados como "infinito"). Se houver mais de um vigente, usa
+        o mais recente.
+        """
+        from django.db.models import Q
+        from django.utils import timezone
+
+        data = na_data or timezone.now().date()
+        qs = cls.objects.filter(chave=chave, ativo=True).filter(
+            Q(vigente_de__lte=data) | Q(vigente_de__isnull=True),
+        ).filter(
+            Q(vigente_ate__gte=data) | Q(vigente_ate__isnull=True),
+        ).order_by('-vigente_de')
+        peso = qs.first()
+        return peso.peso if peso else fallback
+
+
 class Engajamento(ModeloBase):
     """Score de engajamento de um município em um biênio — calculado a partir de participações."""
 
@@ -109,82 +194,49 @@ class Engajamento(ModeloBase):
         return f'{self.municipio} — {self.bienio} — {self.get_nivel_display()} ({self.pontuacao_normalizada}/100)'
 
     def recalcular(self):
-        """Recalcula a pontuação relativa aos eventos cadastrados no biênio.
+        """Recalcula a pontuação delegando o agregado ao registry de fontes.
 
-        A meta é dinâmica: soma dos pontos_presencial de todos os eventos
-        do biênio. Se existem 3 eventos valendo 10 pts cada, a meta é 30.
-        Um município que participou de todos presencialmente terá 100/100.
+        Cada fonte (eventos, representações, presenças, missões, futuras) está
+        em ``aplicacoes.engajamento.servicos.calculo``. Decaimento, normalização
+        e penalidade ficam aqui pois são regras transversais do bienio.
         """
         from aplicacoes.adimplencia.models import Adimplencia
-        from aplicacoes.eventos.models import Evento, Participacao
+        from aplicacoes.engajamento.servicos.calculo import calcular_pontos
+        from aplicacoes.eventos.models import Evento
 
         config = ConfiguracaoEngajamento.atual()
-        anos = self.bienio.split('-')
-        ano1, ano2 = int(anos[0]), int(anos[1])
+        ano1, ano2 = [int(x) for x in self.bienio.split('-')]
         ano_atual = timezone.now().year
 
-        # Eventos cadastrados no biênio
-        eventos_bienio = Evento.objects.filter(
-            data_inicio__year__in=[ano1, ano2],
+        ano_atual_pts, ano_anterior_pts, total_itens, _ = calcular_pontos(
+            self.municipio, ano1, ano2,
+        )
+        self.pontuacao_ano_atual = ano_atual_pts
+        self.pontuacao_ano_anterior = ano_anterior_pts
+        self.pontuacao_bruta = int(ano_atual_pts + (ano_anterior_pts * float(config.fator_decaimento)))
+
+        eventos_bienio = Evento.objects.filter(data_inicio__year__in=[ano1, ano2])
+        peso_rep_titular = PesoEngajamento.valor(PesoEngajamento.Chave.REPRESENTACAO_TITULAR, 20)
+        peso_presenca = PesoEngajamento.valor(PesoEngajamento.Chave.PRESENCA_ATIVIDADE, 5)
+        meta_dinamica = max(
+            sum(e.pontos_presencial for e in eventos_bienio) + peso_rep_titular + (peso_presenca * 4),
+            50,
         )
 
-        # Meta dinâmica: soma dos pontos presenciais de todos os eventos
-        meta_dinamica = sum(e.pontos_presencial for e in eventos_bienio)
-
-        # Participações confirmadas deste município
-        participacoes = Participacao.objects.filter(
-            municipio=self.municipio,
-            confirmado=True,
-            evento__data_inicio__year__in=[ano1, ano2],
-        )
-
-        pontos_ano1 = sum(
-            p.pontos_calculados
-            for p in participacoes.filter(evento__data_inicio__year=ano1)
-        )
-        pontos_ano2 = sum(
-            p.pontos_calculados
-            for p in participacoes.filter(evento__data_inicio__year=ano2)
-        )
-
-        # Decaimento: ano anterior perde pontos se estamos no ano 2
-        if ano_atual >= ano2:
-            self.pontuacao_ano_anterior = pontos_ano1
-            self.pontuacao_ano_atual = pontos_ano2
-            self.pontuacao_bruta = int(
-                pontos_ano2 + (pontos_ano1 * float(config.fator_decaimento))
-            )
-        else:
-            self.pontuacao_ano_anterior = 0
-            self.pontuacao_ano_atual = pontos_ano1
-            self.pontuacao_bruta = pontos_ano1
-
-        # Penalidade por adimplência
         adimplencia = Adimplencia.objects.filter(
-            municipio=self.municipio,
-            ano_referencia=ano_atual,
+            municipio=self.municipio, ano_referencia=ano_atual,
         ).first()
+        percentual = 0.0
+        if adimplencia and adimplencia.status == Adimplencia.Status.INADIMPLENTE:
+            percentual = float(config.penalidade_inadimplente)
+        elif adimplencia and adimplencia.status == Adimplencia.Status.PARCIAL:
+            percentual = float(config.penalidade_parcial)
+        self.penalidade_adimplencia = int(self.pontuacao_bruta * percentual)
 
-        percentual_penalidade = 0
-        if adimplencia:
-            if adimplencia.status == Adimplencia.Status.INADIMPLENTE:
-                percentual_penalidade = float(config.penalidade_inadimplente)
-            elif adimplencia.status == Adimplencia.Status.PARCIAL:
-                percentual_penalidade = float(config.penalidade_parcial)
+        liquida = self.pontuacao_bruta - self.penalidade_adimplencia
+        self.pontuacao_normalizada = min(100, int((liquida / meta_dinamica) * 100))
+        self.total_participacoes = total_itens
 
-        self.penalidade_adimplencia = int(self.pontuacao_bruta * percentual_penalidade)
-        pontuacao_liquida = self.pontuacao_bruta - self.penalidade_adimplencia
-
-        # Normalizar para 0-100 usando meta dinâmica (eventos cadastrados)
-        if meta_dinamica > 0:
-            self.pontuacao_normalizada = min(100, int((pontuacao_liquida / meta_dinamica) * 100))
-        else:
-            self.pontuacao_normalizada = 0
-
-        # Total de participações
-        self.total_participacoes = participacoes.count()
-
-        # Nível
         if self.pontuacao_normalizada >= 70:
             self.nivel = self.Nivel.ALTO
         elif self.pontuacao_normalizada >= 40:

@@ -5,3 +5,6 @@ class NucleoConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'aplicacoes.nucleo'
     verbose_name = 'Núcleo'
+
+    def ready(self):
+        import aplicacoes.nucleo.signals  # noqa: F401

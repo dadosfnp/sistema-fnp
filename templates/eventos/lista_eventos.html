@@ -5,10 +5,12 @@
 
 {% block conteudo %}
 <div class="space-y-4">
+    {% include "nucleo/parciais/header_categoria.html" %}
+
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h2 class="text-xl font-bold text-gray-900">Eventos</h2>
-            <p class="text-sm text-gray-500 mt-0.5">{{ eventos|length }} evento{{ eventos|length|pluralize:"s" }}</p>
+            <h2 class="text-xl font-bold text-gray-900">Lista de eventos</h2>
+            <p class="text-sm text-gray-500 mt-0.5">{{ eventos|length }} evento{{ eventos|length|pluralize:"s" }} listado{{ eventos|length|pluralize:"s" }}</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap filtros-container">
             {% if eh_editor %}

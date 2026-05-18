@@ -6,4 +6,5 @@ app_name = 'engajamento'
 
 urlpatterns = [
     path('', views.lista_engajamento, name='lista_engajamento'),
+    path('metodologia/', views.metodologia, name='metodologia'),
 ]

@@ -3,7 +3,16 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from .models import ConfiguracaoEngajamento, Engajamento
+from .models import ConfiguracaoEngajamento, Engajamento, PesoEngajamento
+
+
+@admin.register(PesoEngajamento)
+class PesoEngajamentoAdmin(ModelAdmin):
+    """Admin de PesoEngajamento — editores ajustam pontuação por categoria."""
+    list_display = ['chave', 'peso', 'ativo']
+    list_filter = ['ativo']
+    list_editable = ['peso', 'ativo']
+    search_fields = ['chave', 'descricao']
 
 
 @admin.register(ConfiguracaoEngajamento)

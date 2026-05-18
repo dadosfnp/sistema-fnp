@@ -16,6 +16,15 @@
                 <i data-lucide="plus" class="w-4 h-4"></i> Novo Municipio
             </a>
             {% endif %}
+            <a href="{% url 'relatorios:comparar_municipios' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 border border-indigo-200 transition-colors whitespace-nowrap">
+                <i data-lucide="git-compare" class="w-4 h-4"></i> Comparar
+            </a>
+            {% include "nucleo/parciais/filtros_salvos.html" with escopo_url="cadastro:lista_municipios" %}
+            <a href="?{{ request.GET.urlencode }}{% if request.GET %}&{% endif %}exportar=csv"
+               class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-colors whitespace-nowrap"
+               title="Exporta CSV da visão filtrada atual">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> Exportar
+            </a>
             <select name="uf"
                     class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
                     hx-get="{% url 'cadastro:lista_municipios' %}" hx-trigger="change" hx-target="#tabela-municipios" hx-include="closest .filtros-container">

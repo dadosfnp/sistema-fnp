@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block titulo %}Historico de envios — Sistema FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <span class="text-gray-400">Comunicacao</span>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold truncate">Historico: {{ entidade }}</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-4xl mx-auto space-y-4">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900">Historico de envios</h2>
+            <p class="text-sm text-gray-500 mt-1">Origem: <span class="font-medium text-fnp-600">{{ entidade }}</span> &middot; {{ envios|length }} envio{{ envios|length|pluralize:"s" }}</p>
+        </div>
+        {% if eh_editor %}
+        <a href="{% url 'comunicacao:compor_envio' app_label=app_label model_name=model_name object_id=object_id %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors">
+            <i data-lucide="send" class="w-4 h-4"></i> Novo envio
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="space-y-3">
+        {% for envio in envios %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900">{{ envio.assunto }}</h3>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ envio.criado_em|date:"d/m/Y H:i" }} · {{ envio.total_destinatarios }} destinatario{{ envio.total_destinatarios|pluralize:"s" }} · por {{ envio.enviado_por.get_full_name|default:envio.enviado_por.username|default:"—" }}</p>
+                </div>
+                {% if envio.status == 'enviado' %}<span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700">{{ envio.get_status_display }}</span>
+                {% elif envio.status == 'falha' %}<span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg bg-red-50 text-red-700">{{ envio.get_status_display }}</span>
+                {% else %}<span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-lg bg-amber-50 text-amber-700">{{ envio.get_status_display }}</span>{% endif %}
+            </div>
+            <details class="p-6">
+                <summary class="text-xs font-medium text-fnp-500 cursor-pointer hover:text-fnp-700">Ver corpo enviado</summary>
+                <pre class="mt-3 p-3 bg-gray-50 rounded text-xs whitespace-pre-wrap font-mono text-gray-700">{{ envio.corpo }}</pre>
+                {% if envio.destinatarios %}
+                <p class="mt-3 text-xs font-medium text-gray-500">Destinatarios:</p>
+                <p class="text-xs text-gray-600 mt-1">{{ envio.destinatarios|join:", " }}</p>
+                {% endif %}
+                {% if envio.erro %}<p class="mt-3 text-xs font-medium text-red-600">Erro:</p><p class="text-xs text-red-500 mt-1">{{ envio.erro }}</p>{% endif %}
+            </details>
+        </div>
+        {% empty %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 py-16 text-center">
+            <i data-lucide="mail" class="w-10 h-10 text-gray-300 mx-auto"></i>
+            <p class="mt-3 text-sm text-gray-500">Nenhum envio registrado ainda.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+{% block js_extra %}<script>lucide.createIcons();</script>{% endblock %}

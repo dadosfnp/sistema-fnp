@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% load fnp_tags %}
+
+{% block titulo %}Comparar municipios — Sistema FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <a href="{% url 'relatorios:painel' %}" class="text-gray-400 hover:text-fnp-500 transition-colors">Relatórios</a>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold">Comparar municípios</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-7xl mx-auto space-y-5">
+
+    {# Header reutilizavel #}
+    {% include "nucleo/parciais/header_categoria.html" with header_icone="git-compare" header_cor="indigo" header_titulo="Comparar municípios" header_descricao="Análise lado a lado de até 3 municípios para identificar diferenças em engajamento, adimplência e atividade institucional." %}
+
+    {# Seletor de municipios #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
+         x-data='{
+            selecionados: {{ ids_selecionados_json|safe }},
+            disponiveis: {{ municipios_disponiveis_json|safe }},
+            busca: "",
+            get filtrados() {
+                if (!this.busca) return this.disponiveis.slice(0, 8);
+                const b = this.busca.toLowerCase();
+                return this.disponiveis.filter(m =>
+                    m.nome.toLowerCase().includes(b) || m.uf.toLowerCase().includes(b)
+                ).slice(0, 8);
+            },
+            adicionar(id) {
+                if (this.selecionados.length >= 3) return;
+                if (this.selecionados.includes(id)) return;
+                this.selecionados.push(id);
+                this.aplicar();
+            },
+            remover(id) {
+                this.selecionados = this.selecionados.filter(x => x !== id);
+                this.aplicar();
+            },
+            aplicar() {
+                const params = new URLSearchParams();
+                this.selecionados.forEach(id => params.append("ids", id));
+                window.location = "?" + params.toString();
+            },
+            nomeDe(id) {
+                const m = this.disponiveis.find(x => x.id === id);
+                return m ? m.nome + "/" + m.uf : id.substring(0, 8);
+            }
+         }'>
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-sm font-semibold text-gray-700">
+                Municípios selecionados
+                <span class="ml-1 text-xs font-normal text-gray-400" x-text="`(${selecionados.length}/3)`"></span>
+            </p>
+            {% if cartoes %}
+            <a href="{% url 'relatorios:comparar_municipios' %}" class="text-xs text-gray-500 hover:text-red-500">Limpar</a>
+            {% endif %}
+        </div>
+
+        {# Tags dos selecionados #}
+        <div class="flex flex-wrap gap-2 mb-3" x-show="selecionados.length > 0">
+            <template x-for="id in selecionados" :key="id">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-fnp-50 text-fnp-700 border border-fnp-200">
+                    <i data-lucide="building-2" class="w-3 h-3"></i>
+                    <span x-text="nomeDe(id)"></span>
+                    <button @click="remover(id)" class="opacity-60 hover:opacity-100">
+                        <i data-lucide="x" class="w-3 h-3"></i>
+                    </button>
+                </span>
+            </template>
+        </div>
+
+        {# Busca + sugestoes #}
+        <div class="relative" x-show="selecionados.length < 3">
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                <input type="text" x-model="busca" placeholder="Buscar município por nome ou UF..."
+                       class="w-full pl-10 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500 focus:ring-1 focus:ring-fnp-500">
+            </div>
+            <div class="mt-2 flex flex-wrap gap-2">
+                <template x-for="m in filtrados" :key="m.id">
+                    <button @click="adicionar(m.id)" :disabled="selecionados.includes(m.id)"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors"
+                            :class="selecionados.includes(m.id) ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-200 hover:bg-fnp-50 hover:border-fnp-300 hover:text-fnp-700'">
+                        <i data-lucide="plus" class="w-3 h-3"></i>
+                        <span x-text="m.nome + '/' + m.uf"></span>
+                    </button>
+                </template>
+                <p x-show="filtrados.length === 0" class="text-xs text-gray-400 py-1">Nenhum município corresponde à busca.</p>
+            </div>
+        </div>
+    </div>
+
+    {# Cartoes lado a lado #}
+    {% if cartoes %}
+    <div class="grid gap-4" style="grid-template-columns: repeat({{ cartoes|length }}, minmax(0, 1fr));">
+        {% for c in cartoes %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+            {# Cabecalho do cartao #}
+            <div class="p-5 border-b border-gray-100">
+                <div class="flex items-start gap-3">
+                    <div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-gray-100 bg-white p-1">
+                        {% brasao_municipio c.municipio as brasao_url %}<img src="{{ brasao_url }}" alt="{{ c.municipio.uf }}" class="w-full h-full object-contain">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <a href="{% url 'cadastro:detalhe_municipio' c.municipio.pk %}" class="text-base font-bold text-gray-900 hover:text-fnp-500 transition-colors block truncate">{{ c.municipio.nome }}</a>
+                        <p class="text-xs text-gray-500 mt-0.5">
+                            {{ c.municipio.uf }} · {{ c.municipio.get_regiao_display|default:"—" }}
+                            {% if c.municipio.eh_capital %} · <span class="text-amber-600 font-medium">Capital</span>{% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-1.5 mt-3">
+                    {% if c.municipio.associado_fnp %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-50 text-emerald-700">
+                        <i data-lucide="check-circle-2" class="w-2.5 h-2.5"></i> Associado FNP
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-gray-100 text-gray-500">Não associado</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Metricas em grid #}
+            <dl class="divide-y divide-gray-100">
+                <div class="flex items-center justify-between px-5 py-3">
+                    <dt class="text-xs font-medium text-gray-500 flex items-center gap-1.5"><i data-lucide="users" class="w-3.5 h-3.5"></i> População</dt>
+                    <dd class="text-sm font-semibold text-gray-900 tabular-nums">{{ c.municipio.populacao|floatformat:"0g" }}</dd>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                    <dt class="text-xs font-medium text-gray-500 flex items-center gap-1.5"><i data-lucide="user-check" class="w-3.5 h-3.5"></i> Vínculos ativos</dt>
+                    <dd class="text-sm font-semibold text-gray-900 tabular-nums">{{ c.vinculos_ativos }}</dd>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                    <dt class="text-xs font-medium text-gray-500 flex items-center gap-1.5"><i data-lucide="messages-square" class="w-3.5 h-3.5"></i> Representações vigentes</dt>
+                    <dd class="text-sm font-semibold text-gray-900 tabular-nums">{{ c.representacoes_vigentes }}</dd>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                    <dt class="text-xs font-medium text-gray-500 flex items-center gap-1.5"><i data-lucide="calendar-check" class="w-3.5 h-3.5"></i> Participações confirmadas</dt>
+                    <dd class="text-sm font-semibold text-gray-900 tabular-nums">{{ c.participacoes }}</dd>
+                </div>
+
+                {# Engajamento #}
+                <div class="px-5 py-3">
+                    <dt class="text-xs font-medium text-gray-500 flex items-center gap-1.5 mb-2"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Engajamento atual</dt>
+                    {% if c.engajamento %}
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Pontuação</span>
+                            <span class="text-lg font-bold text-fnp-600 tabular-nums">{{ c.engajamento.pontuacao_normalizada|floatformat:1 }}</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="h-1.5 rounded-full
+                                {% if c.engajamento.nivel == 'alto' %}bg-emerald-500
+                                {% elif c.engajamento.nivel == 'medio' %}bg-amber-500
+                                {% elif c.engajamento.nivel == 'baixo' %}bg-orange-500
+                                {% else %}bg-gray-300{% endif %}"
+                                style="width: {% widthratio c.engajamento.pontuacao_normalizada 100 100 %}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Nível</span>
+                            <span class="text-xs font-semibold
+                                {% if c.engajamento.nivel == 'alto' %}text-emerald-700
+                                {% elif c.engajamento.nivel == 'medio' %}text-amber-700
+                                {% elif c.engajamento.nivel == 'baixo' %}text-orange-700
+                                {% else %}text-gray-500{% endif %}">{{ c.engajamento.get_nivel_display }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-xs text-gray-400 italic">Sem registro de engajamento.</p>
+                    {% endif %}
+                </div>
+
+                {# Adimplencia #}
+                <div class="px-5 py-3">
+                    <dt class="text-xs font-medium text-gray-500 flex items-center gap-1.5 mb-2"><i data-lucide="wallet" class="w-3.5 h-3.5"></i> Adimplência {{ ano_recente }}</dt>
+                    {% if c.adimplencia %}
+                    <div class="flex items-center gap-2">
+                        {% if c.adimplencia.status == 'adimplente' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Adimplente
+                        </span>
+                        {% elif c.adimplencia.status == 'parcial' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-50 text-amber-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Parcial
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-red-50 text-red-700">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Inadimplente
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if c.adimplencia.valor_devido %}
+                    <p class="text-xs text-gray-500 mt-1.5">R$ {{ c.adimplencia.valor_pago|floatformat:"0" }} / R$ {{ c.adimplencia.valor_devido|floatformat:"0" }}</p>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-xs text-gray-400 italic">Sem registro para {{ ano_recente }}.</p>
+                    {% endif %}
+                </div>
+            </dl>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12">
+        <div class="flex flex-col items-center text-center gap-3 max-w-md mx-auto">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                <i data-lucide="git-compare" class="w-7 h-7 text-indigo-500"></i>
+            </div>
+            <div>
+                <p class="text-base font-semibold text-gray-800">Nenhum município selecionado</p>
+                <p class="mt-1 text-sm text-gray-500">Use a busca acima para escolher até 3 municípios e ver suas métricas lado a lado.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+<script>if (window.lucide) lucide.createIcons();</script>
+{% endblock %}

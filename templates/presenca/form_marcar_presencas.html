@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block titulo %}Marcar presencas — Sistema FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <span class="text-gray-400">Presenca</span>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold truncate">{{ entidade }}</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-5xl mx-auto space-y-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="user-check" class="w-5 h-5 text-emerald-500"></i>
+            </div>
+            <div class="flex-1">
+                <h2 class="text-xl font-bold text-gray-900">Marcar presenças</h2>
+                <p class="text-sm text-gray-500 mt-1">Entidade: <span class="font-medium text-fnp-600">{{ entidade }}</span></p>
+                <p class="text-xs text-gray-400 mt-1">{{ linhas|length }} pessoa{{ linhas|length|pluralize:"s" }} candidata{{ linhas|length|pluralize:"s" }}. Selecione um status para registrar; deixe em branco para não mexer.</p>
+            </div>
+            <button type="button" onclick="abrirModalEnvio('{% url 'presenca:adicionar_pessoa_modal' app_label=app_label model_name=model_name object_id=object_id %}')" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors shadow-sm whitespace-nowrap">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Adicionar pessoa nova
+            </button>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <table class="min-w-full text-sm">
+                <thead class="bg-gray-50 border-b border-gray-100">
+                    <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <th class="px-4 py-3">Pessoa</th>
+                        <th class="px-4 py-3">Municipio</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Forma</th>
+                        <th class="px-4 py-3">Observacao</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for linha in linhas %}
+                    <tr class="hover:bg-gray-50/50">
+                        <td class="px-4 py-3 font-medium text-gray-900">{{ linha.pessoa.nome }}</td>
+                        <td class="px-4 py-3 text-gray-600">{% if linha.municipio %}{{ linha.municipio.nome }}/{{ linha.municipio.uf }}{% else %}—{% endif %}</td>
+                        <td class="px-4 py-3">
+                            <select name="status_{{ linha.pessoa.pk }}" class="text-sm border border-gray-200 rounded-lg bg-white px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+                                <option value="">—</option>
+                                {% for val, label in status_choices %}
+                                <option value="{{ val }}" {% if linha.presenca and linha.presenca.status == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td class="px-4 py-3">
+                            <select name="forma_{{ linha.pessoa.pk }}" class="text-sm border border-gray-200 rounded-lg bg-white px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+                                {% for val, label in forma_choices %}
+                                <option value="{{ val }}" {% if linha.presenca and linha.presenca.forma == val %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td class="px-4 py-3">
+                            <input type="text" name="observacao_{{ linha.pessoa.pk }}" value="{{ linha.presenca.observacao|default:'' }}" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-fnp-400/30" placeholder="Opcional">
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">Nenhum candidato disponivel.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors">
+                <i data-lucide="check" class="w-4 h-4"></i> Salvar presencas
+            </button>
+            <a href="javascript:history.back()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block js_extra %}<script>lucide.createIcons();</script>{% endblock %}

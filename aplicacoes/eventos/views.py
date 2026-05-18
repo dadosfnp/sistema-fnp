@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from aplicacoes.eventos.forms import EventoForm, ParticipacaoForm
 from aplicacoes.eventos.models import Evento, Participacao
-from aplicacoes.nucleo.servicos.auditoria import detectar_alteracoes, registrar_criacao, registrar_edicao
+from aplicacoes.nucleo.servicos.auditoria import detectar_alteracoes, historico_de, registrar_criacao, registrar_edicao
 
 
 def _eh_editor(request):
@@ -32,10 +32,26 @@ def lista_eventos(request):
         eventos = eventos.filter(tipo=tipo)
     if modalidade:
         eventos = eventos.filter(modalidade=modalidade)
+    from django.utils import timezone
+    hoje = timezone.now().date()
+    total = Evento.objects.count()
+    futuros = Evento.objects.filter(data_inicio__gte=hoje).count()
+    presenciais = Evento.objects.filter(modalidade=Evento.Modalidade.PRESENCIAL).count()
+    online = Evento.objects.filter(modalidade=Evento.Modalidade.ONLINE).count()
+
     ctx = {
         'eventos': eventos, 'busca': busca,
         'tipo_filtro': tipo, 'tipos': Evento.TipoEvento.choices,
         'modalidade_filtro': modalidade, 'modalidades': Evento.Modalidade.choices,
+        'header_icone': 'calendar-days', 'header_cor': 'purple',
+        'header_titulo': 'Eventos institucionais',
+        'header_descricao': 'Acontecimentos pontuais — assembleias, audiências, congressos, seminários. Cada evento tem pontuação de engajamento configurável por modalidade e papel.',
+        'header_kpis': [
+            {'label': 'eventos', 'valor': total, 'cor': 'gray'},
+            {'label': 'futuros', 'valor': futuros, 'cor': 'blue'},
+            {'label': 'presenciais', 'valor': presenciais, 'cor': 'emerald'},
+            {'label': 'online', 'valor': online, 'cor': 'sky'},
+        ],
     }
     template = 'eventos/parciais/lista_eventos_tabela.html' if request.headers.get('HX-Request') else 'eventos/lista_eventos.html'
     return render(request, template, ctx)
@@ -48,6 +64,7 @@ def detalhe_evento(request, pk):
     participacoes = evento.participacoes.select_related('pessoa', 'municipio').filter(confirmado=True).order_by('pessoa__nome')
     return render(request, 'eventos/detalhe_evento.html', {
         'evento': evento, 'participacoes': participacoes,
+        'historico': historico_de(evento),
     })
 
 

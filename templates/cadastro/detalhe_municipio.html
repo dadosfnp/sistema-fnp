@@ -115,9 +115,13 @@
             <div class="space-y-2">
                 {% for v in vinculos %}
                 <a href="{% url 'cadastro:detalhe_pessoa' v.pessoa.pk %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
+                    {% if v.pessoa.foto %}
                     <div class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
-                        {% avatar_pessoa v.pessoa 64 as foto_url %}<img src="{{ foto_url }}" alt="{{ v.pessoa.nome.0 }}" class="w-full h-full object-cover">
+                        <img src="{{ v.pessoa.foto.url }}" alt="{{ v.pessoa.nome }}" class="w-full h-full object-cover">
                     </div>
+                    {% else %}
+                    {% avatar_iniciais v.pessoa "w-8 h-8" "text-xs" %}
+                    {% endif %}
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-900 truncate group-hover:text-fnp-500">{{ v.pessoa.nome }}</p>
                         <p class="text-xs text-gray-400">{{ v.get_papel_display }}</p>

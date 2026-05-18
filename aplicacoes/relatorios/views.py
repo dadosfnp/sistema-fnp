@@ -1,127 +1,217 @@
-"""Views de relatórios — dashboard com gráficos e exportação Excel/PDF."""
+"""Views de relatórios — dashboard agregado, gráficos por categoria e exportações."""
 
 import json
-from collections import defaultdict
 from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Sum
-from django.http import HttpResponse
+from django.core.cache import cache
+from django.db.models import Count
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 
 from aplicacoes.adimplencia.models import Adimplencia
+from aplicacoes.atividades.models import Atividade
 from aplicacoes.cadastro.models import Municipio, Pessoa
 from aplicacoes.engajamento.models import Engajamento
 from aplicacoes.eventos.models import Evento, Participacao
+from aplicacoes.instancias.models import Instancia, Representacao
+from aplicacoes.missoes.models import Missao
+from aplicacoes.projetos.models import Projeto
 
 
-def _dados_dashboard():
-    """Coleta dados agregados para gráficos do painel."""
-    # Adimplência por status (ano mais recente)
-    ano_mais_recente = Adimplencia.objects.order_by('-ano_referencia').values_list('ano_referencia', flat=True).first() or 2026
-    adimplencia_status = dict(
-        Adimplencia.objects.filter(ano_referencia=ano_mais_recente)
-        .values_list('status')
-        .annotate(total=Count('id'))
-        .values_list('status', 'total')
-    )
+def _contagens_categorias():
+    """Retorna contagens agregadas por categoria (com cache de 60s)."""
+    chave = 'painel:contagens_categorias:v1'
+    cacheado = cache.get(chave)
+    if cacheado is not None:
+        return cacheado
+    resultado = _contagens_categorias_uncached()
+    cache.set(chave, resultado, 60)
+    return resultado
 
-    # Engajamento por nível
-    engajamento_niveis = dict(
-        Engajamento.objects.values_list('nivel').annotate(total=Count('id')).values_list('nivel', 'total')
-    )
 
-    # Municípios por região
-    municipios_regiao = dict(
-        Municipio.objects.values_list('regiao').annotate(total=Count('id')).values_list('regiao', 'total')
-    )
-
-    # Participações por tipo de evento
-    part_por_tipo = dict(
-        Participacao.objects.filter(confirmado=True)
-        .values_list('evento__tipo')
-        .annotate(total=Count('id'))
-        .values_list('evento__tipo', 'total')
-    )
-
-    # Pessoas por tipo
-    pessoas_tipo = dict(
-        Pessoa.objects.filter(ativo=True)
-        .values_list('tipo')
-        .annotate(total=Count('id'))
-        .values_list('tipo', 'total')
-    )
-
+def _contagens_categorias_uncached():
+    """Calcula contagens — extraído pra ficar fácil invalidar/refazer."""
     return {
-        'ano_adimplencia': ano_mais_recente,
-        'adimplencia_status': adimplencia_status,
-        'engajamento_niveis': engajamento_niveis,
-        'municipios_regiao': municipios_regiao,
-        'part_por_tipo': part_por_tipo,
-        'pessoas_tipo': pessoas_tipo,
+        'instancias_origem': dict(
+            Instancia.objects.values_list('origem')
+            .annotate(total=Count('id')).values_list('origem', 'total')
+        ),
+        'projetos_status': dict(
+            Projeto.objects.values_list('status')
+            .annotate(total=Count('id')).values_list('status', 'total')
+        ),
+        'missoes_tipo': dict(
+            Missao.objects.values_list('tipo')
+            .annotate(total=Count('id')).values_list('tipo', 'total')
+        ),
+        'atividades_status': dict(
+            Atividade.objects.values_list('status')
+            .annotate(total=Count('id')).values_list('status', 'total')
+        ),
     }
+
+
+def _filtrar_municipios(queryset, regiao=None, uf=None):
+    """Aplica filtros de região e UF a um queryset que tem FK para Municipio."""
+    if regiao:
+        queryset = queryset.filter(municipio__regiao=regiao)
+    if uf:
+        queryset = queryset.filter(municipio__uf=uf)
+    return queryset
 
 
 @login_required
 def painel(request):
-    """Renderiza o dashboard de relatórios com dados para Chart.js."""
-    dados = _dados_dashboard()
+    """Painel de relatórios com KPIs, gráficos por categoria e top municípios.
+
+    Suporta filtros via GET: ``regiao``, ``uf``. Aplicados sobre os dados
+    sensíveis a município (engajamento, adimplência, top ranking).
+    """
+    regiao = request.GET.get('regiao', '')
+    uf = request.GET.get('uf', '')
+
+    total_pessoas = Pessoa.objects.filter(ativo=True).count()
+    total_municipios = Municipio.objects.count()
+    total_eventos = Evento.objects.count()
+    total_participacoes = Participacao.objects.filter(confirmado=True).count()
+    total_instancias = Instancia.objects.count()
+    total_projetos = Projeto.objects.count()
+    total_missoes = Missao.objects.count()
+    total_atividades = Atividade.objects.count()
+    total_representacoes = Representacao.objects.filter(vigente=True).count()
+
+    ano_mais_recente = (
+        Adimplencia.objects.order_by('-ano_referencia').values_list('ano_referencia', flat=True).first()
+        or 2026
+    )
+    adimplencia_qs = Adimplencia.objects.filter(ano_referencia=ano_mais_recente)
+    adimplencia_qs = _filtrar_municipios(adimplencia_qs, regiao, uf)
+    adimplencia_status = dict(
+        adimplencia_qs.values_list('status').annotate(total=Count('id')).values_list('status', 'total')
+    )
+
+    engajamento_qs = Engajamento.objects.all()
+    engajamento_qs = _filtrar_municipios(engajamento_qs, regiao, uf)
+    engajamento_niveis = dict(
+        engajamento_qs.values_list('nivel').annotate(total=Count('id')).values_list('nivel', 'total')
+    )
+
+    municipios_regiao = dict(
+        Municipio.objects.values_list('regiao')
+        .annotate(total=Count('id')).values_list('regiao', 'total')
+    )
+
+    top_engajamento = engajamento_qs.select_related('municipio').order_by('-pontuacao_normalizada')[:10]
+
+    contagens = _contagens_categorias()
+
     ctx = {
+        # Filtros
+        'regiao_filtro': regiao, 'uf_filtro': uf,
+        'regioes': Municipio.Regiao.choices,
+        'ufs': Municipio.UF_CHOICES,
+
+        # KPIs
+        'total_pessoas': total_pessoas,
+        'total_municipios': total_municipios,
+        'total_eventos': total_eventos,
+        'total_participacoes': total_participacoes,
+        'total_instancias': total_instancias,
+        'total_projetos': total_projetos,
+        'total_missoes': total_missoes,
+        'total_atividades': total_atividades,
+        'total_representacoes': total_representacoes,
+        'ano_adimplencia': ano_mais_recente,
+        'top_engajamento': top_engajamento,
+
         # JSON para Chart.js
         'adimplencia_json': json.dumps({
             'labels': ['Adimplente', 'Inadimplente', 'Parcial'],
             'data': [
-                dados['adimplencia_status'].get('adimplente', 0),
-                dados['adimplencia_status'].get('inadimplente', 0),
-                dados['adimplencia_status'].get('parcial', 0),
+                adimplencia_status.get('adimplente', 0),
+                adimplencia_status.get('inadimplente', 0),
+                adimplencia_status.get('parcial', 0),
             ],
         }),
         'engajamento_json': json.dumps({
-            'labels': ['Alto', 'Medio', 'Baixo', 'Inativo'],
+            'labels': ['Alto', 'Médio', 'Baixo', 'Inativo'],
             'data': [
-                dados['engajamento_niveis'].get('alto', 0),
-                dados['engajamento_niveis'].get('medio', 0),
-                dados['engajamento_niveis'].get('baixo', 0),
-                dados['engajamento_niveis'].get('inativo', 0),
+                engajamento_niveis.get('alto', 0),
+                engajamento_niveis.get('medio', 0),
+                engajamento_niveis.get('baixo', 0),
+                engajamento_niveis.get('inativo', 0),
             ],
         }),
         'regioes_json': json.dumps({
             'labels': ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul'],
             'data': [
-                dados['municipios_regiao'].get('norte', 0),
-                dados['municipios_regiao'].get('nordeste', 0),
-                dados['municipios_regiao'].get('centro_oeste', 0),
-                dados['municipios_regiao'].get('sudeste', 0),
-                dados['municipios_regiao'].get('sul', 0),
+                municipios_regiao.get('norte', 0),
+                municipios_regiao.get('nordeste', 0),
+                municipios_regiao.get('centro_oeste', 0),
+                municipios_regiao.get('sudeste', 0),
+                municipios_regiao.get('sul', 0),
             ],
         }),
-        'ano_adimplencia': dados['ano_adimplencia'],
-        'total_pessoas': Pessoa.objects.filter(ativo=True).count(),
-        'total_municipios': Municipio.objects.count(),
-        'total_eventos': Evento.objects.count(),
-        'total_participacoes': Participacao.objects.filter(confirmado=True).count(),
+        'instancias_json': json.dumps({
+            'labels': ['Internas', 'Externas', 'Eventos'],
+            'data': [
+                contagens['instancias_origem'].get('interna', 0),
+                contagens['instancias_origem'].get('externa', 0),
+                contagens['instancias_origem'].get('evento', 0),
+            ],
+        }),
+        'projetos_json': json.dumps({
+            'labels': ['Planejamento', 'Em andamento', 'Concluído', 'Pausado', 'Cancelado'],
+            'data': [
+                contagens['projetos_status'].get('planejamento', 0),
+                contagens['projetos_status'].get('em_andamento', 0),
+                contagens['projetos_status'].get('concluido', 0),
+                contagens['projetos_status'].get('pausado', 0),
+                contagens['projetos_status'].get('cancelado', 0),
+            ],
+        }),
+        'missoes_json': json.dumps({
+            'labels': ['Nacionais', 'Internacionais'],
+            'data': [
+                contagens['missoes_tipo'].get('nacional', 0),
+                contagens['missoes_tipo'].get('internacional', 0),
+            ],
+        }),
+        'atividades_json': json.dumps({
+            'labels': ['Agendadas', 'Realizadas', 'Adiadas', 'Canceladas'],
+            'data': [
+                contagens['atividades_status'].get('agendada', 0),
+                contagens['atividades_status'].get('realizada', 0),
+                contagens['atividades_status'].get('adiada', 0),
+                contagens['atividades_status'].get('cancelada', 0),
+            ],
+        }),
     }
     return render(request, 'relatorios/painel.html', ctx)
 
 
 @login_required
 def exportar_excel(request):
-    """Exporta relatório completo de engajamento em formato Excel."""
+    """Exporta um workbook Excel com várias abas: engajamento, adimplência, pessoas e categorias."""
     import openpyxl
     from openpyxl.styles import Font, PatternFill
 
     wb = openpyxl.Workbook()
-
-    # Aba 1: Engajamento
-    ws = wb.active
-    ws.title = 'Engajamento'
-    headers = ['Municipio', 'UF', 'Regiao', 'Bienio', 'Pts Brutos', 'Pts Normalizado', 'Participacoes', 'Nivel']
     header_font = Font(bold=True, color='FFFFFF')
     header_fill = PatternFill(start_color='1E3A5F', end_color='1E3A5F', fill_type='solid')
-    for col, h in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col, value=h)
-        cell.font = header_font
-        cell.fill = header_fill
+
+    def _escreve_cabecalho(ws, headers):
+        for col, h in enumerate(headers, 1):
+            c = ws.cell(row=1, column=col, value=h)
+            c.font = header_font
+            c.fill = header_fill
+        for col in range(1, len(headers) + 1):
+            ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 20
+
+    ws = wb.active
+    ws.title = 'Engajamento'
+    _escreve_cabecalho(ws, ['Município', 'UF', 'Região', 'Biênio', 'Pts Brutos', 'Pts Normalizado', 'Participações', 'Nível'])
     for row, eng in enumerate(Engajamento.objects.select_related('municipio').order_by('-pontuacao_bruta'), 2):
         ws.cell(row=row, column=1, value=eng.municipio.nome)
         ws.cell(row=row, column=2, value=eng.municipio.uf)
@@ -131,16 +221,9 @@ def exportar_excel(request):
         ws.cell(row=row, column=6, value=eng.pontuacao_normalizada)
         ws.cell(row=row, column=7, value=eng.total_participacoes)
         ws.cell(row=row, column=8, value=eng.get_nivel_display())
-    for col in range(1, len(headers) + 1):
-        ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 18
 
-    # Aba 2: Adimplência
-    ws2 = wb.create_sheet('Adimplencia')
-    headers2 = ['Municipio', 'UF', 'Ano', 'Status', 'Valor Devido', 'Valor Pago']
-    for col, h in enumerate(headers2, 1):
-        cell = ws2.cell(row=1, column=col, value=h)
-        cell.font = header_font
-        cell.fill = header_fill
+    ws2 = wb.create_sheet('Adimplência')
+    _escreve_cabecalho(ws2, ['Município', 'UF', 'Ano', 'Status', 'Valor Devido', 'Valor Pago'])
     for row, a in enumerate(Adimplencia.objects.select_related('municipio').order_by('-ano_referencia', 'municipio__nome'), 2):
         ws2.cell(row=row, column=1, value=a.municipio.nome)
         ws2.cell(row=row, column=2, value=a.municipio.uf)
@@ -148,29 +231,54 @@ def exportar_excel(request):
         ws2.cell(row=row, column=4, value=a.get_status_display())
         ws2.cell(row=row, column=5, value=float(a.valor_devido))
         ws2.cell(row=row, column=6, value=float(a.valor_pago))
-    for col in range(1, len(headers2) + 1):
-        ws2.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 18
 
-    # Aba 3: Pessoas
     ws3 = wb.create_sheet('Pessoas')
-    headers3 = ['Nome', 'Tipo', 'Cargo', 'Partido', 'Status']
-    for col, h in enumerate(headers3, 1):
-        cell = ws3.cell(row=1, column=col, value=h)
-        cell.font = header_font
-        cell.fill = header_fill
+    _escreve_cabecalho(ws3, ['Nome', 'Tipo', 'Cargo', 'Partido', 'E-mail', 'Status'])
     for row, p in enumerate(Pessoa.objects.filter(ativo=True).order_by('nome'), 2):
         ws3.cell(row=row, column=1, value=p.nome)
         ws3.cell(row=row, column=2, value=p.get_tipo_display())
         ws3.cell(row=row, column=3, value=p.cargo)
         ws3.cell(row=row, column=4, value=p.partido)
-        ws3.cell(row=row, column=5, value='Ativo' if p.ativo else 'Inativo')
-    for col in range(1, len(headers3) + 1):
-        ws3.column_dimensions[openpyxl.utils.get_column_letter(col)].width = 22
+        ws3.cell(row=row, column=5, value=p.email or '')
+        ws3.cell(row=row, column=6, value='Ativo' if p.ativo else 'Inativo')
+
+    ws4 = wb.create_sheet('Instâncias')
+    _escreve_cabecalho(ws4, ['Nome', 'Origem', 'Forma', 'Categoria', 'Status', 'Periodicidade', 'Ponto Focal'])
+    for row, i in enumerate(Instancia.objects.select_related('ponto_focal_fnp').order_by('nome'), 2):
+        ws4.cell(row=row, column=1, value=i.nome)
+        ws4.cell(row=row, column=2, value=i.get_origem_display())
+        ws4.cell(row=row, column=3, value=i.get_forma_display())
+        ws4.cell(row=row, column=4, value=i.get_categoria_display())
+        ws4.cell(row=row, column=5, value=i.get_status_display())
+        ws4.cell(row=row, column=6, value=i.get_periodicidade_reunioes_display() if i.periodicidade_reunioes else '')
+        ws4.cell(row=row, column=7, value=str(i.ponto_focal_fnp) if i.ponto_focal_fnp else '')
+
+    ws5 = wb.create_sheet('Projetos')
+    _escreve_cabecalho(ws5, ['Nome', 'Status', 'Fonte de recurso', 'Valor orçado', 'Início', 'Término previsto', 'Responsável'])
+    for row, p in enumerate(Projeto.objects.select_related('responsavel').order_by('-data_inicio'), 2):
+        ws5.cell(row=row, column=1, value=p.nome)
+        ws5.cell(row=row, column=2, value=p.get_status_display())
+        ws5.cell(row=row, column=3, value=p.get_fonte_recurso_display() if p.fonte_recurso else '')
+        ws5.cell(row=row, column=4, value=float(p.valor_orcado) if p.valor_orcado else 0)
+        ws5.cell(row=row, column=5, value=p.data_inicio)
+        ws5.cell(row=row, column=6, value=p.data_fim_previsto)
+        ws5.cell(row=row, column=7, value=str(p.responsavel) if p.responsavel else '')
+
+    ws6 = wb.create_sheet('Missões')
+    _escreve_cabecalho(ws6, ['Título', 'Tipo', 'País', 'Cidade', 'Status', 'Início', 'Término', 'Chefe'])
+    for row, m in enumerate(Missao.objects.select_related('chefe_delegacao').order_by('-data_inicio'), 2):
+        ws6.cell(row=row, column=1, value=m.titulo)
+        ws6.cell(row=row, column=2, value=m.get_tipo_display())
+        ws6.cell(row=row, column=3, value=m.pais)
+        ws6.cell(row=row, column=4, value=m.cidade)
+        ws6.cell(row=row, column=5, value=m.get_status_display())
+        ws6.cell(row=row, column=6, value=m.data_inicio)
+        ws6.cell(row=row, column=7, value=m.data_fim)
+        ws6.cell(row=row, column=8, value=str(m.chefe_delegacao) if m.chefe_delegacao else '')
 
     output = BytesIO()
     wb.save(output)
     output.seek(0)
-
     response = HttpResponse(
         output.read(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -179,17 +287,233 @@ def exportar_excel(request):
     return response
 
 
+# Coordenadas aproximadas das capitais de UF — fallback para municipios sem lat/lng.
+CAPITAIS_UF_COORD = {
+    'AC': (-9.9747, -67.8243), 'AL': (-9.6498, -35.7089), 'AP': (0.0349, -51.0694),
+    'AM': (-3.1190, -60.0217), 'BA': (-12.9714, -38.5014), 'CE': (-3.7172, -38.5433),
+    'DF': (-15.7801, -47.9292), 'ES': (-20.3155, -40.3128), 'GO': (-16.6864, -49.2643),
+    'MA': (-2.5307, -44.3068), 'MT': (-15.6010, -56.0974), 'MS': (-20.4486, -54.6295),
+    'MG': (-19.9167, -43.9345), 'PA': (-1.4558, -48.4902), 'PB': (-7.1195, -34.8450),
+    'PR': (-25.4284, -49.2733), 'PE': (-8.0476, -34.8770), 'PI': (-5.0892, -42.8019),
+    'RJ': (-22.9068, -43.1729), 'RN': (-5.7945, -35.2110), 'RS': (-30.0346, -51.2177),
+    'RO': (-8.7619, -63.9039), 'RR': (2.8235, -60.6758), 'SC': (-27.5954, -48.5480),
+    'SP': (-23.5505, -46.6333), 'SE': (-10.9472, -37.0731), 'TO': (-10.1845, -48.3336),
+}
+
+
+@login_required
+def mapa(request):
+    """Página de mapa do Brasil com municípios colorizados por adimplência ou engajamento."""
+    return render(request, 'relatorios/mapa.html', {
+        'ano_atual': (
+            Adimplencia.objects.order_by('-ano_referencia')
+            .values_list('ano_referencia', flat=True).first() or 2026
+        ),
+    })
+
+
+@login_required
+def mapa_dados(request):
+    """Endpoint JSON com pontos do mapa.
+
+    Aceita ``modo=adimplencia`` (default) ou ``modo=engajamento`` via GET.
+    Retorna apenas municípios com lat/lng ou que tenham status registrado,
+    usando coordenada da capital da UF como fallback quando faltar geoposição.
+    """
+    modo = request.GET.get('modo', 'adimplencia')
+    pontos = []
+
+    if modo == 'engajamento':
+        engajamentos = Engajamento.objects.select_related('municipio').all()
+        # Mantém só o mais recente por município
+        vistos = {}
+        for eng in engajamentos.order_by('-bienio'):
+            if eng.municipio_id in vistos:
+                continue
+            vistos[eng.municipio_id] = eng
+        for eng in vistos.values():
+            m = eng.municipio
+            lat, lng = _coord_municipio(m)
+            if lat is None:
+                continue
+            pontos.append({
+                'lat': lat, 'lng': lng,
+                'nome': m.nome, 'uf': m.uf,
+                'status': eng.nivel,
+                'rotulo': eng.get_nivel_display(),
+                'valor': eng.pontuacao_normalizada,
+                'id': str(m.id),
+            })
+    else:
+        ano = (
+            Adimplencia.objects.order_by('-ano_referencia')
+            .values_list('ano_referencia', flat=True).first() or 2026
+        )
+        adimplencias = (
+            Adimplencia.objects
+            .filter(ano_referencia=ano)
+            .select_related('municipio')
+        )
+        for ad in adimplencias:
+            m = ad.municipio
+            lat, lng = _coord_municipio(m)
+            if lat is None:
+                continue
+            pontos.append({
+                'lat': lat, 'lng': lng,
+                'nome': m.nome, 'uf': m.uf,
+                'status': ad.status,
+                'rotulo': ad.get_status_display(),
+                'valor': float(ad.valor_pago) if ad.valor_pago else 0,
+                'id': str(m.id),
+            })
+
+    return JsonResponse({'modo': modo, 'pontos': pontos, 'total': len(pontos)})
+
+
+@login_required
+def mapa_dados_uf(request):
+    """Agregado por UF para a camada choropleth do mapa.
+
+    Para ``modo=adimplencia`` retorna percentual de adimplentes no ano corrente.
+    Para ``modo=engajamento`` retorna média da pontuação normalizada.
+    """
+    modo = request.GET.get('modo', 'adimplencia')
+    agregados = {}
+
+    if modo == 'engajamento':
+        from django.db.models import Avg
+        rows = (
+            Engajamento.objects
+            .values('municipio__uf')
+            .annotate(media=Avg('pontuacao_normalizada'), total=Count('id'))
+        )
+        for r in rows:
+            uf = r['municipio__uf']
+            if not uf:
+                continue
+            agregados[uf] = {
+                'valor': round(r['media'] or 0, 1),
+                'total': r['total'],
+                'rotulo': f"Engajamento médio: {round(r['media'] or 0, 1)}/100",
+            }
+    else:
+        ano = (
+            Adimplencia.objects.order_by('-ano_referencia')
+            .values_list('ano_referencia', flat=True).first() or 2026
+        )
+        rows = (
+            Adimplencia.objects
+            .filter(ano_referencia=ano)
+            .values('municipio__uf', 'status')
+            .annotate(total=Count('id'))
+        )
+        # Agrupa por UF e soma adimplentes vs total
+        por_uf = {}
+        for r in rows:
+            uf = r['municipio__uf']
+            if not uf:
+                continue
+            por_uf.setdefault(uf, {'adimplentes': 0, 'total': 0})
+            por_uf[uf]['total'] += r['total']
+            if r['status'] == 'adimplente':
+                por_uf[uf]['adimplentes'] += r['total']
+        for uf, dados in por_uf.items():
+            pct = (dados['adimplentes'] / dados['total'] * 100) if dados['total'] else 0
+            agregados[uf] = {
+                'valor': round(pct, 1),
+                'total': dados['total'],
+                'rotulo': f"{round(pct, 1)}% adimplentes ({dados['adimplentes']}/{dados['total']})",
+            }
+
+    return JsonResponse({'modo': modo, 'agregados': agregados})
+
+
+def _coord_municipio(municipio):
+    """Retorna (lat, lng) do município ou da capital da UF como fallback.
+
+    Returns:
+        Tupla (lat, lng) como floats, ou (None, None) se não houver UF mapeada.
+    """
+    if municipio.latitude is not None and municipio.longitude is not None:
+        return float(municipio.latitude), float(municipio.longitude)
+    coord = CAPITAIS_UF_COORD.get(municipio.uf)
+    if coord:
+        # Jitter pequeno para não empilhar marcadores na mesma capital
+        import hashlib
+        h = int(hashlib.md5(str(municipio.id).encode()).hexdigest()[:8], 16)
+        jx = ((h % 1000) / 1000 - 0.5) * 0.6  # ±0.3 graus
+        jy = (((h // 1000) % 1000) / 1000 - 0.5) * 0.6
+        return coord[0] + jx, coord[1] + jy
+    return None, None
+
+
+@login_required
+def comparar_municipios(request):
+    """Comparativo lado a lado de até 3 municípios para análise rápida.
+
+    Aceita ``ids`` como GET (múltiplos valores ou lista CSV) com UUIDs de
+    Municipio. Carrega métricas relevantes — população, engajamento atual,
+    adimplência do ano mais recente, vínculos ativos e contagens de
+    participações/representações — para renderização em cards verticais.
+    """
+    ids_raw = request.GET.getlist('ids')
+    # Permite tanto ?ids=uuid1&ids=uuid2 quanto ?ids=uuid1,uuid2
+    ids = []
+    for chunk in ids_raw:
+        ids.extend([x.strip() for x in chunk.split(',') if x.strip()])
+    ids = ids[:3]  # Máximo 3 colunas para caber na tela
+
+    municipios = list(Municipio.objects.filter(pk__in=ids))
+    # Preserva a ordem original pedida via GET
+    municipios.sort(key=lambda m: ids.index(str(m.pk)) if str(m.pk) in ids else 99)
+
+    ano_recente = (
+        Adimplencia.objects.order_by('-ano_referencia').values_list('ano_referencia', flat=True).first()
+        or 2026
+    )
+
+    cartoes = []
+    for municipio in municipios:
+        engajamento = Engajamento.objects.filter(municipio=municipio).order_by('-bienio').first()
+        adimplencia = Adimplencia.objects.filter(municipio=municipio, ano_referencia=ano_recente).first()
+        cartoes.append({
+            'municipio': municipio,
+            'engajamento': engajamento,
+            'adimplencia': adimplencia,
+            'vinculos_ativos': municipio.vinculos.filter(vigente=True).count() if hasattr(municipio, 'vinculos') else 0,
+            'participacoes': Participacao.objects.filter(municipio=municipio, confirmado=True).count(),
+            'representacoes_vigentes': Representacao.objects.filter(pessoa__vinculos__municipio=municipio, vigente=True).distinct().count(),
+        })
+
+    # Lista para o autocomplete do seletor — serializada como JSON pronto pro Alpine
+    disponiveis = [
+        {'id': str(m.id), 'nome': m.nome, 'uf': m.uf}
+        for m in Municipio.objects.order_by('nome').only('id', 'nome', 'uf')[:300]
+    ]
+
+    ctx = {
+        'cartoes': cartoes,
+        'ids_selecionados_json': json.dumps(ids),
+        'ano_recente': ano_recente,
+        'municipios_disponiveis_json': json.dumps(disponiveis),
+    }
+    return render(request, 'relatorios/comparar_municipios.html', ctx)
+
+
 @login_required
 def exportar_pdf(request):
-    """Exporta relatório resumido em formato PDF via WeasyPrint."""
-    dados = _dados_dashboard()
+    """Exporta relatório executivo resumido em PDF."""
     engajamentos = Engajamento.objects.select_related('municipio').order_by('-pontuacao_bruta')[:20]
     ctx = {
-        'dados': dados,
         'engajamentos': engajamentos,
         'total_pessoas': Pessoa.objects.filter(ativo=True).count(),
         'total_municipios': Municipio.objects.count(),
         'total_eventos': Evento.objects.count(),
+        'total_instancias': Instancia.objects.count(),
+        'total_projetos': Projeto.objects.count(),
+        'total_missoes': Missao.objects.count(),
+        'total_atividades': Atividade.objects.count(),
     }
     html = render(request, 'relatorios/pdf_relatorio.html', ctx).content.decode('utf-8')
 

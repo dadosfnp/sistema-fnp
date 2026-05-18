@@ -1,0 +1,31 @@
+{% comment %}
+Empty state reutilizavel para listas vazias.
+
+Variaveis aceitas (todas opcionais):
+    icone        - nome do icone Lucide (default: inbox)
+    titulo       - titulo principal
+    descricao    - descricao curta abaixo do titulo
+    cta_url      - URL do botao de acao (so renderiza se usuario for editor)
+    cta_label    - texto do botao
+    cta_icone    - icone do botao (default: plus)
+    colspan      - colspan do <td> envelope (default: 6)
+{% endcomment %}
+<tr>
+    <td colspan="{{ colspan|default:6 }}" class="px-6 py-16">
+        <div class="flex flex-col items-center text-center gap-3">
+            <div class="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
+                <i data-lucide="{{ icone|default:'inbox' }}" class="w-7 h-7 text-gray-400"></i>
+            </div>
+            <div class="max-w-sm">
+                <p class="text-sm font-semibold text-gray-700">{{ titulo|default:"Nenhum registro encontrado" }}</p>
+                {% if descricao %}<p class="mt-1 text-xs text-gray-500 leading-relaxed">{{ descricao }}</p>{% endif %}
+            </div>
+            {% if cta_url and eh_editor %}
+            <a href="{{ cta_url }}" class="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors shadow-sm">
+                <i data-lucide="{{ cta_icone|default:'plus' }}" class="w-3.5 h-3.5"></i>
+                {{ cta_label|default:"Criar" }}
+            </a>
+            {% endif %}
+        </div>
+    </td>
+</tr>

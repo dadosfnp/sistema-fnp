@@ -1,0 +1,41 @@
+{% comment %}
+Cabeçalho padrão de página de lista — título + descrição + barra de filtros.
+
+Variáveis:
+    titulo               - obrigatório
+    total                - número de resultados
+    nome_singular        - "pessoa" (para pluralizar "X registros")
+    eh_editor            - flag de permissão (para mostrar CTA criar)
+    cta_url              - URL pra criar novo
+    cta_label            - rótulo do botão CTA
+    escopo_filtros_salvos - opcional, ex: "cadastro:lista_municipios"
+    bloco_filtros        - HTML extra dos filtros específicos da lista
+    suporta_exportacao   - True para mostrar botão "Exportar CSV"
+    request              - sempre passado pelo context_processor
+{% endcomment %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ titulo }}</h2>
+        {% if total is not None %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ total }} {{ nome_singular|default:'registro' }}{{ total|pluralize:"s" }}</p>
+        {% endif %}
+    </div>
+    <div class="flex items-center gap-2 flex-wrap filtros-container">
+        {% if eh_editor and cta_url %}
+        <a href="{{ cta_url }}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors shadow-sm whitespace-nowrap">
+            <i data-lucide="plus" class="w-4 h-4"></i> {{ cta_label|default:'Novo' }}
+        </a>
+        {% endif %}
+        {{ bloco_filtros|safe }}
+        {% if escopo_filtros_salvos %}
+            {% include "nucleo/parciais/filtros_salvos.html" with escopo_url=escopo_filtros_salvos %}
+        {% endif %}
+        {% if suporta_exportacao %}
+        <a href="?{{ request.GET.urlencode }}{% if request.GET %}&{% endif %}exportar=csv"
+           class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-colors whitespace-nowrap"
+           title="Exporta CSV da visão filtrada atual">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Exportar
+        </a>
+        {% endif %}
+    </div>
+</div>

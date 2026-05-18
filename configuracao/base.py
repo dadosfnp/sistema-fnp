@@ -38,9 +38,17 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'aplicacoes.nucleo',
     'aplicacoes.cadastro',
+    'aplicacoes.instancias',
+    'aplicacoes.projetos',
+    'aplicacoes.missoes',
+    'aplicacoes.atividades',
+    'aplicacoes.eventos',
+    'aplicacoes.documentos',
+    'aplicacoes.dicionario',
+    'aplicacoes.presenca',
+    'aplicacoes.comunicacao',
     'aplicacoes.adimplencia',
     'aplicacoes.engajamento',
-    'aplicacoes.eventos',
     'aplicacoes.relatorios',
 ]
 
@@ -134,6 +142,9 @@ LOGIN_URL = '/entrar/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/entrar/'
 
+# Remetente padrão da mala direta. Pode ser sobrescrito por env var em produção.
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'sistema@fnp.org.br')
+
 # ---------------------------------------------------------------------------
 # Django Unfold — configuração do admin
 # ---------------------------------------------------------------------------
@@ -148,7 +159,7 @@ UNFOLD = {
         "show_all_applications": True,
         "navigation": [
             {
-                "title": "Cadastro",
+                "title": "Controle",
                 "separator": True,
                 "items": [
                     {
@@ -169,7 +180,38 @@ UNFOLD = {
                 ],
             },
             {
-                "title": "Financeiro",
+                "title": "Categorias",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Espaços de Diálogo Federativo",
+                        "icon": "forum",
+                        "link": reverse_lazy("admin:instancias_instancia_changelist"),
+                    },
+                    {
+                        "title": "Projetos",
+                        "icon": "assignment",
+                        "link": reverse_lazy("admin:projetos_projeto_changelist"),
+                    },
+                    {
+                        "title": "Missões",
+                        "icon": "flight_takeoff",
+                        "link": reverse_lazy("admin:missoes_missao_changelist"),
+                    },
+                    {
+                        "title": "Atividades",
+                        "icon": "event_note",
+                        "link": reverse_lazy("admin:atividades_atividade_changelist"),
+                    },
+                    {
+                        "title": "Eventos",
+                        "icon": "event",
+                        "link": reverse_lazy("admin:eventos_evento_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Gestão",
                 "separator": True,
                 "items": [
                     {
@@ -177,12 +219,6 @@ UNFOLD = {
                         "icon": "payments",
                         "link": reverse_lazy("admin:adimplencia_adimplencia_changelist"),
                     },
-                ],
-            },
-            {
-                "title": "Engajamento",
-                "separator": True,
-                "items": [
                     {
                         "title": "Engajamento",
                         "icon": "trending_up",
@@ -191,18 +227,60 @@ UNFOLD = {
                 ],
             },
             {
-                "title": "Eventos",
+                "title": "Participações e Representações",
                 "separator": True,
                 "items": [
                     {
-                        "title": "Eventos",
-                        "icon": "event",
-                        "link": reverse_lazy("admin:eventos_evento_changelist"),
+                        "title": "Representações em Instâncias",
+                        "icon": "groups",
+                        "link": reverse_lazy("admin:instancias_representacao_changelist"),
                     },
                     {
-                        "title": "Participações",
+                        "title": "Participações em Eventos",
                         "icon": "how_to_reg",
                         "link": reverse_lazy("admin:eventos_participacao_changelist"),
+                    },
+                    {
+                        "title": "Delegações de Missões",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:missoes_membrodelegacao_changelist"),
+                    },
+                    {
+                        "title": "Presenças (universal)",
+                        "icon": "fact_check",
+                        "link": reverse_lazy("admin:presenca_presenca_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Comunicação",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Templates de e-mail",
+                        "icon": "mail",
+                        "link": reverse_lazy("admin:comunicacao_templateemail_changelist"),
+                    },
+                    {
+                        "title": "Envios realizados",
+                        "icon": "outgoing_mail",
+                        "link": reverse_lazy("admin:comunicacao_envio_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Ajuda",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Dicionário",
+                        "icon": "menu_book",
+                        "link": reverse_lazy("admin:dicionario_termodicionario_changelist"),
+                    },
+                    {
+                        "title": "Pesos do Engajamento",
+                        "icon": "scale",
+                        "link": reverse_lazy("admin:engajamento_pesoengajamento_changelist"),
                     },
                 ],
             },

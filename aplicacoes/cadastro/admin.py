@@ -23,8 +23,8 @@ class EnvolvimentoPautaInline(TabularInline):
 @admin.register(Pessoa)
 class PessoaAdmin(ModelAdmin):
     """Admin de Pessoa com fieldsets organizados e inlines de vínculo e pauta."""
-    list_display = ['nome', 'tipo', 'cargo', 'partido', 'genero', 'ativo']
-    list_filter = ['tipo', 'ativo', 'genero', 'partido']
+    list_display = ['nome', 'tipo', 'cargo', 'partido', 'genero', 'autorizacao_uso_imagem', 'ativo']
+    list_filter = ['tipo', 'ativo', 'genero', 'partido', 'autorizacao_uso_imagem', 'termo_confidencialidade']
     search_fields = ['nome', 'email', 'cargo']
     list_editable = ['ativo']
     inlines = [VinculoInline, EnvolvimentoPautaInline]
@@ -34,6 +34,9 @@ class PessoaAdmin(ModelAdmin):
         }),
         ('Dados institucionais', {
             'fields': ('tipo', 'cargo', 'partido', 'mandato_inicio', 'mandato_fim', 'ativo'),
+        }),
+        ('Documentos e termos', {
+            'fields': ('autorizacao_uso_imagem', 'termo_confidencialidade'),
         }),
         ('Perfil', {
             'fields': ('redes_sociais', 'biografia_curta', 'observacoes'),

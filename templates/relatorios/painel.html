@@ -1,57 +1,187 @@
 {% extends "base.html" %}
 
-{% block titulo %}Relatorios — Sistema FNP{% endblock %}
-{% block titulo_pagina %}Relatorios{% endblock %}
+{% block titulo %}Relatórios — Sistema FNP{% endblock %}
+{% block titulo_pagina %}Relatórios{% endblock %}
 
 {% block conteudo %}
 <div class="space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h2 class="text-xl font-bold text-gray-900">Painel de Relatorios</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Indicadores consolidados do sistema</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <a href="{% url 'relatorios:exportar_excel' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-colors">
-                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exportar Excel
-            </a>
-            <a href="{% url 'relatorios:exportar_pdf' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200 transition-colors">
-                <i data-lucide="file-text" class="w-4 h-4"></i> Exportar PDF
-            </a>
+
+    <!-- Header com filtros e exportação -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div class="flex items-start gap-4">
+                <div class="w-11 h-11 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="pie-chart" class="w-5 h-5 text-rose-500"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Painel de Relatórios</h2>
+                    <p class="text-sm text-gray-500 mt-0.5">Visão consolidada de pessoas, municípios, categorias institucionais e engajamento. Use os filtros para focar em uma região ou UF.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <form method="get" class="flex items-center gap-2">
+                    <select name="regiao" onchange="this.form.submit()" class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+                        <option value="">Todas as regiões</option>
+                        {% for val, label in regioes %}<option value="{{ val }}" {% if val == regiao_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                    </select>
+                    <select name="uf" onchange="this.form.submit()" class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+                        <option value="">Todas as UFs</option>
+                        {% for val, label in ufs %}<option value="{{ val }}" {% if val == uf_filtro %}selected{% endif %}>{{ val }}</option>{% endfor %}
+                    </select>
+                    {% if regiao_filtro or uf_filtro %}
+                    <a href="{% url 'relatorios:painel' %}" class="text-xs text-gray-500 hover:text-fnp-500 px-2">Limpar</a>
+                    {% endif %}
+                </form>
+                <a href="{% url 'relatorios:comparar_municipios' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 border border-indigo-200 transition-colors">
+                    <i data-lucide="git-compare" class="w-4 h-4"></i> Comparar
+                </a>
+                <a href="{% url 'relatorios:exportar_excel' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-colors">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Excel
+                </a>
+                <a href="{% url 'relatorios:exportar_pdf' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200 transition-colors">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> PDF
+                </a>
+            </div>
         </div>
     </div>
 
+    <!-- KPIs principais -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase">Pessoas ativas</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_pessoas }}</p>
+                </div>
+                <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><i data-lucide="users" class="w-4 h-4 text-blue-500"></i></div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase">Municípios</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_municipios }}</p>
+                </div>
+                <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center"><i data-lucide="building-2" class="w-4 h-4 text-emerald-500"></i></div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase">Representações vigentes</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_representacoes }}</p>
+                </div>
+                <div class="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center"><i data-lucide="user-check" class="w-4 h-4 text-indigo-500"></i></div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase">Participações</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_participacoes }}</p>
+                </div>
+                <div class="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center"><i data-lucide="how-to-reg" class="w-4 h-4 text-purple-500"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs por categoria -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
-            <p class="text-xs font-medium text-gray-500 uppercase">Pessoas Ativas</p>
-            <p class="text-3xl font-bold text-gray-900 mt-1">{{ total_pessoas }}</p>
+            <p class="text-xs font-medium text-gray-500 uppercase">Espaços de Diálogo</p>
+            <p class="text-2xl font-bold text-indigo-600 mt-1 tabular-nums">{{ total_instancias }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
-            <p class="text-xs font-medium text-gray-500 uppercase">Municipios</p>
-            <p class="text-3xl font-bold text-gray-900 mt-1">{{ total_municipios }}</p>
+            <p class="text-xs font-medium text-gray-500 uppercase">Projetos</p>
+            <p class="text-2xl font-bold text-cyan-600 mt-1 tabular-nums">{{ total_projetos }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+            <p class="text-xs font-medium text-gray-500 uppercase">Missões</p>
+            <p class="text-2xl font-bold text-rose-600 mt-1 tabular-nums">{{ total_missoes }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+            <p class="text-xs font-medium text-gray-500 uppercase">Atividades</p>
+            <p class="text-2xl font-bold text-teal-600 mt-1 tabular-nums">{{ total_atividades }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
             <p class="text-xs font-medium text-gray-500 uppercase">Eventos</p>
-            <p class="text-3xl font-bold text-gray-900 mt-1">{{ total_eventos }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
-            <p class="text-xs font-medium text-gray-500 uppercase">Participacoes</p>
-            <p class="text-3xl font-bold text-gray-900 mt-1">{{ total_participacoes }}</p>
+            <p class="text-2xl font-bold text-purple-600 mt-1 tabular-nums">{{ total_eventos }}</p>
         </div>
     </div>
 
+    <!-- Gráficos: Adimplência + Engajamento + Regiões -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Adimplencia {{ ano_adimplencia }}</h3>
-            <div class="flex justify-center"><canvas id="chartAdimplencia" width="250" height="250"></canvas></div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Adimplência {{ ano_adimplencia }}</h3>
+            <div class="flex justify-center"><canvas id="chartAdimplencia" width="240" height="240"></canvas></div>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Engajamento por Nivel</h3>
-            <div class="flex justify-center"><canvas id="chartEngajamento" width="250" height="250"></canvas></div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Engajamento por nível</h3>
+            <div class="flex justify-center"><canvas id="chartEngajamento" width="240" height="240"></canvas></div>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Municipios por Regiao</h3>
-            <div class="flex justify-center"><canvas id="chartRegioes" width="250" height="250"></canvas></div>
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Municípios por região</h3>
+            <div class="flex justify-center"><canvas id="chartRegioes" width="240" height="240"></canvas></div>
         </div>
+    </div>
+
+    <!-- Gráficos: Categorias -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Instâncias por origem</h3>
+            <div class="flex justify-center"><canvas id="chartInstancias" width="220" height="220"></canvas></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Projetos por status</h3>
+            <div class="flex justify-center"><canvas id="chartProjetos" width="220" height="220"></canvas></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Missões nacional × internacional</h3>
+            <div class="flex justify-center"><canvas id="chartMissoes" width="220" height="220"></canvas></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Atividades por status</h3>
+            <div class="flex justify-center"><canvas id="chartAtividades" width="220" height="220"></canvas></div>
+        </div>
+    </div>
+
+    <!-- Top 10 Engajamento -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i> Top 10 municípios mais engajados</h3>
+            <a href="{% url 'engajamento:metodologia' %}" class="text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver metodologia</a>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50/50">
+                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <th class="px-6 py-3 w-12">#</th>
+                    <th class="px-6 py-3">Município</th>
+                    <th class="px-6 py-3">Região</th>
+                    <th class="px-6 py-3">Nível</th>
+                    <th class="px-6 py-3 text-right">Pontos (0-100)</th>
+                    <th class="px-6 py-3 text-right">Participações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for eng in top_engajamento %}
+                <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='{% url 'cadastro:detalhe_municipio' eng.municipio.pk %}'">
+                    <td class="px-6 py-3 font-bold text-gray-400 tabular-nums">{{ forloop.counter }}</td>
+                    <td class="px-6 py-3 font-medium text-gray-900">{{ eng.municipio.nome }}/{{ eng.municipio.uf }}</td>
+                    <td class="px-6 py-3 text-gray-600">{{ eng.municipio.get_regiao_display }}</td>
+                    <td class="px-6 py-3">
+                        {% if eng.nivel == 'alto' %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700">{{ eng.get_nivel_display }}</span>
+                        {% elif eng.nivel == 'medio' %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 text-blue-700">{{ eng.get_nivel_display }}</span>
+                        {% elif eng.nivel == 'baixo' %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700">{{ eng.get_nivel_display }}</span>
+                        {% else %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-500">{{ eng.get_nivel_display }}</span>{% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-right font-semibold text-gray-700 tabular-nums">{{ eng.pontuacao_normalizada }}/100</td>
+                    <td class="px-6 py-3 text-right text-gray-600 tabular-nums">{{ eng.total_participacoes }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="px-6 py-10 text-center text-gray-400">Nenhum engajamento calculado ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
@@ -60,25 +190,43 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var adData = {{ adimplencia_json|safe }};
-    var engData = {{ engajamento_json|safe }};
-    var regData = {{ regioes_json|safe }};
-    var dOpts = { responsive: false, plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } } } };
+    const optsDoughnut = { responsive: false, plugins: { legend: { position: 'bottom', labels: { padding: 10, usePointStyle: true, font: { size: 11 } } } } };
+    const optsBar = { responsive: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } };
 
     new Chart(document.getElementById('chartAdimplencia'), {
         type: 'doughnut',
-        data: { labels: adData.labels, datasets: [{ data: adData.data, backgroundColor: ['#10b981','#ef4444','#f59e0b'], borderWidth: 0 }] },
-        options: dOpts
+        data: { labels: {{ adimplencia_json|safe }}.labels, datasets: [{ data: {{ adimplencia_json|safe }}.data, backgroundColor: ['#10b981','#ef4444','#f59e0b'], borderWidth: 0 }] },
+        options: optsDoughnut
     });
     new Chart(document.getElementById('chartEngajamento'), {
         type: 'doughnut',
-        data: { labels: engData.labels, datasets: [{ data: engData.data, backgroundColor: ['#10b981','#3b82f6','#f59e0b','#9ca3af'], borderWidth: 0 }] },
-        options: dOpts
+        data: { labels: {{ engajamento_json|safe }}.labels, datasets: [{ data: {{ engajamento_json|safe }}.data, backgroundColor: ['#10b981','#3b82f6','#f59e0b','#9ca3af'], borderWidth: 0 }] },
+        options: optsDoughnut
     });
     new Chart(document.getElementById('chartRegioes'), {
         type: 'bar',
-        data: { labels: regData.labels, datasets: [{ label: 'Municipios', data: regData.data, backgroundColor: ['#10b981','#f97316','#eab308','#3b82f6','#8b5cf6'], borderRadius: 6 }] },
-        options: { responsive: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        data: { labels: {{ regioes_json|safe }}.labels, datasets: [{ label: 'Municípios', data: {{ regioes_json|safe }}.data, backgroundColor: ['#10b981','#f97316','#eab308','#3b82f6','#8b5cf6'], borderRadius: 6 }] },
+        options: optsBar
+    });
+    new Chart(document.getElementById('chartInstancias'), {
+        type: 'doughnut',
+        data: { labels: {{ instancias_json|safe }}.labels, datasets: [{ data: {{ instancias_json|safe }}.data, backgroundColor: ['#6366f1','#f59e0b','#94a3b8'], borderWidth: 0 }] },
+        options: optsDoughnut
+    });
+    new Chart(document.getElementById('chartProjetos'), {
+        type: 'bar',
+        data: { labels: {{ projetos_json|safe }}.labels, datasets: [{ data: {{ projetos_json|safe }}.data, backgroundColor: ['#f59e0b','#3b82f6','#10b981','#94a3b8','#ef4444'], borderRadius: 4 }] },
+        options: optsBar
+    });
+    new Chart(document.getElementById('chartMissoes'), {
+        type: 'doughnut',
+        data: { labels: {{ missoes_json|safe }}.labels, datasets: [{ data: {{ missoes_json|safe }}.data, backgroundColor: ['#0ea5e9','#6366f1'], borderWidth: 0 }] },
+        options: optsDoughnut
+    });
+    new Chart(document.getElementById('chartAtividades'), {
+        type: 'doughnut',
+        data: { labels: {{ atividades_json|safe }}.labels, datasets: [{ data: {{ atividades_json|safe }}.data, backgroundColor: ['#3b82f6','#10b981','#9ca3af','#ef4444'], borderWidth: 0 }] },
+        options: optsDoughnut
     });
 });
 </script>

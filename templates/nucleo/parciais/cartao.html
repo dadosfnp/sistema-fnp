@@ -1,0 +1,31 @@
+{% comment %}
+Cartão branco padrão do sistema. Reduz repetição de
+"bg-white rounded-xl shadow-sm border border-gray-100" em ~30 templates.
+
+Uso:
+    {% include "nucleo/parciais/cartao.html" %}
+        ...conteúdo...
+    {% endinclude %}
+
+Como Django {% include %} não aceita corpo, usar block:
+    {% include "nucleo/parciais/cartao_inicio.html" %}
+    ...
+    {% include "nucleo/parciais/cartao_fim.html" %}
+
+OU passar título/ícone via variável:
+    titulo, icone (lucide), descricao
+{% endcomment %}
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 {{ classes_extras }}">
+    {% if titulo %}
+    <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
+        {% if icone %}<i data-lucide="{{ icone }}" class="w-4 h-4 text-fnp-500"></i>{% endif %}
+        <div class="flex-1 min-w-0">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ titulo }}</h3>
+            {% if descricao %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ descricao }}</p>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+    <div class="{{ classes_corpo|default:'p-5' }}">
+        {{ conteudo|safe }}
+    </div>
+</div>

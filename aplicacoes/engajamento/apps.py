@@ -7,4 +7,7 @@ class EngajamentoConfig(AppConfig):
     verbose_name = 'Engajamento'
 
     def ready(self):
-        import aplicacoes.engajamento.signals  # noqa: F401
+        from aplicacoes.engajamento.signals import conectar_signals
+        from aplicacoes.engajamento.servicos.calculo import registrar_fontes_default
+        registrar_fontes_default()
+        conectar_signals()

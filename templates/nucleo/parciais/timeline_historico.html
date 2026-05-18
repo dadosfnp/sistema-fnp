@@ -1,0 +1,62 @@
+{% load fnp_tags %}
+{# Partial reutilizável: renderiza a timeline de auditoria de uma entidade. #}
+{# Espera receber a variável de contexto `historico` (queryset de LogAlteracao). #}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4 text-gray-400"></i>
+            Historico
+            <span class="text-xs font-normal text-gray-400">({{ historico|length }} evento{{ historico|length|pluralize:"s" }})</span>
+        </h3>
+    </div>
+
+    {% if historico %}
+    <ol class="relative px-6 py-4 ml-3 border-l border-gray-100 space-y-4">
+        {% for log in historico %}
+        <li class="ml-4">
+            <span class="absolute -left-2 w-4 h-4 rounded-full flex items-center justify-center
+                {% if log.acao == 'criacao' %}bg-emerald-100
+                {% elif log.acao == 'edicao' %}bg-blue-100
+                {% elif log.acao == 'exclusao' %}bg-red-100
+                {% else %}bg-gray-100{% endif %}">
+                <i data-lucide="{% if log.acao == 'criacao' %}plus{% elif log.acao == 'edicao' %}edit-3{% elif log.acao == 'exclusao' %}trash-2{% else %}circle{% endif %}"
+                   class="w-2 h-2
+                {% if log.acao == 'criacao' %}text-emerald-600
+                {% elif log.acao == 'edicao' %}text-blue-600
+                {% elif log.acao == 'exclusao' %}text-red-600
+                {% else %}text-gray-500{% endif %}"></i>
+            </span>
+            <div class="text-sm">
+                <p class="text-gray-700">
+                    <span class="font-semibold">
+                        {% if log.acao == 'criacao' %}Criado{% elif log.acao == 'edicao' %}Editado{% elif log.acao == 'exclusao' %}Excluido{% else %}{{ log.get_acao_display }}{% endif %}
+                    </span>
+                    {% if log.usuario %}
+                        por <span class="font-medium text-gray-900">{{ log.usuario.get_full_name|default:log.usuario.username }}</span>
+                    {% endif %}
+                </p>
+                <p class="text-xs text-gray-400 mt-0.5 tabular-nums">{{ log.data|date:"d/m/Y H:i" }}</p>
+
+                {% if log.campos_alterados %}
+                <div class="mt-2 rounded-lg border border-gray-100 overflow-hidden">
+                    {% for campo, alt in log.campos_alterados.items %}
+                    <div class="flex items-stretch text-xs border-b border-gray-100 last:border-b-0">
+                        <div class="bg-gray-50 px-3 py-2 font-semibold text-gray-600 w-1/3 flex items-center">
+                            {{ campo|rotulo_campo }}
+                        </div>
+                        <div class="flex-1 px-3 py-2 grid grid-cols-2 gap-2 items-center">
+                            <div class="bg-red-50 border border-red-100 rounded px-2 py-1 text-red-700 line-through truncate" title="{{ alt.antes|default:'—' }}">{{ alt.antes|default:"—"|truncatechars:50 }}</div>
+                            <div class="bg-emerald-50 border border-emerald-100 rounded px-2 py-1 text-emerald-700 font-medium truncate" title="{{ alt.depois|default:'—' }}">{{ alt.depois|default:"—"|truncatechars:50 }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ol>
+    {% else %}
+    <p class="px-6 py-10 text-center text-sm text-gray-400">Sem registros de alteracao ainda.</p>
+    {% endif %}
+</div>

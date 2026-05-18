@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos globais customizados — equivalentes ao bloco <style> de base.html. */
+[x-cloak] { display: none !important; }
+.htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator { opacity: 1; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Modo apresentação — fontes maiores, ideal para TV/projetor. */
+.tela-apresentacao { font-size: 17px; }
+.tela-apresentacao .text-xs { font-size: 14px; }
+.tela-apresentacao .text-sm { font-size: 16px; }
+.tela-apresentacao .text-base { font-size: 18px; }
+.tela-apresentacao .text-lg { font-size: 20px; }
+.tela-apresentacao .text-xl { font-size: 24px; }
+.tela-apresentacao .text-2xl { font-size: 28px; }
+.tela-apresentacao h1,
+.tela-apresentacao h2,
+.tela-apresentacao h3 { letter-spacing: -0.01em; }

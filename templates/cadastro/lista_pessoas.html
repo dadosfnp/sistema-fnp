@@ -28,6 +28,12 @@
                        class="pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-fnp-400/30 focus:border-fnp-400 transition-all w-64"
                        hx-get="{% url 'cadastro:lista_pessoas' %}" hx-trigger="keyup changed delay:300ms" hx-target="#tabela-pessoas" hx-include="closest .filtros-container">
             </div>
+            {% include "nucleo/parciais/filtros_salvos.html" with escopo_url="cadastro:lista_pessoas" %}
+            <a href="?{{ request.GET.urlencode }}{% if request.GET %}&{% endif %}exportar=csv"
+               class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-colors whitespace-nowrap"
+               title="Exporta CSV da visão filtrada atual">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> Exportar
+            </a>
         </div>
     </div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" id="tabela-pessoas">

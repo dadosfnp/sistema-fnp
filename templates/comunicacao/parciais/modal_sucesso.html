@@ -1,0 +1,18 @@
+{# Confirmação de envio bem-sucedido — substitui o conteúdo do modal #modal-conteudo. #}
+<div class="text-center py-6">
+    <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+        <i data-lucide="check" class="w-7 h-7 text-emerald-600"></i>
+    </div>
+    <h3 class="mt-4 text-base font-bold text-gray-900">Mensagem enviada</h3>
+    <p class="mt-1 text-sm text-gray-500">{{ envio.total_destinatarios }} destinatário{{ envio.total_destinatarios|pluralize:"s" }} alcançado{{ envio.total_destinatarios|pluralize:"s" }}.</p>
+
+    <div class="flex items-center justify-center gap-2 mt-5">
+        <a href="{% url 'comunicacao:historico_envios' app_label=app_label model_name=model_name object_id=object_id %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-fnp-600 bg-fnp-50 rounded-lg hover:bg-fnp-100">
+            <i data-lucide="history" class="w-3.5 h-3.5"></i> Ver histórico
+        </a>
+        <button type="button" onclick="fecharModalEnvio()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+            Fechar
+        </button>
+    </div>
+</div>
+<script>if (window.lucide) lucide.createIcons();</script>

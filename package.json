@@ -1,0 +1,13 @@
+{
+  "name": "sistema-fnp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build de assets do Sistema FNP — Tailwind CSS gerado localmente para substituir o CDN runtime.",
+  "scripts": {
+    "build:css": "tailwindcss -i ./estaticos/css/tailwind-input.css -o ./estaticos/css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./estaticos/css/tailwind-input.css -o ./estaticos/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

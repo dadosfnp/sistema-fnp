@@ -12,12 +12,16 @@
         </thead>
         <tbody class="divide-y divide-gray-50">
             {% for pessoa in pessoas %}
-            <tr class="hover:bg-fnp-50/50 cursor-pointer transition-colors" onclick="window.location='{% url 'cadastro:detalhe_pessoa' pessoa.pk %}'">
+            <tr class="hover:bg-fnp-50/50 cursor-pointer transition-colors group" onclick="window.location='{% url 'cadastro:detalhe_pessoa' pessoa.pk %}'">
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
+                        {% if pessoa.foto %}
                         <div class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-gray-100">
-                            {% avatar_pessoa pessoa 64 as foto_url %}<img src="{{ foto_url }}" alt="{{ pessoa.nome.0 }}" class="w-full h-full object-cover">
+                            <img src="{{ pessoa.foto.url }}" alt="{{ pessoa.nome }}" class="w-full h-full object-cover">
                         </div>
+                        {% else %}
+                        {% avatar_iniciais pessoa "w-8 h-8" "text-xs" %}
+                        {% endif %}
                         <p class="text-sm font-semibold text-gray-900">{{ pessoa.nome }}</p>
                     </div>
                 </td>
@@ -46,13 +50,10 @@
                 </td>
             </tr>
             {% empty %}
-            <tr>
-                <td colspan="5" class="px-6 py-12 text-center">
-                    <svg class="mx-auto w-10 h-10 text-gray-300" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
-                    <p class="mt-2 text-sm text-gray-400">Nenhuma pessoa encontrada.</p>
-                </td>
-            </tr>
+            {% url 'cadastro:criar_pessoa' as url_criar %}
+            {% include "nucleo/parciais/estado_vazio.html" with icone="users" titulo="Nenhuma pessoa encontrada" descricao="Ajuste os filtros ou cadastre a primeira pessoa para comecar." cta_url=url_criar cta_label="Cadastrar pessoa" colspan=5 %}
             {% endfor %}
         </tbody>
     </table>
 </div>
+{% include "nucleo/parciais/paginador.html" %}

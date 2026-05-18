@@ -2,11 +2,13 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from aplicacoes.cadastro.forms import MunicipioForm, PessoaForm
 from aplicacoes.cadastro.models import Municipio, Pessoa
+from aplicacoes.cadastro.servicos.dashboards import contexto_municipio, contexto_pessoa
 from aplicacoes.nucleo.servicos.auditoria import detectar_alteracoes, registrar_criacao, registrar_edicao
 
 
@@ -22,31 +24,50 @@ def _eh_editor(request):
 
 @login_required
 def lista_pessoas(request):
-    """Lista pessoas com busca e filtros por tipo e partido."""
+    """Lista pessoas com busca, filtro por tipo e paginação (50 por página).
+
+    Aceita ``?exportar=csv`` para baixar a visao filtrada (sem paginacao).
+    """
     busca = request.GET.get('busca', '').strip()
     tipo = request.GET.get('tipo', '')
-    pessoas = Pessoa.objects.filter(ativo=True).order_by('nome')
+    pessoas_qs = Pessoa.objects.filter(ativo=True).order_by('nome')
     if busca:
-        pessoas = pessoas.filter(
+        pessoas_qs = pessoas_qs.filter(
             Q(nome__icontains=busca) | Q(cargo__icontains=busca) | Q(partido__icontains=busca)
         )
     if tipo:
-        pessoas = pessoas.filter(tipo=tipo)
+        pessoas_qs = pessoas_qs.filter(tipo=tipo)
+
+    if request.GET.get('exportar') == 'csv':
+        from aplicacoes.nucleo.servicos.exportacao import exportar_csv
+        return exportar_csv(
+            nome_arquivo='pessoas-filtradas',
+            cabecalho=['Nome', 'Tipo', 'Cargo', 'Partido', 'E-mail', 'Ativo'],
+            linhas_iter=(
+                [p.nome, p.get_tipo_display(), p.cargo, p.partido, p.email or '', 'Sim' if p.ativo else 'Nao']
+                for p in pessoas_qs
+            ),
+        )
+
+    paginator = Paginator(pessoas_qs, 50)
+    pagina = paginator.get_page(request.GET.get('pagina'))
+
     tipos = Pessoa.TipoPessoa.choices
-    ctx = {'pessoas': pessoas, 'busca': busca, 'tipo': tipo, 'tipos': tipos}
+    ctx = {
+        'pessoas': pagina.object_list,
+        'pagina': pagina,
+        'total_resultados': paginator.count,
+        'busca': busca, 'tipo': tipo, 'tipos': tipos,
+    }
     template = 'cadastro/parciais/lista_pessoas_tabela.html' if request.headers.get('HX-Request') else 'cadastro/lista_pessoas.html'
     return render(request, template, ctx)
 
 
 @login_required
 def detalhe_pessoa(request, pk):
-    """Exibe detalhes de uma pessoa com vínculos e participações."""
+    """Exibe detalhes de uma pessoa — delega monta-contexto ao serviço de dashboard."""
     pessoa = get_object_or_404(Pessoa, pk=pk)
-    vinculos = pessoa.vinculos.select_related('municipio').order_by('-vigente', '-inicio_mandato')
-    participacoes = pessoa.participacoes.select_related('evento', 'municipio').order_by('-evento__data_inicio')[:20]
-    return render(request, 'cadastro/detalhe_pessoa.html', {
-        'pessoa': pessoa, 'vinculos': vinculos, 'participacoes': participacoes,
-    })
+    return render(request, 'cadastro/detalhe_pessoa.html', contexto_pessoa(pessoa))
 
 
 @login_required
@@ -89,24 +110,47 @@ def criar_pessoa(request):
 
 @login_required
 def lista_municipios(request):
-    """Lista municípios com busca e filtros por UF, região e associação."""
+    """Lista municípios com busca, filtros por UF/região/adimplência e paginação (50/pg)."""
     busca = request.GET.get('busca', '').strip()
     uf = request.GET.get('uf', '')
     regiao = request.GET.get('regiao', '')
     adimplencia = request.GET.get('adimplencia', '')
-    municipios = Municipio.objects.all().order_by('nome')
+    municipios_qs = Municipio.objects.all().order_by('nome')
     if busca:
-        municipios = municipios.filter(Q(nome__icontains=busca) | Q(uf__icontains=busca))
+        municipios_qs = municipios_qs.filter(Q(nome__icontains=busca) | Q(uf__icontains=busca))
     if uf:
-        municipios = municipios.filter(uf=uf)
+        municipios_qs = municipios_qs.filter(uf=uf)
     if regiao:
-        municipios = municipios.filter(regiao=regiao)
+        municipios_qs = municipios_qs.filter(regiao=regiao)
     if adimplencia:
-        municipios = municipios.filter(adimplencias__status=adimplencia, adimplencias__ano_referencia=2026).distinct()
+        municipios_qs = municipios_qs.filter(
+            adimplencias__status=adimplencia, adimplencias__ano_referencia=2026,
+        ).distinct()
+
+    if request.GET.get('exportar') == 'csv':
+        from aplicacoes.nucleo.servicos.exportacao import exportar_csv
+        return exportar_csv(
+            nome_arquivo='municipios-filtrados',
+            cabecalho=['Nome', 'UF', 'Regiao', 'Populacao', 'Capital', 'Associado FNP', 'Adimplencia atual'],
+            linhas_iter=(
+                [m.nome, m.uf, m.get_regiao_display() or '', m.populacao,
+                 'Sim' if m.eh_capital else 'Nao',
+                 'Sim' if m.associado_fnp else 'Nao',
+                 m.adimplencia_atual or '']
+                for m in municipios_qs
+            ),
+        )
+
+    paginator = Paginator(municipios_qs, 50)
+    pagina = paginator.get_page(request.GET.get('pagina'))
+
     ufs = Municipio.objects.values_list('uf', flat=True).distinct().order_by('uf')
     regioes = Municipio.Regiao.choices
     ctx = {
-        'municipios': municipios, 'busca': busca,
+        'municipios': pagina.object_list,
+        'pagina': pagina,
+        'total_resultados': paginator.count,
+        'busca': busca,
         'uf': uf, 'ufs': ufs, 'regiao': regiao, 'regioes': regioes,
         'adimplencia_filtro': adimplencia,
     }
@@ -116,16 +160,9 @@ def lista_municipios(request):
 
 @login_required
 def detalhe_municipio(request, pk):
-    """Exibe detalhes do município com vínculos, adimplência, engajamento e participações."""
+    """Exibe detalhes do município — delega monta-contexto ao serviço de dashboard."""
     municipio = get_object_or_404(Municipio, pk=pk)
-    vinculos = municipio.vinculos.select_related('pessoa').filter(vigente=True).order_by('papel')
-    adimplencias = municipio.adimplencias.order_by('-ano_referencia')[:5]
-    engajamento = municipio.engajamentos.first()
-    participacoes = municipio.participacoes.select_related('pessoa', 'evento').order_by('-evento__data_inicio')[:20]
-    return render(request, 'cadastro/detalhe_municipio.html', {
-        'municipio': municipio, 'vinculos': vinculos, 'adimplencias': adimplencias,
-        'engajamento': engajamento, 'participacoes': participacoes,
-    })
+    return render(request, 'cadastro/detalhe_municipio.html', contexto_municipio(municipio))
 
 
 @login_required

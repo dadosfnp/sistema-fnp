@@ -6,7 +6,7 @@
 {% block conteudo %}
 <div class="space-y-6">
 
-    <!-- KPIs -->
+    <!-- KPIs principais (Cadastro) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div class="flex items-center justify-between">
@@ -38,19 +38,6 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Eventos</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_eventos }}</p>
-                </div>
-                <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
-                    <i data-lucide="calendar-days" class="w-5 h-5 text-purple-500"></i>
-                </div>
-            </div>
-            <a href="{% url 'eventos:lista_eventos' %}" class="inline-block mt-3 text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver todos &rarr;</a>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div class="flex items-center justify-between">
-                <div>
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Adimplencia 2026</p>
                     <p class="text-2xl font-bold text-emerald-600 mt-1">{{ total_adimplentes }}</p>
                     <p class="text-xs text-red-500 mt-0.5">{{ total_inadimplentes }} inadimplentes</p>
@@ -60,6 +47,87 @@
                 </div>
             </div>
             <a href="{% url 'adimplencia:lista_adimplencia' %}" class="inline-block mt-3 text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver detalhes &rarr;</a>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Engajamento</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{% if top_engajamento %}{{ top_engajamento.0.municipio.nome }}{% else %}—{% endif %}</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                    <i data-lucide="trending-up" class="w-5 h-5 text-orange-500"></i>
+                </div>
+            </div>
+            <a href="{% url 'engajamento:lista_engajamento' %}" class="inline-block mt-3 text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver ranking &rarr;</a>
+        </div>
+    </div>
+
+    <!-- Categorias -->
+    <div>
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Categorias</h3>
+        </div>
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <a href="{% url 'instancias:lista_instancias' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-fnp-200 transition-all group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Espacos de Dialogo</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1 group-hover:text-fnp-600">{{ total_instancias }}</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
+                        <i data-lucide="messages-square" class="w-5 h-5 text-indigo-500"></i>
+                    </div>
+                </div>
+            </a>
+
+            <a href="{% url 'projetos:lista_projetos' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-fnp-200 transition-all group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Projetos</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1 group-hover:text-fnp-600">{{ total_projetos }}</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-cyan-50 group-hover:bg-cyan-100 flex items-center justify-center transition-colors">
+                        <i data-lucide="clipboard-list" class="w-5 h-5 text-cyan-500"></i>
+                    </div>
+                </div>
+            </a>
+
+            <a href="{% url 'missoes:lista_missoes' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-fnp-200 transition-all group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Missoes</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1 group-hover:text-fnp-600">{{ total_missoes }}</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 group-hover:bg-rose-100 flex items-center justify-center transition-colors">
+                        <i data-lucide="plane-takeoff" class="w-5 h-5 text-rose-500"></i>
+                    </div>
+                </div>
+            </a>
+
+            <a href="{% url 'atividades:lista_atividades' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-fnp-200 transition-all group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Atividades</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1 group-hover:text-fnp-600">{{ total_atividades }}</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-teal-50 group-hover:bg-teal-100 flex items-center justify-center transition-colors">
+                        <i data-lucide="calendar-clock" class="w-5 h-5 text-teal-500"></i>
+                    </div>
+                </div>
+            </a>
+
+            <a href="{% url 'eventos:lista_eventos' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-fnp-200 transition-all group">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Eventos</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1 group-hover:text-fnp-600">{{ total_eventos }}</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
+                        <i data-lucide="calendar-days" class="w-5 h-5 text-purple-500"></i>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 
@@ -134,46 +202,6 @@
                 {% endfor %}
             </div>
         </div>
-    </div>
-
-    <!-- Acesso rapido -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <a href="{% url 'cadastro:lista_pessoas' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
-                <i data-lucide="users" class="w-5 h-5 text-blue-500"></i>
-            </div>
-            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Pessoas</span>
-        </a>
-        <a href="{% url 'cadastro:lista_municipios' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                <i data-lucide="building-2" class="w-5 h-5 text-emerald-500"></i>
-            </div>
-            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Municipios</span>
-        </a>
-        <a href="{% url 'adimplencia:lista_adimplencia' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center transition-colors">
-                <i data-lucide="wallet" class="w-5 h-5 text-amber-500"></i>
-            </div>
-            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Adimplencia</span>
-        </a>
-        <a href="{% url 'eventos:lista_eventos' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
-                <i data-lucide="calendar-days" class="w-5 h-5 text-purple-500"></i>
-            </div>
-            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Eventos</span>
-        </a>
-        <a href="{% url 'engajamento:lista_engajamento' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-orange-50 group-hover:bg-orange-100 flex items-center justify-center transition-colors">
-                <i data-lucide="trending-up" class="w-5 h-5 text-orange-500"></i>
-            </div>
-            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Engajamento</span>
-        </a>
-        <a href="{% url 'relatorios:painel' %}" class="flex flex-col items-center gap-2 p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-fnp-200 transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-rose-50 group-hover:bg-rose-100 flex items-center justify-center transition-colors">
-                <i data-lucide="pie-chart" class="w-5 h-5 text-rose-500"></i>
-            </div>
-            <span class="text-xs font-medium text-gray-600 group-hover:text-fnp-600">Relatorios</span>
-        </a>
     </div>
 </div>
 {% endblock %}

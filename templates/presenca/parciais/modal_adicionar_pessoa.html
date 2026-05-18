@@ -1,0 +1,89 @@
+{# Modal HTMX: cadastrar pessoa nova durante a marcação de presença. #}
+<form
+    hx-post="{% url 'presenca:adicionar_pessoa_modal' app_label=app_label model_name=model_name object_id=object_id %}"
+    hx-target="#modal-conteudo"
+    hx-swap="innerHTML"
+    class="space-y-4"
+>
+    {% csrf_token %}
+    <div class="flex items-start justify-between">
+        <div>
+            <h3 class="text-base font-bold text-gray-900 flex items-center gap-2"><i data-lucide="user-plus" class="w-4 h-4 text-emerald-500"></i> Adicionar pessoa</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Cadastra e ja marca presenca em: <span class="font-medium text-fnp-600">{{ entidade }}</span></p>
+        </div>
+        <button type="button" onclick="fecharModalEnvio()" class="text-gray-400 hover:text-gray-600 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+
+    {% if erro_form %}
+    <div class="px-3 py-2 bg-red-50 border border-red-100 text-red-700 text-sm rounded-lg">{{ erro_form }}</div>
+    {% endif %}
+
+    <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+            <label class="block text-xs font-medium text-gray-700 mb-1">Nome completo *</label>
+            <input type="text" name="nome" value="{{ dados.nome|default:'' }}" required class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">E-mail</label>
+            <input type="email" name="email" value="{{ dados.email|default:'' }}" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Telefone</label>
+            <input type="text" name="telefone" value="{{ dados.telefone|default:'' }}" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Tipo</label>
+            <select name="tipo" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2">
+                {% for val, label in tipos %}<option value="{{ val }}" {% if dados.tipo == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Cargo</label>
+            <input type="text" name="cargo" value="{{ dados.cargo|default:'' }}" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+        </div>
+        <div class="col-span-2">
+            <label class="block text-xs font-medium text-gray-700 mb-1">Municipio vinculado</label>
+            <select name="municipio" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2">
+                <option value="">— Nenhum —</option>
+                {% for m in municipios %}<option value="{{ m.pk }}" {% if dados.municipio == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.nome }}/{{ m.uf }}</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <div class="border-t border-gray-100 pt-3">
+        <p class="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Presenca nesta atividade</p>
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                <select name="status" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2">
+                    {% for val, label in status_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Forma</label>
+                <select name="forma" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2">
+                    {% for val, label in forma_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-span-2">
+                <label class="block text-xs font-medium text-gray-700 mb-1">Observacao</label>
+                <input type="text" name="observacao" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2">
+            </div>
+            <div class="col-span-2">
+                <label class="inline-flex items-center gap-2 text-xs text-gray-600">
+                    <input type="checkbox" name="criar_representacao" checked class="rounded border-gray-300">
+                    Tambem criar representacao vigente nesta instancia (recomendado)
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600">
+            <i data-lucide="check" class="w-4 h-4"></i> Cadastrar e marcar presenca
+            <span class="htmx-indicator"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i></span>
+        </button>
+        <button type="button" onclick="fecharModalEnvio()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+    </div>
+</form>
+<script>if (window.lucide) lucide.createIcons();</script>

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block titulo %}Metodologia do Engajamento — Sistema FNP{% endblock %}
+{% block titulo_pagina %}Metodologia do Engajamento{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-start gap-4">
+            <div class="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="calculator" class="w-5 h-5 text-orange-500"></i>
+            </div>
+            <div class="flex-1">
+                <h2 class="text-xl font-bold text-gray-900">Como o engajamento é calculado</h2>
+                <p class="text-sm text-gray-500 mt-1">
+                    A nota de engajamento (0 a 100) de cada município combina contribuições de várias categorias institucionais — eventos, instâncias, missões e atividades — ponderadas pelos pesos definidos pela equipe FNP. Decaimento anual e penalidade por adimplência são aplicados ao final.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fórmula -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-3"><i data-lucide="function-square" class="w-4 h-4 text-gray-400"></i> Fórmula geral</h3>
+        <div class="bg-gray-50 rounded-lg p-4 text-sm text-gray-700 font-mono leading-relaxed">
+            <p>pontos_brutos = pontos_ano_atual + (pontos_ano_anterior × fator_decaimento)</p>
+            <p>pontuação_líquida = pontos_brutos − penalidade_adimplência</p>
+            <p>nota_normalizada = min(100, pontuação_líquida ÷ meta_dinâmica × 100)</p>
+        </div>
+        <ul class="text-xs text-gray-600 space-y-1 mt-3">
+            <li>• <strong>pontos_ano_atual</strong> soma eventos do ano corrente + representações vigentes + presenças + missões.</li>
+            <li>• <strong>pontos_ano_anterior</strong> são pontos de eventos do ano anterior, com decaimento aplicado.</li>
+            <li>• <strong>meta_dinâmica</strong> é calculada com base nos eventos cadastrados no biênio + capacidade de representações/presenças, dando o teto da escala 0-100.</li>
+        </ul>
+    </div>
+
+    <!-- Configuração geral -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-3"><i data-lucide="settings" class="w-4 h-4 text-gray-400"></i> Configuração geral — biênio {{ config.bienio_atual }}</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <p class="text-xs text-gray-500">Meta do biênio</p>
+                <p class="text-lg font-bold text-gray-900 tabular-nums">{{ config.meta_bienio }} pts</p>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <p class="text-xs text-gray-500">Fator de decaimento</p>
+                <p class="text-lg font-bold text-gray-900 tabular-nums">{{ config.fator_decaimento }}</p>
+                <p class="text-[10px] text-gray-400">ano anterior mantém {{ config.fator_decaimento|floatformat:0 }}%</p>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <p class="text-xs text-gray-500">Penalidade inadimplente</p>
+                <p class="text-lg font-bold text-red-600 tabular-nums">-{{ config.penalidade_inadimplente|floatformat:0 }}%</p>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <p class="text-xs text-gray-500">Penalidade parcial</p>
+                <p class="text-lg font-bold text-amber-600 tabular-nums">-{{ config.penalidade_parcial|floatformat:0 }}%</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de pesos -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2"><i data-lucide="scale" class="w-4 h-4 text-gray-400"></i> Pesos por categoria</h3>
+            <a href="{% url 'admin:engajamento_pesoengajamento_changelist' %}" class="text-xs text-fnp-500 hover:text-fnp-700 font-medium">Editar pesos</a>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50/50">
+                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <th class="px-6 py-3">Contribuição</th>
+                    <th class="px-6 py-3 text-right">Peso (pontos)</th>
+                    <th class="px-6 py-3">Descrição</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+                {% for p in pesos %}
+                <tr class="hover:bg-gray-50/40">
+                    <td class="px-6 py-3 font-medium text-gray-900">{{ p.get_chave_display }}</td>
+                    <td class="px-6 py-3 text-right">
+                        <span class="inline-flex items-center px-2 py-0.5 text-sm font-semibold rounded-full bg-orange-50 text-orange-700 tabular-nums">+{{ p.peso }} pts</span>
+                    </td>
+                    <td class="px-6 py-3 text-gray-600">{{ p.descricao|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="px-6 py-10 text-center text-gray-400">Nenhum peso cadastrado. Rode <code class="bg-gray-100 px-1 rounded">popular_pesos_engajamento</code>.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Faixas de nível -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-3"><i data-lucide="bar-chart-2" class="w-4 h-4 text-gray-400"></i> Faixas de nível</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                <p class="text-xs font-medium text-emerald-700">Alto</p>
+                <p class="text-lg font-bold text-emerald-900 tabular-nums mt-0.5">70+ pts</p>
+            </div>
+            <div class="p-3 rounded-lg bg-blue-50 border border-blue-100">
+                <p class="text-xs font-medium text-blue-700">Médio</p>
+                <p class="text-lg font-bold text-blue-900 tabular-nums mt-0.5">40–69 pts</p>
+            </div>
+            <div class="p-3 rounded-lg bg-amber-50 border border-amber-100">
+                <p class="text-xs font-medium text-amber-700">Baixo</p>
+                <p class="text-lg font-bold text-amber-900 tabular-nums mt-0.5">10–39 pts</p>
+            </div>
+            <div class="p-3 rounded-lg bg-gray-100 border border-gray-200">
+                <p class="text-xs font-medium text-gray-600">Inativo</p>
+                <p class="text-lg font-bold text-gray-700 tabular-nums mt-0.5">0–9 pts</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block js_extra %}<script>lucide.createIcons();</script>{% endblock %}

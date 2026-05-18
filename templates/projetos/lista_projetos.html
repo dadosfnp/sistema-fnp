@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block titulo %}Projetos — Sistema FNP{% endblock %}
+{% block titulo_pagina %}Projetos{% endblock %}
+
+{% block conteudo %}
+<div class="space-y-4">
+    {% include "nucleo/parciais/header_categoria.html" %}
+
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900">Lista de projetos</h2>
+            <p class="text-sm text-gray-500 mt-0.5">{{ projetos|length }} projeto{{ projetos|length|pluralize:"s" }} listado{{ projetos|length|pluralize:"s" }}</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap filtros-container">
+            {% if eh_editor %}
+            <a href="{% url 'projetos:criar_projeto' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors shadow-sm whitespace-nowrap">
+                <i data-lucide="plus" class="w-4 h-4"></i> Novo Projeto
+            </a>
+            {% endif %}
+            <select name="status"
+                    class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
+                    hx-get="{% url 'projetos:lista_projetos' %}" hx-trigger="change" hx-target="#tabela-projetos" hx-include="closest .filtros-container">
+                <option value="">Todos os status</option>
+                {% for val, label in status_choices %}<option value="{{ val }}" {% if val == status_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <select name="fonte"
+                    class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
+                    hx-get="{% url 'projetos:lista_projetos' %}" hx-trigger="change" hx-target="#tabela-projetos" hx-include="closest .filtros-container">
+                <option value="">Todas as fontes</option>
+                {% for val, label in fontes %}<option value="{{ val }}" {% if val == fonte_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                <input type="text" name="busca" value="{{ busca }}" placeholder="Pesquisar..."
+                       class="pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-fnp-400/30 transition-all w-56"
+                       hx-get="{% url 'projetos:lista_projetos' %}" hx-trigger="keyup changed delay:300ms" hx-target="#tabela-projetos" hx-include="closest .filtros-container">
+            </div>
+        </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" id="tabela-projetos">
+        {% include "projetos/parciais/lista_projetos_tabela.html" %}
+    </div>
+</div>
+{% endblock %}

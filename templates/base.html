@@ -10,6 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -53,11 +54,46 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Modo apresentacao: fontes maiores, espacamento generoso, ideal para TV/projeto. */
+        .tela-apresentacao { font-size: 17px; }
+        .tela-apresentacao .text-xs { font-size: 14px; }
+        .tela-apresentacao .text-sm { font-size: 16px; }
+        .tela-apresentacao .text-base { font-size: 18px; }
+        .tela-apresentacao .text-lg { font-size: 20px; }
+        .tela-apresentacao .text-xl { font-size: 24px; }
+        .tela-apresentacao .text-2xl { font-size: 28px; }
+        .tela-apresentacao h1, .tela-apresentacao h2, .tela-apresentacao h3 { letter-spacing: -0.01em; }
     </style>
 
     {% block css_extra %}{% endblock %}
 </head>
-<body class="h-full bg-gray-50 font-sans antialiased" x-data="{ sidebarAberta: true }" x-cloak>
+<body class="h-full bg-gray-50 dark:bg-gray-900 font-sans antialiased transition-colors duration-200"
+      x-data="{
+        sidebarAberta: true,
+        modoApresentacao: localStorage.getItem('fnp:apresentacao') === '1',
+        tema: localStorage.getItem('fnp:tema') || 'claro',
+        init() {
+            this.aplicarTema();
+            if (this.modoApresentacao) document.documentElement.classList.add('modo-apresentacao');
+        },
+        alternarApresentacao() {
+            this.modoApresentacao = !this.modoApresentacao;
+            localStorage.setItem('fnp:apresentacao', this.modoApresentacao ? '1' : '0');
+            document.documentElement.classList.toggle('modo-apresentacao', this.modoApresentacao);
+            if (this.modoApresentacao) this.sidebarAberta = false;
+        },
+        alternarTema() {
+            this.tema = this.tema === 'escuro' ? 'claro' : 'escuro';
+            localStorage.setItem('fnp:tema', this.tema);
+            this.aplicarTema();
+        },
+        aplicarTema() {
+            document.documentElement.classList.toggle('dark', this.tema === 'escuro');
+        }
+      }"
+      :class="{'tela-apresentacao': modoApresentacao}"
+      x-cloak>
 
     <div class="flex h-full">
         <!-- Sidebar -->
@@ -84,14 +120,14 @@
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
                           {% if url_atual == 'inicio' %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
                    :class="!sidebarAberta && 'justify-center !px-0'"
-                   {% if url_atual != 'inicio' and not sidebarAberta %}title="Inicio"{% endif %}>
+                   {% if url_atual != 'inicio' and not sidebarAberta %}title="Início"{% endif %}>
                     <i data-lucide="layout-dashboard" class="w-[18px] h-[18px] flex-shrink-0"></i>
-                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Inicio</span>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Início</span>
                 </a>
 
-                <!-- Separador: Cadastro -->
+                <!-- Separador: Controle -->
                 <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
-                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Cadastro</p>
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Controle</p>
                     <hr x-show="!sidebarAberta" class="border-white/10">
                 </div>
 
@@ -108,24 +144,51 @@
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
                           {% if 'municipios' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
                    :class="!sidebarAberta && 'justify-center !px-0'"
-                   title="Municipios">
+                   title="Municípios">
                     <i data-lucide="building-2" class="w-[18px] h-[18px] flex-shrink-0"></i>
-                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Municipios</span>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Municípios</span>
                 </a>
 
-                <!-- Separador: Gestao -->
+                <!-- Separador: Categorias -->
                 <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
-                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Gestao</p>
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Categorias</p>
                     <hr x-show="!sidebarAberta" class="border-white/10">
                 </div>
 
-                <a href="{% url 'adimplencia:lista_adimplencia' %}"
+                <a href="{% url 'instancias:lista_instancias' %}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
-                          {% if 'adimplencia' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                          {% if 'instancias' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
                    :class="!sidebarAberta && 'justify-center !px-0'"
-                   title="Adimplencia">
-                    <i data-lucide="wallet" class="w-[18px] h-[18px] flex-shrink-0"></i>
-                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Adimplencia</span>
+                   title="Espaços de Diálogo">
+                    <i data-lucide="messages-square" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Espaços de Diálogo</span>
+                </a>
+
+                <a href="{% url 'projetos:lista_projetos' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if 'projetos' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Projetos">
+                    <i data-lucide="clipboard-list" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Projetos</span>
+                </a>
+
+                <a href="{% url 'missoes:lista_missoes' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if 'missoes' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Missões">
+                    <i data-lucide="plane-takeoff" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Missões</span>
+                </a>
+
+                <a href="{% url 'atividades:lista_atividades' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if 'atividades' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Atividades">
+                    <i data-lucide="calendar-clock" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Atividades</span>
                 </a>
 
                 <a href="{% url 'eventos:lista_eventos' %}"
@@ -137,6 +200,21 @@
                     <span x-show="sidebarAberta" x-transition.opacity class="truncate">Eventos</span>
                 </a>
 
+                <!-- Separador: Gestão -->
+                <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Gestão</p>
+                    <hr x-show="!sidebarAberta" class="border-white/10">
+                </div>
+
+                <a href="{% url 'adimplencia:lista_adimplencia' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
+                          {% if 'adimplencia' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Adimplência">
+                    <i data-lucide="wallet" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Adimplência</span>
+                </a>
+
                 <a href="{% url 'engajamento:lista_engajamento' %}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
                           {% if 'engajamento' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
@@ -146,19 +224,52 @@
                     <span x-show="sidebarAberta" x-transition.opacity class="truncate">Engajamento</span>
                 </a>
 
-                <!-- Separador: Analise -->
+                <!-- Separador: Análise -->
                 <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
-                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Analise</p>
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Análise</p>
                     <hr x-show="!sidebarAberta" class="border-white/10">
                 </div>
 
                 <a href="{% url 'relatorios:painel' %}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
-                          {% if 'relatorios' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                          {% if request.resolver_match.url_name == 'painel' %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
                    :class="!sidebarAberta && 'justify-center !px-0'"
-                   title="Relatorios">
+                   title="Relatórios">
                     <i data-lucide="pie-chart" class="w-[18px] h-[18px] flex-shrink-0"></i>
-                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Relatorios</span>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Relatórios</span>
+                </a>
+
+                <a href="{% url 'relatorios:mapa' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if request.resolver_match.url_name == 'mapa' %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Mapa">
+                    <i data-lucide="map" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Mapa</span>
+                </a>
+
+                <!-- Separador: Ajuda -->
+                <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Ajuda</p>
+                    <hr x-show="!sidebarAberta" class="border-white/10">
+                </div>
+
+                <a href="{% url 'dicionario:lista_dicionario' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150
+                          {% if 'dicionario' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Dicionário">
+                    <i data-lucide="book-open" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Dicionário</span>
+                </a>
+
+                <a href="{% url 'engajamento:metodologia' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if 'metodologia' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Metodologia">
+                    <i data-lucide="calculator" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Metodologia</span>
                 </a>
 
                 {% endwith %}
@@ -181,53 +292,327 @@
         <!-- Conteudo principal -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Barra superior -->
-            <header class="flex items-center justify-between h-14 px-6 bg-white border-b border-gray-100">
+            <header class="flex items-center justify-between h-14 px-6 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 transition-colors">
                 <div class="flex items-center space-x-3">
                     {% block breadcrumb %}
-                    <h1 class="text-sm font-semibold text-gray-800">
+                    <h1 class="text-sm font-semibold text-gray-800 dark:text-gray-100">
                         {% block titulo_pagina %}Sistema FNP{% endblock %}
                     </h1>
                     {% endblock %}
                 </div>
                 <div class="flex items-center space-x-3">
                     {% if user.is_authenticated %}
+                    <button @click="window.abrirPaleta()" type="button"
+                            class="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs text-gray-500 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                            title="Busca global (Ctrl+K)">
+                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                        <span>Buscar…</span>
+                        <kbd class="px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 bg-white rounded border border-gray-200">Ctrl K</kbd>
+                    </button>
                     <div class="flex items-center space-x-2 pl-3 border-l border-gray-200">
                         <div class="w-7 h-7 rounded-full bg-fnp-500 flex items-center justify-center">
                             <span class="text-[11px] font-semibold text-white">{{ user.first_name.0|default:user.username.0|upper }}</span>
                         </div>
                         <span class="text-sm font-medium text-gray-700">{{ user.get_full_name|default:user.username }}</span>
                     </div>
+                    {# Sininho de notificacoes — badge so destaca nas janelas das 9h e 14h #}
+                    <div class="relative"
+                         x-data="{
+                            aberto: false,
+                            destaque: false,
+                            checarDestaque() {
+                                const h = new Date().getHours();
+                                const hoje = new Date().toISOString().slice(0,10);
+                                const visto9 = localStorage.getItem('fnp:notif:9');
+                                const visto14 = localStorage.getItem('fnp:notif:14');
+                                this.destaque =
+                                    (h >= 9 && h < 14 && visto9 !== hoje) ||
+                                    (h >= 14 && visto14 !== hoje);
+                            },
+                            marcarVisto() {
+                                const h = new Date().getHours();
+                                const hoje = new Date().toISOString().slice(0,10);
+                                if (h >= 9 && h < 14) localStorage.setItem('fnp:notif:9', hoje);
+                                else if (h >= 14) localStorage.setItem('fnp:notif:14', hoje);
+                                this.destaque = false;
+                            }
+                         }"
+                         x-init="checarDestaque(); setInterval(() => checarDestaque(), 5 * 60 * 1000);">
+                        <button @click="aberto = !aberto; if (aberto) marcarVisto()" type="button"
+                                class="relative text-gray-500 hover:text-fnp-500 transition-colors p-1.5 rounded hover:bg-gray-50"
+                                title="Notificações (entregues 9h e 14h)">
+                            <i data-lucide="bell" class="w-4 h-4"></i>
+                            <span x-show="destaque" class="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                        </button>
+                        <div x-show="aberto" @click.outside="aberto = false" x-transition.opacity
+                             class="absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-100 z-40 overflow-hidden"
+                             style="display: none;">
+                            <div id="notif-dropdown"
+                                 hx-get="{% url 'nucleo:notificacoes_dropdown' %}"
+                                 hx-trigger="intersect once"
+                                 hx-swap="innerHTML">
+                                <div class="px-3 py-8 text-center text-xs text-gray-400">
+                                    <i data-lucide="loader" class="w-4 h-4 animate-spin inline"></i> Carregando...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button @click="alternarTema()" type="button"
+                            class="text-xs text-gray-400 hover:text-fnp-500 transition-colors font-medium px-2 py-1 rounded hover:bg-gray-50"
+                            :title="tema === 'escuro' ? 'Modo claro' : 'Modo escuro'">
+                        <i :data-lucide="tema === 'escuro' ? 'sun' : 'moon'" class="w-4 h-4"></i>
+                    </button>
+                    <button @click="alternarApresentacao()" type="button"
+                            class="text-xs text-gray-400 hover:text-fnp-500 transition-colors font-medium px-2 py-1 rounded hover:bg-gray-50"
+                            :class="modoApresentacao && 'text-fnp-500 bg-fnp-50'"
+                            title="Modo apresentação (Shift+P)">
+                        <i data-lucide="presentation" class="w-4 h-4"></i>
+                    </button>
                     <a href="{% url 'admin:index' %}" class="text-xs text-gray-500 hover:text-fnp-500 transition-colors font-medium px-2 py-1 rounded hover:bg-gray-50">Admin</a>
                     <a href="{% url 'nucleo:sair' %}" class="text-xs text-gray-400 hover:text-red-500 transition-colors font-medium px-2 py-1 rounded hover:bg-red-50">Sair</a>
                     {% endif %}
                 </div>
             </header>
 
-            <!-- Mensagens -->
-            {% if messages %}
-            <div class="px-6 pt-4 space-y-2" x-data="{ mostrar: true }" x-show="mostrar" x-transition>
-                {% for message in messages %}
-                <div class="flex items-center px-4 py-3 rounded-lg text-sm shadow-sm
-                    {% if message.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200
-                    {% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
-                    {% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border border-amber-200
-                    {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
-                    <span class="flex-1">{{ message }}</span>
-                    <button @click="mostrar = false" class="ml-3 opacity-50 hover:opacity-100">&times;</button>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
             <!-- Area de conteudo -->
-            <main class="flex-1 overflow-y-auto p-6 bg-gray-50/80">
+            <main class="flex-1 overflow-y-auto p-6 bg-gray-50/80 dark:bg-gray-900 transition-colors">
                 {% block conteudo %}{% endblock %}
             </main>
         </div>
     </div>
 
+    {% if user.is_authenticated %}
+    <!-- Command palette (Ctrl+K / Cmd+K) — busca global -->
+    <div id="paleta-comandos" x-data="paletaComandos()" x-init="iniciar()"
+         x-show="aberta" x-transition.opacity
+         @keydown.escape.window="fechar()"
+         @keydown.window.prevent.ctrl.k="abrir()"
+         @keydown.window.prevent.meta.k="abrir()"
+         class="fixed inset-0 z-[70] bg-black/40 flex items-start justify-center pt-24 px-4"
+         @click.self="fechar()"
+         style="display: none;">
+        <div class="bg-white w-full max-w-xl rounded-xl shadow-2xl overflow-hidden border border-gray-100">
+            <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400"></i>
+                <input type="text" x-ref="campoBusca" x-model="termo" @input.debounce.150ms="buscar()"
+                       @keydown.arrow-down.prevent="mover(1)" @keydown.arrow-up.prevent="mover(-1)"
+                       @keydown.enter.prevent="abrirSelecionado()"
+                       placeholder="Buscar pessoa, município, instância, evento..."
+                       class="flex-1 text-sm bg-transparent focus:outline-none placeholder:text-gray-400">
+                <kbd class="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 bg-gray-100 rounded border border-gray-200">ESC</kbd>
+            </div>
+            <div class="max-h-[60vh] overflow-y-auto">
+                <template x-if="termo.length >= 2 && !carregando && resultados.length === 0">
+                    <div class="px-4 py-10 text-center text-sm text-gray-400">
+                        Nenhum resultado para "<span x-text="termo"></span>".
+                    </div>
+                </template>
+                <template x-if="termo.length < 2">
+                    <div class="px-4 py-6 text-xs text-gray-500 space-y-2">
+                        <p class="font-semibold text-gray-600">Atalhos</p>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{% url 'cadastro:lista_pessoas' %}" class="px-2 py-1 rounded bg-gray-50 hover:bg-fnp-50 hover:text-fnp-700 transition-colors"><i data-lucide="users" class="w-3 h-3 inline -mt-0.5"></i> Pessoas</a>
+                            <a href="{% url 'cadastro:lista_municipios' %}" class="px-2 py-1 rounded bg-gray-50 hover:bg-fnp-50 hover:text-fnp-700 transition-colors"><i data-lucide="building-2" class="w-3 h-3 inline -mt-0.5"></i> Municípios</a>
+                            <a href="{% url 'relatorios:painel' %}" class="px-2 py-1 rounded bg-gray-50 hover:bg-fnp-50 hover:text-fnp-700 transition-colors"><i data-lucide="pie-chart" class="w-3 h-3 inline -mt-0.5"></i> Relatórios</a>
+                            <a href="{% url 'relatorios:mapa' %}" class="px-2 py-1 rounded bg-gray-50 hover:bg-fnp-50 hover:text-fnp-700 transition-colors"><i data-lucide="map" class="w-3 h-3 inline -mt-0.5"></i> Mapa</a>
+                            <a href="{% url 'relatorios:comparar_municipios' %}" class="px-2 py-1 rounded bg-gray-50 hover:bg-fnp-50 hover:text-fnp-700 transition-colors"><i data-lucide="git-compare" class="w-3 h-3 inline -mt-0.5"></i> Comparar</a>
+                        </div>
+                        <p class="pt-2 text-gray-400">Digite ao menos 2 letras para buscar registros.</p>
+                    </div>
+                </template>
+                <template x-for="(r, i) in resultados" :key="i">
+                    <a :href="r.url"
+                       class="flex items-center gap-3 px-4 py-2.5 text-sm border-b border-gray-50 transition-colors"
+                       :class="i === indiceFoco ? 'bg-fnp-50' : 'hover:bg-gray-50'"
+                       @mouseenter="indiceFoco = i">
+                        <span class="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <i :data-lucide="r.icone" class="w-3.5 h-3.5 text-gray-500"></i>
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate" x-text="r.titulo"></p>
+                            <p class="text-xs text-gray-500 truncate" x-text="r.subtitulo"></p>
+                        </div>
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-gray-400" x-text="r.tipo"></span>
+                    </a>
+                </template>
+            </div>
+            <div class="px-4 py-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400 bg-gray-50">
+                <span>
+                    <kbd class="px-1 py-0.5 bg-white rounded border border-gray-200 mr-1">↑↓</kbd> navegar
+                    <kbd class="px-1 py-0.5 bg-white rounded border border-gray-200 mx-1">↵</kbd> abrir
+                </span>
+                <span>
+                    <kbd class="px-1 py-0.5 bg-white rounded border border-gray-200">Ctrl K</kbd> alternar
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Toasts (auto-dismiss apos 5s, fechavel manualmente) -->
+    <div id="toast-container"
+         class="fixed top-4 right-4 z-[60] flex flex-col gap-2 max-w-sm w-full pointer-events-none"
+         x-data="{
+            toasts: [
+                {% for message in messages %}
+                {id: {{ forloop.counter }}, tipo: '{{ message.tags|default:'info' }}', texto: '{{ message|escapejs }}', visivel: true}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            init() {
+                this.toasts.forEach(t => setTimeout(() => this.fechar(t.id), 5000));
+            },
+            fechar(id) {
+                const t = this.toasts.find(x => x.id === id);
+                if (t) t.visivel = false;
+            },
+            adicionar(tipo, texto) {
+                const id = Date.now();
+                this.toasts.push({id, tipo, texto, visivel: true});
+                setTimeout(() => this.fechar(id), 5000);
+            }
+         }">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-show="toast.visivel"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 translate-x-4"
+                 x-transition:enter-end="opacity-100 translate-x-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0 translate-x-4"
+                 class="pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-lg text-sm shadow-lg border"
+                 :class="{
+                    'bg-emerald-50 text-emerald-800 border-emerald-200': toast.tipo === 'success',
+                    'bg-red-50 text-red-800 border-red-200': toast.tipo === 'error',
+                    'bg-amber-50 text-amber-800 border-amber-200': toast.tipo === 'warning',
+                    'bg-blue-50 text-blue-800 border-blue-200': toast.tipo !== 'success' && toast.tipo !== 'error' && toast.tipo !== 'warning'
+                 }">
+                <i data-lucide="" class="w-4 h-4 mt-0.5 flex-shrink-0"
+                   :data-lucide="toast.tipo === 'success' ? 'check-circle-2' : (toast.tipo === 'error' ? 'x-circle' : (toast.tipo === 'warning' ? 'alert-triangle' : 'info'))"></i>
+                <span class="flex-1 leading-snug" x-text="toast.texto"></span>
+                <button @click="fechar(toast.id)" class="opacity-50 hover:opacity-100 flex-shrink-0">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </template>
+    </div>
+
+    <!-- Modal global reutilizavel (mala direta, formularios HTMX) -->
+    <div id="modal-overlay"
+         class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center p-4"
+         onclick="if (event.target === this) fecharModalEnvio()">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div id="modal-conteudo" class="p-6">
+                {# Carregado via HTMX #}
+            </div>
+        </div>
+    </div>
+
+    {# Render do CSRF token garante que o middleware seta o cookie csrftoken #}
+    <span style="display:none">{% csrf_token %}</span>
+
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script>
+    // Helper global de CSRF lido do cookie (Django seta automaticamente).
+    // Substitui hidden inputs espalhados — fetch() chama window.csrftoken().
+    window.csrftoken = function() {
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+    };
+    // HTMX: inclui o token automaticamente em todos os requests
+    document.body.addEventListener('htmx:configRequest', (e) => {
+        e.detail.headers['X-CSRFToken'] = window.csrftoken();
+    });
+    </script>
+    <script>
+        // Lifecycle do modal global: abrir/fechar e reinicializar icones apos swap.
+        function abrirModalEnvio(url) {
+            const overlay = document.getElementById('modal-overlay');
+            const conteudo = document.getElementById('modal-conteudo');
+            conteudo.innerHTML = '<div class="py-10 text-center text-sm text-gray-400">Carregando...</div>';
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            htmx.ajax('GET', url, {target: '#modal-conteudo', swap: 'innerHTML'});
+        }
+        function fecharModalEnvio() {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+        }
+        document.addEventListener('htmx:afterSwap', () => { if (window.lucide) lucide.createIcons(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharModalEnvio(); });
+
+        // Shift+P alterna modo apresentacao via state Alpine no body
+        document.addEventListener('keydown', (e) => {
+            if (e.shiftKey && (e.key === 'P' || e.key === 'p') && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
+                const body = document.body;
+                if (body && body._x_dataStack) body._x_dataStack[0].alternarApresentacao();
+            }
+        });
+
+        // Paleta de comandos: atalhos de teclado + abertura programática
+        window.abrirPaleta = function() {
+            const el = document.getElementById('paleta-comandos');
+            if (el && el._x_dataStack) el._x_dataStack[0].abrir();
+        };
+
+        // Componente da paleta — busca debounced contra /api/busca/
+        window.paletaComandos = function() {
+            return {
+                aberta: false,
+                termo: '',
+                resultados: [],
+                indiceFoco: 0,
+                carregando: false,
+                iniciar() { /* nada */ },
+                abrir() {
+                    this.aberta = true;
+                    this.$nextTick(() => this.$refs.campoBusca && this.$refs.campoBusca.focus());
+                },
+                fechar() { this.aberta = false; },
+                async buscar() {
+                    if (this.termo.length < 2) { this.resultados = []; return; }
+                    this.carregando = true;
+                    try {
+                        const r = await fetch(`{% url 'nucleo:busca_global' %}?q=${encodeURIComponent(this.termo)}`);
+                        const d = await r.json();
+                        this.resultados = d.resultados || [];
+                        this.indiceFoco = 0;
+                        this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+                    } catch (e) {
+                        this.resultados = [];
+                    } finally {
+                        this.carregando = false;
+                    }
+                },
+                mover(d) {
+                    if (!this.resultados.length) return;
+                    this.indiceFoco = (this.indiceFoco + d + this.resultados.length) % this.resultados.length;
+                },
+                abrirSelecionado() {
+                    const r = this.resultados[this.indiceFoco];
+                    if (r) window.location = r.url;
+                },
+            };
+        };
+
+        // API global para disparar toasts de qualquer JS (ex.: window.toast('success', 'Salvo!'))
+        window.toast = function(tipo, texto) {
+            const cont = document.getElementById('toast-container');
+            if (cont && cont._x_dataStack) {
+                cont._x_dataStack[0].adicionar(tipo, texto);
+            }
+        };
+        // HTMX: ler header HX-Trigger 'mostrarToast' -> {tipo, texto}
+        document.addEventListener('htmx:afterRequest', (evt) => {
+            const trigger = evt.detail.xhr.getResponseHeader('HX-Trigger');
+            if (!trigger) return;
+            try {
+                const dados = JSON.parse(trigger);
+                if (dados.mostrarToast) window.toast(dados.mostrarToast.tipo || 'info', dados.mostrarToast.texto || '');
+            } catch (e) { /* trigger nao-JSON */ }
+        });
+    </script>
 
     <!-- Inicializar Lucide icons -->
     <script>lucide.createIcons();</script>

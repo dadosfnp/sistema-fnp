@@ -1,0 +1,43 @@
+{# Tabela de missões. Renderizada inteira no GET inicial ou como fragmento HTMX. #}
+<table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-100">
+        <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <th class="px-4 py-3">Título</th>
+            <th class="px-4 py-3">Tipo</th>
+            <th class="px-4 py-3">Destino</th>
+            <th class="px-4 py-3">Status</th>
+            <th class="px-4 py-3">Início</th>
+            <th class="px-4 py-3">Término</th>
+            <th class="px-4 py-3">Chefe</th>
+            <th class="px-4 py-3 text-right">Documentos</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for missao in missoes %}
+        <tr class="hover:bg-fnp-50/40 cursor-pointer transition-colors" onclick="window.location='{% url 'missoes:detalhe_missao' missao.pk %}'">
+            <td class="px-4 py-3 font-medium text-gray-900">{{ missao.titulo }}</td>
+            <td class="px-4 py-3">
+                {% if missao.tipo == 'internacional' %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">Internacional</span>
+                {% else %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-700">Nacional</span>
+                {% endif %}
+            </td>
+            <td class="px-4 py-3 text-gray-700">{{ missao.cidade }}{% if missao.pais %} / {{ missao.pais }}{% endif %}</td>
+            <td class="px-4 py-3 text-gray-700">{{ missao.get_status_display }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ missao.data_inicio|date:"d/m/Y" }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ missao.data_fim|date:"d/m/Y"|default:"—" }}</td>
+            <td class="px-4 py-3 text-gray-700">{{ missao.chefe_delegacao|default:"—" }}</td>
+            <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
+                <a href="{% url 'documentos:listar' app_label='missoes' model_name='missao' object_id=missao.pk %}" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-fnp-600 bg-fnp-50 rounded hover:bg-fnp-100" title="Documentos">
+                    <i data-lucide="folder" class="w-3 h-3"></i> {{ missao.documentos.count }}
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        {% url 'missoes:criar_missao' as url_criar %}
+        {% include "nucleo/parciais/estado_vazio.html" with icone="plane-takeoff" titulo="Nenhuma missao encontrada" descricao="Registre viagens nacionais e internacionais com delegacao e roteiro." cta_url=url_criar cta_label="Criar missao" colspan=8 %}
+        {% endfor %}
+    </tbody>
+</table>
+<script>if (window.lucide) lucide.createIcons();</script>

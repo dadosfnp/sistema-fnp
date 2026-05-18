@@ -1,4 +1,10 @@
-"""Serviço de auditoria — funções para registrar criação, edição e exclusão de objetos."""
+"""Serviço de auditoria — funções para registrar criação, edição e exclusão de objetos.
+
+O ``LogAlteracao`` (em ``aplicacoes.nucleo.models``) é um registro genérico
+identificado por ``modelo`` (nome da classe) + ``objeto_id`` (PK como string).
+Isso permite consultar o histórico de qualquer entidade do sistema sem precisar
+de tabelas dedicadas por categoria — basta filtrar por esses dois campos.
+"""
 
 from aplicacoes.nucleo.models import LogAlteracao
 
@@ -53,6 +59,22 @@ def registrar_exclusao(usuario, objeto):
         objeto_id=str(objeto.pk),
         objeto_repr=str(objeto)[:255],
     )
+
+
+def historico_de(objeto, limite=50):
+    """Retorna o histórico de alterações de uma entidade qualquer.
+
+    Args:
+        objeto: Instância do model cuja história queremos consultar.
+        limite: Número máximo de registros (mais recentes primeiro).
+
+    Returns:
+        QuerySet de ``LogAlteracao`` filtrado por modelo e PK do objeto.
+    """
+    return LogAlteracao.objects.filter(
+        modelo=objeto.__class__.__name__,
+        objeto_id=str(objeto.pk),
+    ).select_related('usuario').order_by('-data')[:limite]
 
 
 def detectar_alteracoes(objeto, dados_novos):

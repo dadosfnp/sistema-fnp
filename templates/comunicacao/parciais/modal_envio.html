@@ -1,0 +1,86 @@
+{# Conteúdo HTMX do modal de mala direta. Carregado dentro de #modal-conteudo. #}
+<form
+    hx-post="{% url 'comunicacao:processar_envio' app_label=app_label model_name=model_name object_id=object_id %}"
+    hx-target="#modal-conteudo"
+    hx-swap="innerHTML"
+    hx-encoding="multipart/form-data"
+    enctype="multipart/form-data"
+    class="space-y-4"
+>
+    {% csrf_token %}
+
+    <div class="flex items-start justify-between">
+        <div>
+            <h3 class="text-base font-bold text-gray-900 flex items-center gap-2"><i data-lucide="send" class="w-4 h-4 text-fnp-500"></i> Mala direta</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Origem: <span class="font-medium text-fnp-600">{{ entidade }}</span></p>
+        </div>
+        <button type="button" onclick="fecharModalEnvio()" class="text-gray-400 hover:text-gray-600 p-1" aria-label="Fechar"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+
+    {% if erro_form %}
+    <div class="px-3 py-2 bg-red-50 border border-red-100 text-red-700 text-sm rounded-lg">
+        <i data-lucide="alert-circle" class="w-3.5 h-3.5 inline mr-1"></i> {{ erro_form }}
+    </div>
+    {% endif %}
+
+    <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Usar template</label>
+        <select name="template"
+                hx-get="{% url 'comunicacao:compor_envio_modal' app_label=app_label model_name=model_name object_id=object_id %}"
+                hx-target="#modal-conteudo"
+                hx-swap="innerHTML"
+                hx-trigger="change"
+                hx-include="this"
+                class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+            <option value="">— Sem template (escrever do zero) —</option>
+            {% for t in templates %}
+            <option value="{{ t.pk }}" {% if template_selecionado and template_selecionado.pk == t.pk %}selected{% endif %}>{{ t.nome }} ({{ t.get_categoria_display }})</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Assunto</label>
+        <input type="text" name="assunto" value="{{ assunto }}" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30" required>
+    </div>
+
+    <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Corpo do e-mail</label>
+        <textarea name="corpo" rows="7" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-fnp-400/30" required>{{ corpo }}</textarea>
+        <p class="text-[11px] text-gray-400 mt-1">Placeholders: {% verbatim %}<code class="bg-gray-100 px-1 rounded">{{ pessoa }}</code>, <code class="bg-gray-100 px-1 rounded">{{ municipio }}</code>, <code class="bg-gray-100 px-1 rounded">{{ entidade }}</code>{% endverbatim %}</p>
+    </div>
+
+    <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Anexo (opcional)</label>
+        <input type="file" name="anexo" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+    </div>
+
+    <div class="border-t border-gray-100 pt-3">
+        <details>
+            <summary class="text-xs font-medium text-fnp-600 cursor-pointer hover:text-fnp-700">Ver destinatários ({{ destinatarios|length }})</summary>
+            <div class="mt-2 max-h-40 overflow-y-auto bg-gray-50 rounded-lg p-2 space-y-1">
+                {% for dest in destinatarios %}
+                <div class="text-[11px] text-gray-600 flex items-center gap-2">
+                    <span class="font-medium text-gray-800">{{ dest.pessoa.nome }}</span>
+                    <span class="text-gray-400">·</span>
+                    <span>{{ dest.email }}</span>
+                    {% if dest.municipio %}<span class="text-gray-400">·</span><span class="text-gray-500">{{ dest.municipio.nome }}/{{ dest.municipio.uf }}</span>{% endif %}
+                </div>
+                {% empty %}
+                <p class="text-xs text-gray-400">Nenhum destinatário com e-mail válido.</p>
+                {% endfor %}
+            </div>
+        </details>
+    </div>
+
+    <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
+        <button type="submit"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors {% if not destinatarios %}opacity-50 cursor-not-allowed{% endif %}"
+                {% if not destinatarios %}disabled{% endif %}>
+            <i data-lucide="send" class="w-4 h-4"></i> Disparar para {{ destinatarios|length }}
+            <span class="htmx-indicator"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i></span>
+        </button>
+        <button type="button" onclick="fecharModalEnvio()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+    </div>
+</form>
+<script>if (window.lucide) lucide.createIcons();</script>

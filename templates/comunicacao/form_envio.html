@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block titulo %}Mala direta — Sistema FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <span class="text-gray-400">Comunicacao</span>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold truncate">Mala direta: {{ entidade }}</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-4xl mx-auto space-y-4">
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-fnp-50 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="send" class="w-5 h-5 text-fnp-500"></i>
+            </div>
+            <div class="flex-1">
+                <h2 class="text-xl font-bold text-gray-900">Compor mala direta</h2>
+                <p class="text-sm text-gray-500 mt-1">Origem: <span class="font-medium text-fnp-600">{{ entidade }}</span></p>
+                <p class="text-xs text-gray-400 mt-1">Destinatarios coletados automaticamente: <span class="font-semibold">{{ destinatarios|length }}</span> pessoa{{ destinatarios|length|pluralize:"s" }} com e-mail valido.</p>
+            </div>
+            <a href="{% url 'comunicacao:historico_envios' app_label=app_label model_name=model_name object_id=object_id %}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+                <i data-lucide="history" class="w-3 h-3"></i> Historico de envios
+            </a>
+        </div>
+    </div>
+
+    <!-- Seletor de template -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <form method="get" class="flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[260px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Usar template</label>
+                <select name="template" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+                    <option value="">— Sem template (escrever do zero) —</option>
+                    {% for t in templates %}<option value="{{ t.pk }}" {% if template_selecionado and template_selecionado.pk == t.pk %}selected{% endif %}>{{ t.nome }} ({{ t.get_categoria_display }})</option>{% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600">
+                <i data-lucide="copy" class="w-4 h-4"></i> Carregar
+            </button>
+        </form>
+        <p class="text-[11px] text-gray-400 mt-2">Placeholders disponíveis: {% verbatim %}<code class="bg-gray-100 px-1 rounded">{{ pessoa }}</code>, <code class="bg-gray-100 px-1 rounded">{{ municipio }}</code>, <code class="bg-gray-100 px-1 rounded">{{ entidade }}</code>{% endverbatim %} — substituídos por destinatário no envio.</p>
+    </div>
+
+    <!-- Composicao -->
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+        {% csrf_token %}
+        {% if template_selecionado %}<input type="hidden" name="template" value="{{ template_selecionado.pk }}">{% endif %}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Assunto</label>
+            <input type="text" name="assunto" value="{{ assunto }}" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30" required>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Corpo do e-mail</label>
+            <textarea name="corpo" rows="10" class="w-full text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-fnp-400/30" required>{{ corpo }}</textarea>
+        </div>
+
+        <div class="border-t border-gray-100 pt-4">
+            <details class="mb-3">
+                <summary class="text-sm font-medium text-gray-700 cursor-pointer hover:text-fnp-500">Ver lista de destinatarios ({{ destinatarios|length }})</summary>
+                <div class="mt-3 max-h-64 overflow-y-auto bg-gray-50 rounded-lg p-3 space-y-1">
+                    {% for dest in destinatarios %}
+                    <div class="text-xs text-gray-600 flex items-center gap-2">
+                        <i data-lucide="user" class="w-3 h-3 text-gray-400"></i>
+                        <span class="font-medium text-gray-800">{{ dest.pessoa.nome }}</span>
+                        <span class="text-gray-400">·</span>
+                        <span>{{ dest.email }}</span>
+                        {% if dest.municipio %}<span class="text-gray-400">·</span><span class="text-gray-500">{{ dest.municipio.nome }}/{{ dest.municipio.uf }}</span>{% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-gray-400">Nenhum destinatario com e-mail valido encontrado.</p>
+                    {% endfor %}
+                </div>
+            </details>
+
+            <div class="flex items-center gap-3">
+                <button type="submit" name="enviar" value="1" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors {% if not destinatarios %}opacity-50 cursor-not-allowed{% endif %}" {% if not destinatarios %}disabled{% endif %}>
+                    <i data-lucide="send" class="w-4 h-4"></i> Disparar para {{ destinatarios|length }} destinatario{{ destinatarios|length|pluralize:"s" }}
+                </button>
+                <a href="javascript:history.back()" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</a>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-2">Em desenvolvimento local, os e-mails sao impressos no console (EMAIL_BACKEND = console).</p>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block js_extra %}<script>lucide.createIcons();</script>{% endblock %}

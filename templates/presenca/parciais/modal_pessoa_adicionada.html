@@ -1,0 +1,12 @@
+{# Confirmação de pessoa cadastrada com sucesso. Recarrega página para refletir nova linha. #}
+<div class="text-center py-6">
+    <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+        <i data-lucide="check" class="w-7 h-7 text-emerald-600"></i>
+    </div>
+    <h3 class="mt-4 text-base font-bold text-gray-900">Pessoa cadastrada</h3>
+    <p class="mt-1 text-sm text-gray-500"><span class="font-medium text-gray-800">{{ pessoa.nome }}</span> foi adicionada e marcada como <span class="font-medium">{{ presenca.get_status_display }}</span>.</p>
+    <button type="button" onclick="location.reload()" class="inline-flex items-center gap-2 mt-5 px-4 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar lista
+    </button>
+</div>
+<script>if (window.lucide) lucide.createIcons();</script>
