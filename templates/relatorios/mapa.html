@@ -13,7 +13,6 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js" defer></script>
 <style>
     #mapa-brasil { height: calc(100vh - 220px); min-height: 520px; width: 100%; z-index: 1; border-radius: 0.75rem; }
     .leaflet-container { background: #f3f4f6; }
@@ -84,11 +83,6 @@
                            class="rounded border-gray-300 text-fnp-500 focus:ring-fnp-500/30">
                     <span class="text-gray-700">Municípios</span>
                 </label>
-                <label class="inline-flex items-center gap-1.5 text-sm cursor-pointer">
-                    <input type="checkbox" x-model="camadaHeatmap" @change="toggleHeatmap()"
-                           class="rounded border-gray-300 text-fnp-500 focus:ring-fnp-500/30">
-                    <span class="text-gray-700">Heatmap</span>
-                </label>
             </div>
 
             {# Filtro temporal (so afeta adimplencia) #}
@@ -125,7 +119,9 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
-// Paletas
+// URL base para detalhe de municipio — vem do reverse Django para nao quebrar em prod.
+const URL_BASE_MUNICIPIO = "{% url 'cadastro:lista_municipios' %}";  // "/cadastro/municipios/"
+
 const CORES_ADIMPLENCIA_MARKER = {
     'adimplente':   {cor: '#10b981', rotulo: 'Adimplente'},
     'parcial':      {cor: '#f59e0b', rotulo: 'Adimplência parcial'},
@@ -139,8 +135,6 @@ const CORES_ENGAJAMENTO_MARKER = {
     'inativo': {cor: '#6b7280', rotulo: 'Inativo'},
 };
 
-// Escala choropleth: percentual 0-100. Verde escuro = bom, vermelho = ruim.
-// Aplicada também a engajamento (0-100 média).
 function corChoropleth(valor) {
     if (valor === null || valor === undefined) return '#e5e7eb';
     if (valor >= 80) return '#047857';
@@ -157,7 +151,6 @@ const FAIXAS_CHOROPLETH = [
     {min: 0,  cor: '#dc2626', rotulo: '0–20'},
 ];
 
-// URL publica de GeoJSON dos estados brasileiros (codeforgermany — estavel, livre).
 const URL_GEOJSON_UF = 'https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/brazil-states.geojson';
 
 function mapaBrasil() {
@@ -166,14 +159,12 @@ function mapaBrasil() {
         ano: '{{ ano_atual }}',
         camadaUF: true,
         camadaMunicipios: true,
-        camadaHeatmap: false,
         carregando: false,
         totalMunicipios: 0,
         totalUF: 0,
         _mapa: null,
         _camadaMarkers: null,
         _camadaUF: null,
-        _camadaHeat: null,
         _geoJsonUFCache: null,
         _legenda: null,
 
@@ -188,7 +179,6 @@ function mapaBrasil() {
             this._mapa = L.map('mapa-brasil', {
                 scrollWheelZoom: true,
                 attributionControl: true,
-                preferCanvas: true,
             }).setView([-14.235, -51.925], 4);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
@@ -196,8 +186,7 @@ function mapaBrasil() {
                 attribution: '&copy; <a href="https://carto.com/">CARTO</a> · IBGE',
             }).addTo(this._mapa);
 
-            // Garante que o container ja tem altura quando o mapa inicializa.
-            // Sem isso, tiles ficam cinza ate o usuario clicar/zoom.
+            // Garante render correto independente do timing do layout
             const fixSize = () => this._mapa.invalidateSize();
             setTimeout(fixSize, 100);
             setTimeout(fixSize, 500);
@@ -207,11 +196,12 @@ function mapaBrasil() {
             }
 
             this._camadaMarkers = L.markerClusterGroup({
-                maxClusterRadius: 50, showCoverageOnHover: false, chunkedLoading: true,
+                maxClusterRadius: 40,
+                showCoverageOnHover: false,
+                chunkedLoading: true,
             });
             if (this.camadaMunicipios) this._mapa.addLayer(this._camadaMarkers);
 
-            // Pre-carrega GeoJSON dos estados (uma vez por sessao)
             try {
                 const r = await fetch(URL_GEOJSON_UF);
                 this._geoJsonUFCache = await r.json();
@@ -229,38 +219,11 @@ function mapaBrasil() {
                 await Promise.all([
                     this.camadaMunicipios ? this._recarregarMunicipios() : Promise.resolve(),
                     this.camadaUF ? this._recarregarUF() : Promise.resolve(),
-                    this.camadaHeatmap ? this._recarregarHeatmap() : Promise.resolve(),
                 ]);
                 this._atualizarLegenda();
             } finally {
                 this.carregando = false;
             }
-        },
-
-        async _recarregarHeatmap() {
-            if (this._camadaHeat) { this._mapa.removeLayer(this._camadaHeat); this._camadaHeat = null; }
-            if (typeof L.heatLayer !== 'function') return;
-            try {
-                const r = await fetch(`{% url 'relatorios:mapa_dados' %}?modo=${this.modo}&ano=${this.ano}`);
-                const d = await r.json();
-                // Peso por status — pontos "ruins" pesam mais (visibilidade do problema)
-                const pesoPorStatus = {
-                    'adimplente': 0.3, 'parcial': 0.7, 'inadimplente': 1.0, 'isento': 0.2,
-                    'alto': 0.3, 'medio': 0.6, 'baixo': 0.9, 'inativo': 1.0,
-                };
-                const pontos = d.pontos.map(p => [p.lat, p.lng, pesoPorStatus[p.status] || 0.5]);
-                this._camadaHeat = L.heatLayer(pontos, {
-                    radius: 35, blur: 25, maxZoom: 10,
-                    gradient: {0.2:'#10b981', 0.4:'#f59e0b', 0.6:'#f97316', 0.8:'#ef4444', 1.0:'#7f1d1d'},
-                }).addTo(this._mapa);
-            } catch (e) {
-                console.error('Erro heatmap', e);
-            }
-        },
-
-        toggleHeatmap() {
-            if (this.camadaHeatmap) this._recarregarHeatmap().then(() => this._atualizarLegenda());
-            else { if (this._camadaHeat) { this._mapa.removeLayer(this._camadaHeat); this._camadaHeat = null; } this._atualizarLegenda(); }
         },
 
         async _recarregarMunicipios() {
@@ -273,18 +236,20 @@ function mapaBrasil() {
                 const fallback = {cor: '#9ca3af', rotulo: '—'};
                 d.pontos.forEach(p => {
                     const meta = paleta[p.status] || fallback;
-                    const marker = L.marker([p.lat, p.lng], {
-                        icon: L.divIcon({
-                            className: 'fnp-pin',
-                            html: `<div style="width:14px;height:14px;border-radius:50%;background:${meta.cor};border:2px solid white;box-shadow:0 0 0 1px rgba(0,0,0,0.15);"></div>`,
-                            iconSize: [14, 14], iconAnchor: [7, 7],
-                        }),
+                    // CircleMarker e vetor: acompanha o zoom corretamente.
+                    const marker = L.circleMarker([p.lat, p.lng], {
+                        radius: 7,
+                        fillColor: meta.cor,
+                        fillOpacity: 0.85,
+                        color: '#ffffff',
+                        weight: 2,
                     });
+                    const urlDetalhe = URL_BASE_MUNICIPIO + p.id + '/';
                     marker.bindPopup(`
                         <strong>${p.nome}/${p.uf}</strong><br>
                         <span style="font-size:11px;color:#6b7280;">${this.modo === 'engajamento' ? 'Engajamento' : 'Adimplência'}: <b style="color:${meta.cor};">${p.rotulo}</b></span>
                         ${this.modo === 'engajamento' ? `<br><span style="font-size:11px;">Pontuação: ${p.valor}/100</span>` : ''}
-                        <br><a href="/municipios/${p.id}/" style="font-size:11px;color:#1e3a5f;">Ver detalhe →</a>
+                        <br><a href="${urlDetalhe}" style="font-size:11px;color:#1e3a5f;font-weight:600;">Ver detalhe →</a>
                     `);
                     this._camadaMarkers.addLayer(marker);
                 });
@@ -305,7 +270,6 @@ function mapaBrasil() {
 
                 this._camadaUF = L.geoJSON(this._geoJsonUFCache, {
                     style: (feature) => {
-                        // GeoJSON usa "sigla" como propriedade da UF
                         const sigla = feature.properties.sigla || feature.properties.SIGLA_UF || feature.properties.UF;
                         const dados = ag[sigla];
                         const valor = dados ? dados.valor : null;
@@ -336,7 +300,6 @@ function mapaBrasil() {
                     },
                 }).addTo(this._mapa);
 
-                // Garante que markers fiquem na frente quando ambas as camadas estao ativas
                 if (this.camadaMunicipios && this._camadaMarkers) {
                     this._mapa.removeLayer(this._camadaMarkers);
                     this._mapa.addLayer(this._camadaMarkers);
