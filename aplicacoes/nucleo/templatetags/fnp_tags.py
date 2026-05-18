@@ -84,6 +84,28 @@ def rotulo_campo(slug):
 
 
 @register.simple_tag
+def termo_dicionario(slug, label=None):
+    """Renderiza um label com ícone (?) que abre a definição do termo.
+
+    Uso no template: ``{% termo_dicionario "instancia" "Instâncias" %}``
+    Se ``label`` for omitido, usa o próprio slug com a primeira letra maiúscula.
+
+    O ícone aciona ``window.abrirTermo(slug)`` definido em base.html.
+    """
+    label_renderizado = label or slug.replace('_', ' ').capitalize()
+    html = (
+        f'<span class="inline-flex items-center gap-1">{label_renderizado}'
+        f'<button type="button" onclick="window.abrirTermo(\'{slug}\')" '
+        f'class="text-gray-400 hover:text-fnp-500 transition-colors" '
+        f'title="Ver definição do termo">'
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline">'
+        f'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+        f'</svg></button></span>'
+    )
+    return mark_safe(html)
+
+
+@register.simple_tag
 def avatar_iniciais(nome_ou_pessoa, classe_tamanho='w-9 h-9', classe_texto='text-sm'):
     """Renderiza HTML de avatar redondo com iniciais e cor determinística.
 

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load fnp_tags %}
+
+{% block titulo %}Portal — {{ municipio.nome }}{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <i data-lucide="layout-dashboard" class="w-4 h-4 text-fnp-500"></i>
+    <span class="text-gray-700 font-semibold">Portal {{ municipio.nome }}/{{ municipio.uf }}</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-5xl mx-auto space-y-5">
+    {# Cabecalho com brasao e nota #}
+    <div class="bg-gradient-to-r from-fnp-500 to-fnp-700 rounded-2xl shadow-lg overflow-hidden">
+        <div class="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 text-white">
+            <div class="w-20 h-20 rounded-2xl overflow-hidden bg-white p-1 flex-shrink-0">
+                {% brasao_municipio municipio as brasao_url %}<img src="{{ brasao_url }}" alt="" class="w-full h-full object-contain">
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-xs uppercase tracking-widest text-white/70 font-semibold">Município</p>
+                <h1 class="text-3xl font-bold mt-1">{{ municipio.nome }}/{{ municipio.uf }}</h1>
+                <p class="text-sm text-white/80 mt-1">{{ municipio.get_regiao_display|default:"—" }}{% if municipio.eh_capital %} · Capital{% endif %} · {{ municipio.populacao|floatformat:"0" }} habitantes</p>
+            </div>
+            <div class="text-center sm:text-right">
+                <p class="text-[10px] uppercase tracking-widest text-white/70 font-semibold">Índice FNP</p>
+                <p class="text-5xl font-bold tabular-nums">{{ indice.nota_geral }}</p>
+                <p class="text-xs text-white/90 mt-1">{{ indice.nivel_label }}</p>
+                {% if posicao_ranking %}<p class="text-[10px] text-white/70 mt-1">#{{ posicao_ranking }} no ranking nacional</p>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# 4 sub-indices #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Engajamento</p>
+            <p class="text-3xl font-bold text-blue-600 mt-1 tabular-nums">{{ indice.engajamento }}<span class="text-base text-gray-400">/100</span></p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Adimplência</p>
+            <p class="text-3xl font-bold text-emerald-600 mt-1 tabular-nums">{{ indice.adimplencia }}<span class="text-base text-gray-400">/100</span></p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Participação</p>
+            <p class="text-3xl font-bold text-amber-600 mt-1 tabular-nums">{{ indice.participacao }}<span class="text-base text-gray-400">/100</span></p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Presença</p>
+            <p class="text-3xl font-bold text-fuchsia-600 mt-1 tabular-nums">{{ indice.presenca }}<span class="text-base text-gray-400">/100</span></p>
+        </div>
+    </div>
+
+    {# Equipe + participacoes recentes #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                <i data-lucide="users" class="w-4 h-4 text-gray-400"></i>
+                <h3 class="text-sm font-semibold text-gray-700">Equipe do município</h3>
+            </div>
+            <div class="divide-y divide-gray-50">
+                {% for v in vinculos %}
+                <div class="flex items-center gap-3 px-5 py-3">
+                    {% if v.pessoa.foto %}
+                    <img src="{{ v.pessoa.foto.url }}" class="w-8 h-8 rounded-full object-cover ring-2 ring-gray-100">
+                    {% else %}
+                    {% avatar_iniciais v.pessoa "w-8 h-8" "text-xs" %}
+                    {% endif %}
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 truncate">{{ v.pessoa.nome }}</p>
+                        <p class="text-xs text-gray-500">{{ v.get_papel_display }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="px-5 py-6 text-center text-sm text-gray-400">Nenhuma equipe vinculada.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                <i data-lucide="calendar-check" class="w-4 h-4 text-gray-400"></i>
+                <h3 class="text-sm font-semibold text-gray-700">Últimas participações</h3>
+            </div>
+            <div class="divide-y divide-gray-50">
+                {% for p in participacoes %}
+                <div class="px-5 py-3">
+                    <p class="text-sm font-medium text-gray-900 truncate">{{ p.evento.titulo }}</p>
+                    <p class="text-xs text-gray-500">{{ p.pessoa.nome }} · {{ p.evento.data_inicio|date:"d/m/Y" }} · {{ p.pontos_calculados }} pts</p>
+                </div>
+                {% empty %}
+                <p class="px-5 py-6 text-center text-sm text-gray-400">Nenhuma participação registrada.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

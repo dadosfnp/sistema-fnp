@@ -112,6 +112,49 @@ def notificacoes_dropdown(request):
 
 
 @login_required
+def portal_prefeito(request):
+    """Dashboard do portal externo — visivel apenas para perfis tipo='prefeito'.
+
+    Mostra metricas do municipio vinculado ao perfil. Acesso a outros
+    municipios e bloqueado pelo middleware ``IsolarPortalPrefeitoMiddleware``.
+    """
+    from aplicacoes.cadastro.models import Municipio
+    from aplicacoes.engajamento.servicos.indice_fnp import calcular_indice
+
+    perfil = getattr(request.user, 'perfil', None)
+    if not perfil or not perfil.municipio_vinculado:
+        # Admin ou perfil sem municipio — mostra mensagem amigavel
+        return render(request, 'portal/sem_vinculo.html')
+
+    municipio = perfil.municipio_vinculado
+    indice = calcular_indice(municipio)
+
+    # Coleta dados visiveis para o prefeito do proprio municipio
+    vinculos = municipio.vinculos.filter(vigente=True).select_related('pessoa')
+    engajamento = municipio.engajamentos.order_by('-bienio').first()
+    adimplencia = municipio.adimplencias.order_by('-ano_referencia').first()
+    participacoes = municipio.participacoes.select_related('pessoa', 'evento').order_by('-evento__data_inicio')[:10]
+
+    # Posicao no ranking nacional
+    posicao = None
+    if engajamento:
+        from aplicacoes.engajamento.models import Engajamento
+        posicao = (
+            Engajamento.objects.filter(pontuacao_normalizada__gt=engajamento.pontuacao_normalizada).count() + 1
+        )
+
+    return render(request, 'portal/dashboard.html', {
+        'municipio': municipio,
+        'indice': indice,
+        'vinculos': vinculos,
+        'engajamento': engajamento,
+        'adimplencia': adimplencia,
+        'participacoes': participacoes,
+        'posicao_ranking': posicao,
+    })
+
+
+@login_required
 def busca_global(request):
     """Endpoint JSON de busca global usado pela paleta de comandos (Ctrl+K).
 

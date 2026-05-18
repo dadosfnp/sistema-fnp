@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load fnp_tags %}
+
+{% block titulo %}Histórico de visitas — Recepção FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <a href="{% url 'presenca:recepcao' %}" class="text-gray-400 hover:text-fnp-500">Recepção</a>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold">Histórico</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-5xl mx-auto space-y-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <form method="get" class="flex flex-wrap items-end gap-3">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">De</label>
+                <input type="date" name="de" value="{{ data_de }}" class="px-3 py-2 text-sm border border-gray-200 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Até</label>
+                <input type="date" name="ate" value="{{ data_ate }}" class="px-3 py-2 text-sm border border-gray-200 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Motivo</label>
+                <select name="motivo" class="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white">
+                    <option value="">Todos</option>
+                    {% for v, l in motivos %}<option value="{{ v }}" {% if motivo == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600">Filtrar</button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-700">{{ visitas|length }} visita{{ visitas|length|pluralize:"s" }} no período</h3>
+        </div>
+        {% if visitas %}
+        <div class="divide-y divide-gray-50">
+            {% for v in visitas %}
+            <div class="flex items-center gap-4 px-5 py-3 hover:bg-gray-50">
+                {% avatar_iniciais v.nome_visitante "w-8 h-8" "text-xs" %}
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 truncate">{{ v.nome_visitante }}</p>
+                    <p class="text-xs text-gray-500">{{ v.get_motivo_display }}{% if v.organizacao %} · {{ v.organizacao }}{% endif %}</p>
+                </div>
+                <div class="text-right text-xs text-gray-500 tabular-nums">
+                    <p>{{ v.chegou_em|date:"d/m/Y H:i" }}</p>
+                    {% if v.saiu_em %}<p class="text-[10px] text-gray-400">Saiu {{ v.saiu_em|date:"H:i" }}</p>{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        {% include "nucleo/parciais/estado_vazio.html" with icone="calendar-search" titulo="Sem visitas no período" descricao="Ajuste o intervalo de datas ou o filtro de motivo." %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

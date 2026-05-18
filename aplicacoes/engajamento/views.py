@@ -33,6 +33,27 @@ def lista_engajamento(request):
 
 
 @login_required
+def indice_fnp_ranking(request):
+    """Ranking dos municipios pelo Indice FNP composto.
+
+    Combina engajamento, adimplencia, participacao e presenca em uma nota
+    unica 0-100. Aceita filtros ?regiao= e ?uf= via GET.
+    """
+    from aplicacoes.engajamento.servicos.indice_fnp import PESOS, ranking_top
+    regiao = request.GET.get('regiao', '')
+    uf = request.GET.get('uf', '')
+    ranking = ranking_top(limite=50, regiao=regiao or None, uf=uf or None)
+    return render(request, 'engajamento/indice_fnp.html', {
+        'ranking': ranking,
+        'pesos': PESOS,
+        'regiao_filtro': regiao,
+        'uf_filtro': uf,
+        'regioes': Municipio.Regiao.choices,
+        'ufs': Municipio.UF_CHOICES,
+    })
+
+
+@login_required
 def metodologia(request):
     """Página de Metodologia — explica como o engajamento é calculado.
 

@@ -106,7 +106,12 @@ def painel(request):
 
     contagens = _contagens_categorias()
 
+    from aplicacoes.relatorios.servicos.narrativa import gerar_insights
+
     ctx = {
+        # Narrativa do painel
+        'insights': gerar_insights(),
+
         # Filtros
         'regiao_filtro': regiao, 'uf_filtro': uf,
         'regioes': Municipio.Regiao.choices,
@@ -302,13 +307,63 @@ CAPITAIS_UF_COORD = {
 
 
 @login_required
+def equipe_interna(request):
+    """Visão de produtividade da equipe FNP interna.
+
+    Mostra quem da equipe (Pessoa.tipo='interno') mais participou de eventos,
+    fez missoes, marcou presenca etc. Util para gestao executiva da FNP.
+    """
+    from django.db.models import Count
+
+    from aplicacoes.cadastro.models import Pessoa
+    from aplicacoes.eventos.models import Participacao
+    from aplicacoes.missoes.models import MembroDelegacao
+
+    internos = Pessoa.objects.filter(tipo=Pessoa.TipoPessoa.INTERNO, ativo=True).order_by('nome')
+
+    linhas = []
+    for p in internos:
+        n_part = Participacao.objects.filter(pessoa=p, confirmado=True).count()
+        n_miss = MembroDelegacao.objects.filter(pessoa=p).count()
+        n_pres = p.presencas.filter(status='presente').count() if hasattr(p, 'presencas') else 0
+        n_repr = p.representacoes.filter(vigente=True).count() if hasattr(p, 'representacoes') else 0
+        score = n_part + (n_miss * 3) + n_pres + (n_repr * 2)
+        linhas.append({
+            'pessoa': p,
+            'participacoes': n_part,
+            'missoes': n_miss,
+            'presencas': n_pres,
+            'representacoes': n_repr,
+            'score': score,
+        })
+    linhas.sort(key=lambda x: x['score'], reverse=True)
+
+    total_eventos_internos = sum(l['participacoes'] for l in linhas)
+    total_missoes_internas = sum(l['missoes'] for l in linhas)
+
+    return render(request, 'relatorios/equipe_interna.html', {
+        'linhas': linhas,
+        'total_internos': len(linhas),
+        'total_eventos': total_eventos_internos,
+        'total_missoes': total_missoes_internas,
+    })
+
+
+@login_required
 def mapa(request):
-    """Página de mapa do Brasil com municípios colorizados por adimplência ou engajamento."""
+    """Página de mapa do Brasil com choropleth UF + marcadores + heatmap.
+
+    Suporta filtro temporal — usuário escolhe ano de referência e o mapa
+    redesenha com snapshot daquele momento.
+    """
+    anos = list(
+        Adimplencia.objects.values_list('ano_referencia', flat=True).distinct().order_by('-ano_referencia')
+    )
+    if not anos:
+        anos = [2026]
     return render(request, 'relatorios/mapa.html', {
-        'ano_atual': (
-            Adimplencia.objects.order_by('-ano_referencia')
-            .values_list('ano_referencia', flat=True).first() or 2026
-        ),
+        'ano_atual': anos[0],
+        'anos_disponiveis': anos,
     })
 
 
@@ -345,7 +400,8 @@ def mapa_dados(request):
                 'id': str(m.id),
             })
     else:
-        ano = (
+        ano_req = request.GET.get('ano')
+        ano = int(ano_req) if ano_req and ano_req.isdigit() else (
             Adimplencia.objects.order_by('-ano_referencia')
             .values_list('ano_referencia', flat=True).first() or 2026
         )
@@ -398,7 +454,8 @@ def mapa_dados_uf(request):
                 'rotulo': f"Engajamento médio: {round(r['media'] or 0, 1)}/100",
             }
     else:
-        ano = (
+        ano_req = request.GET.get('ano')
+        ano = int(ano_req) if ano_req and ano_req.isdigit() else (
             Adimplencia.objects.order_by('-ano_referencia')
             .values_list('ano_referencia', flat=True).first() or 2026
         )

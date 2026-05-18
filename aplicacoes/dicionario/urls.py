@@ -8,4 +8,5 @@ app_name = 'dicionario'
 
 urlpatterns = [
     path('', views.lista_dicionario, name='lista_dicionario'),
+    path('api/termo/', views.termo_json, name='termo_json'),
 ]

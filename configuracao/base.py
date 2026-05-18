@@ -33,7 +33,31 @@ THIRD_PARTY_APPS = [
     'unfold.contrib.filters',
     'unfold.contrib.forms',
     'django.contrib.admin',  # deve vir após unfold
+    'rest_framework',
+    'rest_framework.authtoken',
 ]
+
+# DRF — autenticação por token + session, somente leitura para clientes externos
+# por enquanto. Pagina respostas grandes automaticamente.
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '1000/hour',
+        'anon': '20/hour',
+    },
+}
 
 LOCAL_APPS = [
     'aplicacoes.nucleo',
@@ -65,6 +89,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'aplicacoes.nucleo.middleware.IsolarPortalPrefeitoMiddleware',
 ]
 
 ROOT_URLCONF = 'configuracao.urls'

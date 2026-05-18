@@ -1,15 +1,19 @@
-"""Views de Presença — listagem e marcação em massa por entidade."""
+"""Views de Presença — listagem, marcação em massa e check-in de visitantes."""
+
+from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
-from django.http import HttpResponse
+from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from aplicacoes.cadastro.models import Municipio, Pessoa, VinculoMunicipio
 from aplicacoes.instancias.models import Representacao
 from aplicacoes.nucleo.servicos.auditoria import registrar_criacao
-from aplicacoes.presenca.models import Presenca
+from aplicacoes.presenca.models import Presenca, Visita
 
 
 def _eh_editor(request):
@@ -229,3 +233,132 @@ def marcar_presencas(request, app_label, model_name, object_id):
         'forma_choices': Presenca.Forma.choices,
     }
     return render(request, 'presenca/form_marcar_presencas.html', contexto)
+
+
+# ============================================================================
+# RECEPCAO — check-in rapido de visitantes
+# ============================================================================
+
+@login_required
+def recepcao(request):
+    """Tela principal da recepcao: lista visitas do dia + botao de novo check-in.
+
+    Otimizada para tablet/desktop da secretaria. Fontes grandes, cards visuais,
+    botao de "Saiu" para registrar saida com 1 clique.
+    """
+    hoje = timezone.now().date()
+    visitas_hoje = (
+        Visita.objects.filter(chegou_em__date=hoje)
+        .select_related('pessoa', 'municipio', 'registrado_por')
+        .order_by('-chegou_em')
+    )
+    ainda_presentes = visitas_hoje.filter(saiu_em__isnull=True).count()
+    return render(request, 'presenca/recepcao.html', {
+        'visitas_hoje': visitas_hoje,
+        'total_hoje': visitas_hoje.count(),
+        'ainda_presentes': ainda_presentes,
+        'data_hoje': hoje,
+    })
+
+
+@login_required
+def recepcao_novo(request):
+    """Formulario simples de check-in. Cria Visita e opcionalmente Pessoa."""
+    if request.method == 'POST':
+        nome = (request.POST.get('nome_visitante') or '').strip()
+        if not nome:
+            messages.error(request, 'Nome do visitante e obrigatorio.')
+            return redirect('presenca:recepcao_novo')
+
+        # Reusa Pessoa existente se informada (via pessoa_id) ou pesquisa por nome
+        pessoa = None
+        pessoa_id = request.POST.get('pessoa_id') or None
+        if pessoa_id:
+            pessoa = Pessoa.objects.filter(pk=pessoa_id).first()
+
+        municipio_id = request.POST.get('municipio_id') or None
+        municipio = Municipio.objects.filter(pk=municipio_id).first() if municipio_id else None
+
+        visita = Visita.objects.create(
+            pessoa=pessoa,
+            nome_visitante=nome,
+            email=(request.POST.get('email') or '').strip(),
+            telefone=(request.POST.get('telefone') or '').strip(),
+            organizacao=(request.POST.get('organizacao') or '').strip(),
+            motivo=request.POST.get('motivo') or Visita.Motivo.OUTRO,
+            pessoa_recebida_por=(request.POST.get('pessoa_recebida_por') or '').strip(),
+            observacao=(request.POST.get('observacao') or '').strip(),
+            municipio=municipio,
+            registrado_por=request.user,
+        )
+        registrar_criacao(request.user, visita)
+        messages.success(request, f'{nome} registrado(a) com sucesso.')
+        return redirect('presenca:recepcao')
+
+    # Lista de pessoas conhecidas e municipios pra autocomplete
+    return render(request, 'presenca/recepcao_novo.html', {
+        'motivos': Visita.Motivo.choices,
+    })
+
+
+@login_required
+def recepcao_buscar_pessoa(request):
+    """Endpoint JSON que pesquisa pessoas cadastradas por nome — autocomplete."""
+    termo = (request.GET.get('q') or '').strip()
+    if len(termo) < 2:
+        return JsonResponse({'pessoas': []})
+    pessoas = Pessoa.objects.filter(
+        Q(nome__icontains=termo) | Q(email__icontains=termo)
+    ).filter(ativo=True).select_related()[:8]
+    out = []
+    for p in pessoas:
+        vinculo = p.vinculos.filter(vigente=True).select_related('municipio').first()
+        out.append({
+            'id': str(p.pk),
+            'nome': p.nome,
+            'email': p.email or '',
+            'telefone': p.telefone or '',
+            'cargo': p.cargo or p.get_tipo_display(),
+            'municipio_id': str(vinculo.municipio.pk) if vinculo else '',
+            'municipio_nome': f'{vinculo.municipio.nome}/{vinculo.municipio.uf}' if vinculo else '',
+        })
+    return JsonResponse({'pessoas': out})
+
+
+@login_required
+def recepcao_registrar_saida(request, pk):
+    """Marca a saida do visitante (POST). Retorna fragmento HTMX atualizado."""
+    if request.method != 'POST':
+        return JsonResponse({'erro': 'use POST'}, status=405)
+    visita = get_object_or_404(Visita, pk=pk)
+    visita.registrar_saida()
+    if request.headers.get('HX-Request'):
+        return render(request, 'presenca/parciais/linha_visita.html', {'v': visita})
+    return redirect('presenca:recepcao')
+
+
+@login_required
+def recepcao_historico(request):
+    """Listagem com filtros para consultar visitas anteriores."""
+    data_de = request.GET.get('de') or (timezone.now() - timedelta(days=7)).date().isoformat()
+    data_ate = request.GET.get('ate') or timezone.now().date().isoformat()
+    motivo = request.GET.get('motivo') or ''
+
+    visitas = Visita.objects.select_related('pessoa', 'municipio')
+    try:
+        de = datetime.fromisoformat(data_de).date()
+        ate = datetime.fromisoformat(data_ate).date()
+        visitas = visitas.filter(chegou_em__date__gte=de, chegou_em__date__lte=ate)
+    except ValueError:
+        pass
+    if motivo:
+        visitas = visitas.filter(motivo=motivo)
+    visitas = visitas.order_by('-chegou_em')[:200]
+
+    return render(request, 'presenca/recepcao_historico.html', {
+        'visitas': visitas,
+        'data_de': data_de,
+        'data_ate': data_ate,
+        'motivo': motivo,
+        'motivos': Visita.Motivo.choices,
+    })

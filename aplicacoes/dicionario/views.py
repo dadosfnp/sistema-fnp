@@ -1,10 +1,35 @@
-"""Views do Dicionário — listagem agrupada por seção."""
+"""Views do Dicionário — listagem agrupada por seção e API de busca por termo."""
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import render
 
 from .models import TermoDicionario
+
+
+@login_required
+def termo_json(request):
+    """Endpoint JSON: ``?termo=instancia`` retorna definição se houver.
+
+    Usado pelos ícones (?) clicáveis nos labels de formulário/listagem.
+    """
+    slug = (request.GET.get('termo') or '').strip()
+    if not slug:
+        return JsonResponse({'encontrado': False})
+    # Busca tolerante: por termo exato ou contains (preserva acentos/case)
+    obj = TermoDicionario.objects.filter(ativo=True).filter(
+        Q(termo__iexact=slug) | Q(termo__icontains=slug)
+    ).order_by('termo').first()
+    if not obj:
+        return JsonResponse({'encontrado': False, 'termo_buscado': slug})
+    return JsonResponse({
+        'encontrado': True,
+        'termo': obj.termo,
+        'secao': obj.get_secao_display(),
+        'definicao': obj.definicao,
+        'tipo_de_dado': obj.tipo_de_dado,
+    })
 
 
 @login_required

@@ -90,6 +90,7 @@ class Perfil(models.Model):
         VISUALIZADOR = 'visualizador', 'Visualizador'
         EDITOR = 'editor', 'Editor'
         ADMIN = 'admin', 'Administrador'
+        PREFEITO = 'prefeito', 'Prefeito (portal externo)'
 
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -108,6 +109,14 @@ class Perfil(models.Model):
         default=list,
         blank=True,
         help_text='Lista de slugs de permissão (ex: ["pode_importar_ibge", "pode_exportar"]).',
+    )
+    municipio_vinculado = models.ForeignKey(
+        'cadastro.Municipio',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='perfis_vinculados',
+        verbose_name='município vinculado',
+        help_text='Para perfis tipo "prefeito": qual município ele(a) pode visualizar.',
     )
 
     class Meta:

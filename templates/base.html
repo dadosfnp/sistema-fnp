@@ -149,6 +149,15 @@
                     <span x-show="sidebarAberta" x-transition.opacity class="truncate">Municípios</span>
                 </a>
 
+                <a href="{% url 'presenca:recepcao' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if 'recepcao' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Recepção">
+                    <i data-lucide="door-open" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Recepção</span>
+                </a>
+
                 <!-- Separador: Categorias -->
                 <div class="mt-5 mb-2" :class="sidebarAberta ? 'px-3' : 'px-1'">
                     <p class="text-[10px] font-semibold uppercase tracking-widest text-white/30" x-show="sidebarAberta" x-transition.opacity>Categorias</p>
@@ -217,11 +226,20 @@
 
                 <a href="{% url 'engajamento:lista_engajamento' %}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
-                          {% if 'engajamento' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                          {% if request.resolver_match.url_name == 'lista_engajamento' %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
                    :class="!sidebarAberta && 'justify-center !px-0'"
                    title="Engajamento">
                     <i data-lucide="trending-up" class="w-[18px] h-[18px] flex-shrink-0"></i>
                     <span x-show="sidebarAberta" x-transition.opacity class="truncate">Engajamento</span>
+                </a>
+
+                <a href="{% url 'engajamento:indice_fnp' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if request.resolver_match.url_name == 'indice_fnp' %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Índice FNP">
+                    <i data-lucide="award" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Índice FNP</span>
                 </a>
 
                 <!-- Separador: Análise -->
@@ -495,6 +513,59 @@
             </div>
         </template>
     </div>
+
+    {% if user.is_authenticated %}
+    <!-- Popup do dicionario — abre ao clicar em (?) ao lado de label -->
+    <div id="termo-popup"
+         x-data="{aberto:false, dados:null, carregando:false}"
+         x-init="window.abrirTermo = async (slug) => {
+                    aberto = true; carregando = true; dados = null;
+                    try {
+                        const r = await fetch(`{% url 'dicionario:termo_json' %}?termo=${encodeURIComponent(slug)}`);
+                        dados = await r.json();
+                    } finally { carregando = false; }
+                 }"
+         x-show="aberto" @click.self="aberto=false" @keydown.escape.window="aberto=false"
+         x-transition.opacity
+         class="fixed inset-0 bg-black/40 z-[65] flex items-center justify-center p-4"
+         style="display:none;">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-4 h-4 text-fnp-500"></i>
+                    <h3 class="text-sm font-semibold text-gray-700">Dicionário</h3>
+                </div>
+                <button @click="aberto=false" class="text-gray-400 hover:text-gray-700">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="p-5">
+                <template x-if="carregando">
+                    <p class="text-sm text-gray-400">Carregando...</p>
+                </template>
+                <template x-if="!carregando && dados && dados.encontrado">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest text-fnp-600 font-semibold" x-text="dados.secao"></p>
+                        <h4 class="text-lg font-bold text-gray-900 mt-1" x-text="dados.termo"></h4>
+                        <p class="text-sm text-gray-700 mt-3 leading-relaxed whitespace-pre-line" x-text="dados.definicao"></p>
+                        <template x-if="dados.tipo_de_dado">
+                            <div class="mt-3 pt-3 border-t border-gray-100">
+                                <p class="text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Tipo / exemplos</p>
+                                <p class="text-xs text-gray-600 mt-1 font-mono" x-text="dados.tipo_de_dado"></p>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template x-if="!carregando && dados && !dados.encontrado">
+                    <p class="text-sm text-gray-500">
+                        Termo "<b x-text="dados.termo_buscado"></b>" não encontrado.
+                        <a href="{% url 'dicionario:lista_dicionario' %}" class="text-fnp-600 underline">Ver dicionário completo →</a>
+                    </p>
+                </template>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Modal global reutilizavel (mala direta, formularios HTMX) -->
     <div id="modal-overlay"

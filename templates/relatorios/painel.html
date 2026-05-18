@@ -45,6 +45,29 @@
         </div>
     </div>
 
+    {# Narrativa: insights gerados a partir dos dados #}
+    {% if insights %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center gap-2 mb-3">
+            <i data-lucide="sparkles" class="w-4 h-4 text-fnp-500"></i>
+            <h3 class="text-sm font-semibold text-gray-700">Leitura rápida</h3>
+            <span class="text-xs text-gray-400">— gerado dos dados atuais</span>
+        </div>
+        <ul class="space-y-2">
+            {% for i in insights %}
+            <li class="flex items-start gap-3 text-sm">
+                <span class="mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0
+                    {% if i.severidade == 'positivo' %}bg-emerald-500
+                    {% elif i.severidade == 'critico' %}bg-red-500
+                    {% elif i.severidade == 'atencao' %}bg-amber-500
+                    {% else %}bg-gray-300{% endif %}"></span>
+                <span class="text-gray-700 leading-relaxed">{{ i.texto }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
     <!-- KPIs principais -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block titulo %}Portal — sem vínculo{% endblock %}
+{% block conteudo %}
+<div class="max-w-md mx-auto mt-20 bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
+    <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-50 flex items-center justify-center mb-4">
+        <i data-lucide="alert-circle" class="w-8 h-8 text-amber-500"></i>
+    </div>
+    <h2 class="text-xl font-bold text-gray-900">Sem município vinculado</h2>
+    <p class="text-sm text-gray-500 mt-2">Seu perfil ainda não está conectado a nenhum município. Entre em contato com a equipe FNP para que façam a associação.</p>
+    <a href="{% url 'nucleo:sair' %}" class="inline-flex items-center gap-1.5 mt-6 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100">Sair</a>
+</div>
+{% endblock %}

@@ -100,3 +100,92 @@ class Presenca(ModeloBase):
             if vinculo:
                 self.municipio = vinculo.municipio
         super().save(*args, **kwargs)
+
+
+class Visita(ModeloBase):
+    """Visita à sede da FNP registrada pela recepção/secretaria.
+
+    Captura o fluxo simples de "alguém chegou aqui agora" — útil para:
+    - Atendimento na recepção (cadastro rápido de quem chega)
+    - Histórico de quem passou pela FNP em data X
+    - Métrica de visitantes por dia/semana/mês
+    - Cruzamento com eventos do dia (se houver)
+
+    Diferente de ``Presenca`` (que aponta para uma entidade específica via
+    GenericForeignKey), uma Visita é autônoma — basta nome + horário para
+    registrar. Pode opcionalmente referenciar uma pessoa cadastrada e o
+    evento/atividade que motivou a visita.
+    """
+
+    class Motivo(models.TextChoices):
+        REUNIAO = 'reuniao', 'Reunião agendada'
+        EVENTO = 'evento', 'Participar de evento/atividade'
+        ENTREGA = 'entrega', 'Entrega de documento'
+        TECNICO = 'tecnico', 'Atendimento técnico'
+        VISITA_INSTITUCIONAL = 'institucional', 'Visita institucional'
+        OUTRO = 'outro', 'Outro'
+
+    # Pessoa cadastrada (opcional — se já existe, link; senão captura nome livre)
+    pessoa = models.ForeignKey(
+        Pessoa, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='visitas',
+        help_text='Vincular a uma pessoa cadastrada se já existir.',
+    )
+    nome_visitante = models.CharField(
+        'nome do visitante', max_length=255,
+        help_text='Preenchido manualmente quando o visitante não tem cadastro.',
+    )
+    email = models.EmailField('e-mail', blank=True)
+    telefone = models.CharField('telefone', max_length=20, blank=True)
+    organizacao = models.CharField(
+        'organização/cargo', max_length=255, blank=True,
+        help_text='Empresa, prefeitura, secretaria etc.',
+    )
+
+    motivo = models.CharField(
+        'motivo', max_length=20, choices=Motivo.choices, default=Motivo.OUTRO,
+    )
+    pessoa_recebida_por = models.CharField(
+        'recebido(a) por', max_length=255, blank=True,
+        help_text='Quem na FNP irá atender (livre — ex.: "Eq. Presidência").',
+    )
+    observacao = models.TextField('observação', blank=True)
+
+    # Snapshot do município, se houver
+    municipio = models.ForeignKey(
+        Municipio, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='visitas',
+        help_text='Município que o visitante representa (se aplicável).',
+    )
+
+    chegou_em = models.DateTimeField('chegou em', auto_now_add=True)
+    saiu_em = models.DateTimeField('saiu em', null=True, blank=True)
+    registrado_por = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='visitas_registradas',
+    )
+
+    class Meta:
+        verbose_name = 'visita à FNP'
+        verbose_name_plural = 'visitas à FNP'
+        ordering = ['-chegou_em']
+        indexes = [
+            models.Index(fields=['-chegou_em']),
+            models.Index(fields=['pessoa']),
+        ]
+
+    def __str__(self):
+        return f'{self.nome_visitante} — {self.chegou_em:%d/%m/%Y %H:%M}'
+
+    @property
+    def ainda_presente(self):
+        """True se o visitante ainda não foi registrado como saído."""
+        return self.saiu_em is None
+
+    def registrar_saida(self):
+        """Marca a saída agora."""
+        from django.utils import timezone
+        self.saiu_em = timezone.now()
+        self.save(update_fields=['saiu_em', 'atualizado_em'])
