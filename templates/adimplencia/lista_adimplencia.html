@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block titulo %}Adimplencia — Sistema FNP{% endblock %}
-{% block titulo_pagina %}Adimplencia{% endblock %}
+{% block titulo %}Adimplência — Sistema FNP{% endblock %}
+{% block titulo_pagina %}Adimplência{% endblock %}
 
 {% block conteudo %}
 <div class="space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h2 class="text-xl font-bold text-gray-900">Adimplencia</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Controle de pagamentos por municipio</p>
+            <h2 class="text-xl font-bold text-gray-900">Adimplência</h2>
+            <p class="text-sm text-gray-500 mt-0.5">Controle de pagamentos por município</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap filtros-container">
             {% if eh_editor %}
@@ -30,7 +30,7 @@
             </select>
             <div class="relative">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                <input type="text" name="busca" value="{{ busca }}" placeholder="Pesquisar municipio..."
+                <input type="text" name="busca" value="{{ busca }}" placeholder="Pesquisar município..."
                        class="pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-fnp-400/30 transition-all w-56"
                        hx-get="{% url 'adimplencia:lista_adimplencia' %}" hx-trigger="keyup changed delay:300ms" hx-target="#tabela-adimplencia" hx-include="closest .filtros-container">
             </div>

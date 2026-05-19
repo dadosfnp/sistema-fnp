@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block titulo %}{% if municipio %}Editar {{ municipio.nome }}{% else %}Novo Municipio{% endif %} — Sistema FNP{% endblock %}
+{% block titulo %}{% if municipio %}Editar {{ municipio.nome }}{% else %}Novo Município{% endif %} — Sistema FNP{% endblock %}
 {% block titulo_pagina %}
 <div class="flex items-center gap-2 text-sm">
-    <a href="{% url 'cadastro:lista_municipios' %}" class="text-gray-400 hover:text-fnp-500 transition-colors">Municipios</a>
+    <a href="{% url 'cadastro:lista_municipios' %}" class="text-gray-400 hover:text-fnp-500 transition-colors">Municípios</a>
     <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
-    <span class="text-gray-700 font-semibold">{% if municipio %}Editar {{ municipio.nome }}{% else %}Novo Municipio{% endif %}</span>
+    <span class="text-gray-700 font-semibold">{% if municipio %}Editar {{ municipio.nome }}{% else %}Novo Município{% endif %}</span>
 </div>
 {% endblock %}
 
@@ -14,7 +14,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
             <i data-lucide="{% if municipio %}edit{% else %}building-2{% endif %}" class="w-4 h-4 text-gray-400"></i>
-            <h2 class="text-sm font-semibold text-gray-900">{% if municipio %}Editar Municipio{% else %}Cadastrar Novo Municipio{% endif %}</h2>
+            <h2 class="text-sm font-semibold text-gray-900">{% if municipio %}Editar Município{% else %}Cadastrar Novo Município{% endif %}</h2>
         </div>
         <form method="post" enctype="multipart/form-data" class="p-6 space-y-4">
             {% csrf_token %}

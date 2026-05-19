@@ -1,14 +1,39 @@
+{% load fnp_tags %}
 <div class="overflow-x-auto">
     <table class="min-w-full">
         <thead>
             <tr class="border-b border-gray-100">
                 <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-8">#</th>
-                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Municipio</th>
-                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Bienio</th>
-                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Score</th>
-                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Pts Brutos</th>
-                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Participacoes</th>
-                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nivel</th>
+                {% include "nucleo/parciais/th_ordenavel.html" with campo="municipio__nome" label="Município" %}
+                {% include "nucleo/parciais/th_ordenavel.html" with campo="bienio" label="Biênio" %}
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <a href="{% url_ordem 'pontuacao_normalizada' %}" class="inline-flex items-center gap-1 hover:text-fnp-600 transition-colors group" title="Escore: pontuação normalizada de 0 a 100 após decaimento anual e penalidade por adimplência. É o número usado para classificar os municípios.">
+                        Escore
+                        <i data-lucide="help-circle" class="w-3 h-3 text-fnp-400"></i>
+                        {% if ordem == "pontuacao_normalizada" %}<i data-lucide="arrow-up" class="w-3 h-3"></i>
+                        {% elif ordem == "-pontuacao_normalizada" %}<i data-lucide="arrow-down" class="w-3 h-3"></i>
+                        {% else %}<i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-30 group-hover:opacity-100"></i>{% endif %}
+                    </a>
+                </th>
+                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <a href="{% url_ordem 'pontuacao_bruta' %}" class="inline-flex items-center justify-end gap-1 hover:text-fnp-600 transition-colors group" title="Pontos brutos: soma de eventos, representações, presenças e missões antes de decaimento anual e penalidade por adimplência. Veja a Metodologia.">
+                        Pontos brutos
+                        <i data-lucide="help-circle" class="w-3 h-3 text-fnp-400"></i>
+                        {% if ordem == "pontuacao_bruta" %}<i data-lucide="arrow-up" class="w-3 h-3"></i>
+                        {% elif ordem == "-pontuacao_bruta" %}<i data-lucide="arrow-down" class="w-3 h-3"></i>
+                        {% else %}<i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-30 group-hover:opacity-100"></i>{% endif %}
+                    </a>
+                </th>
+                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <a href="{% url_ordem 'total_participacoes' %}" class="inline-flex items-center justify-end gap-1 hover:text-fnp-600 transition-colors group" title="Total de itens contabilizados (eventos, representações, presenças e missões) que somaram pontos.">
+                        Participações
+                        <i data-lucide="help-circle" class="w-3 h-3 text-fnp-400"></i>
+                        {% if ordem == "total_participacoes" %}<i data-lucide="arrow-up" class="w-3 h-3"></i>
+                        {% elif ordem == "-total_participacoes" %}<i data-lucide="arrow-down" class="w-3 h-3"></i>
+                        {% else %}<i data-lucide="chevrons-up-down" class="w-3 h-3 opacity-30 group-hover:opacity-100"></i>{% endif %}
+                    </a>
+                </th>
+                {% include "nucleo/parciais/th_ordenavel.html" with campo="nivel" label="Nível" %}
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
@@ -44,7 +69,7 @@
                     {% elif eng.nivel == 'medio' %}
                     <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-blue-50 text-blue-700">
                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg>
-                        Medio
+                        Médio
                     </span>
                     {% elif eng.nivel == 'baixo' %}
                     <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-amber-50 text-amber-700">
@@ -57,11 +82,7 @@
                 </td>
             </tr>
             {% empty %}
-            <tr>
-                <td colspan="7" class="px-6 py-12 text-center">
-                    <p class="text-sm text-gray-400">Nenhum registro de engajamento encontrado.</p>
-                </td>
-            </tr>
+            {% include "nucleo/parciais/estado_vazio.html" with icone="trending-up" titulo="Nenhum registro de engajamento" descricao="Ajuste os filtros ou registre participações para alimentar o ranking." colspan=7 %}
             {% endfor %}
         </tbody>
     </table>

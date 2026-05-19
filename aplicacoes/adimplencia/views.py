@@ -19,13 +19,23 @@ def _eh_editor(request):
         return False
 
 
+# Campos permitidos para ordenacao via ``?ordem=``. Allowlist evita SQL injection
+# em order_by — qualquer slug fora dessa lista cai no default.
+ORDEM_PERMITIDA_ADIMPLENCIA = {
+    'municipio__nome', 'ano_referencia', 'status', 'valor_devido',
+    'valor_pago', 'data_pagamento',
+}
+
+
 @login_required
 def lista_adimplencia(request):
-    """Lista adimplência com busca e filtros por status e ano."""
+    """Lista adimplência com busca, filtros e ordenação clicável por coluna."""
     busca = request.GET.get('busca', '').strip()
     status = request.GET.get('status', '')
     ano = request.GET.get('ano', '')
-    registros = Adimplencia.objects.select_related('municipio').order_by('-ano_referencia', 'municipio__nome')
+    ordem = request.GET.get('ordem', '-ano_referencia')
+
+    registros = Adimplencia.objects.select_related('municipio')
     if busca:
         registros = registros.filter(
             Q(municipio__nome__icontains=busca) | Q(municipio__uf__icontains=busca)
@@ -34,12 +44,22 @@ def lista_adimplencia(request):
         registros = registros.filter(status=status)
     if ano:
         registros = registros.filter(ano_referencia=ano)
+
+    # Sanitiza ordem: aceita campo permitido (com ou sem '-' prefix).
+    campo_ordem = ordem.lstrip('-')
+    if campo_ordem in ORDEM_PERMITIDA_ADIMPLENCIA:
+        registros = registros.order_by(ordem, 'municipio__nome')
+    else:
+        registros = registros.order_by('-ano_referencia', 'municipio__nome')
+        ordem = '-ano_referencia'
+
     status_choices = Adimplencia.Status.choices
     anos = Adimplencia.objects.values_list('ano_referencia', flat=True).distinct().order_by('-ano_referencia')
     ctx = {
         'registros': registros, 'busca': busca,
         'status_filtro': status, 'status_choices': status_choices,
         'ano_filtro': ano, 'anos': anos,
+        'ordem': ordem,
     }
     template = 'adimplencia/parciais/lista_adimplencia_tabela.html' if request.headers.get('HX-Request') else 'adimplencia/lista_adimplencia.html'
     return render(request, template, ctx)

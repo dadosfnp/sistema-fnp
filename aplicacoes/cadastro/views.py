@@ -22,21 +22,33 @@ def _eh_editor(request):
         return False
 
 
+ORDEM_PERMITIDA_PESSOAS = {'nome', 'tipo', 'partido', 'cargo', 'email', 'ativo'}
+
+
 @login_required
 def lista_pessoas(request):
-    """Lista pessoas com busca, filtro por tipo e paginação (50 por página).
+    """Lista pessoas com busca, filtro por tipo, ordenação clicável e paginação.
 
     Aceita ``?exportar=csv`` para baixar a visao filtrada (sem paginacao).
     """
     busca = request.GET.get('busca', '').strip()
     tipo = request.GET.get('tipo', '')
-    pessoas_qs = Pessoa.objects.filter(ativo=True).order_by('nome')
+    ordem = request.GET.get('ordem', 'nome')
+
+    pessoas_qs = Pessoa.objects.filter(ativo=True)
     if busca:
         pessoas_qs = pessoas_qs.filter(
             Q(nome__icontains=busca) | Q(cargo__icontains=busca) | Q(partido__icontains=busca)
         )
     if tipo:
         pessoas_qs = pessoas_qs.filter(tipo=tipo)
+
+    campo_ordem = ordem.lstrip('-')
+    if campo_ordem in ORDEM_PERMITIDA_PESSOAS:
+        pessoas_qs = pessoas_qs.order_by(ordem, 'nome')
+    else:
+        pessoas_qs = pessoas_qs.order_by('nome')
+        ordem = 'nome'
 
     if request.GET.get('exportar') == 'csv':
         from aplicacoes.nucleo.servicos.exportacao import exportar_csv
@@ -58,6 +70,7 @@ def lista_pessoas(request):
         'pagina': pagina,
         'total_resultados': paginator.count,
         'busca': busca, 'tipo': tipo, 'tipos': tipos,
+        'ordem': ordem,
     }
     template = 'cadastro/parciais/lista_pessoas_tabela.html' if request.headers.get('HX-Request') else 'cadastro/lista_pessoas.html'
     return render(request, template, ctx)
@@ -108,14 +121,19 @@ def criar_pessoa(request):
     return render(request, 'cadastro/form_pessoa.html', {'form': form, 'pessoa': None})
 
 
+ORDEM_PERMITIDA_MUNICIPIOS = {'nome', 'uf', 'regiao', 'populacao', 'eh_capital', 'associado_fnp'}
+
+
 @login_required
 def lista_municipios(request):
-    """Lista municípios com busca, filtros por UF/região/adimplência e paginação (50/pg)."""
+    """Lista municípios com busca, filtros, ordenação clicável e paginação (50/pg)."""
     busca = request.GET.get('busca', '').strip()
     uf = request.GET.get('uf', '')
     regiao = request.GET.get('regiao', '')
     adimplencia = request.GET.get('adimplencia', '')
-    municipios_qs = Municipio.objects.all().order_by('nome')
+    ordem = request.GET.get('ordem', 'nome')
+
+    municipios_qs = Municipio.objects.all()
     if busca:
         municipios_qs = municipios_qs.filter(Q(nome__icontains=busca) | Q(uf__icontains=busca))
     if uf:
@@ -126,6 +144,13 @@ def lista_municipios(request):
         municipios_qs = municipios_qs.filter(
             adimplencias__status=adimplencia, adimplencias__ano_referencia=2026,
         ).distinct()
+
+    campo_ordem = ordem.lstrip('-')
+    if campo_ordem in ORDEM_PERMITIDA_MUNICIPIOS:
+        municipios_qs = municipios_qs.order_by(ordem, 'nome')
+    else:
+        municipios_qs = municipios_qs.order_by('nome')
+        ordem = 'nome'
 
     if request.GET.get('exportar') == 'csv':
         from aplicacoes.nucleo.servicos.exportacao import exportar_csv
@@ -153,6 +178,7 @@ def lista_municipios(request):
         'busca': busca,
         'uf': uf, 'ufs': ufs, 'regiao': regiao, 'regioes': regioes,
         'adimplencia_filtro': adimplencia,
+        'ordem': ordem,
     }
     template = 'cadastro/parciais/lista_municipios_tabela.html' if request.headers.get('HX-Request') else 'cadastro/lista_municipios.html'
     return render(request, template, ctx)

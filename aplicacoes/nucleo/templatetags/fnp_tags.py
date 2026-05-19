@@ -75,6 +75,29 @@ _LABELS_CAMPOS = {
 }
 
 
+@register.simple_tag(takes_context=True)
+def url_ordem(context, campo):
+    """Constroi URL preservando filtros e alternando ordem do campo.
+
+    Se a ordem atual eh ``campo``, alterna para ``-campo`` (descendente).
+    Se eh ``-campo``, alterna para ``campo`` (ascendente).
+    Caso contrario, define ``campo`` (ascendente).
+    """
+    request = context.get('request')
+    if not request:
+        return f'?ordem={campo}'
+    params = request.GET.copy()
+    atual = params.get('ordem', '')
+    if atual == campo:
+        params['ordem'] = f'-{campo}'
+    elif atual == f'-{campo}':
+        params['ordem'] = campo
+    else:
+        params['ordem'] = campo
+    params.pop('pagina', None)  # volta para pagina 1 ao reordenar
+    return f'?{params.urlencode()}'
+
+
 @register.filter
 def rotulo_campo(slug):
     """Retorna rótulo humanizado de um campo auditado (ou capitaliza o slug)."""

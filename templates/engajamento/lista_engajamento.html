@@ -8,24 +8,29 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h2 class="text-xl font-bold text-gray-900">Ranking de Engajamento</h2>
-            <p class="text-sm text-gray-500 mt-0.5">Pontuacao por municipio no bienio</p>
+            <p class="text-sm text-gray-500 mt-0.5">
+                Pontuação por município no biênio.
+                <a href="{% url 'engajamento:metodologia' %}" class="inline-flex items-center gap-1 text-fnp-600 hover:text-fnp-700 font-medium ml-1">
+                    <i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Como é calculado?
+                </a>
+            </p>
         </div>
         <div class="flex items-center gap-2 flex-wrap filtros-container">
             <select name="nivel"
                     class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
                     hx-get="{% url 'engajamento:lista_engajamento' %}" hx-trigger="change" hx-target="#tabela-engajamento" hx-include="closest .filtros-container">
-                <option value="">Todos os niveis</option>
+                <option value="">Todos os níveis</option>
                 {% for val, label in niveis %}<option value="{{ val }}" {% if val == nivel_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
             </select>
             <select name="regiao"
                     class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30"
                     hx-get="{% url 'engajamento:lista_engajamento' %}" hx-trigger="change" hx-target="#tabela-engajamento" hx-include="closest .filtros-container">
-                <option value="">Todas regioes</option>
+                <option value="">Todas as regiões</option>
                 {% for val, label in regioes %}<option value="{{ val }}" {% if val == regiao_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
             </select>
             <div class="relative">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                <input type="text" name="busca" value="{{ busca }}" placeholder="Pesquisar municipio..."
+                <input type="text" name="busca" value="{{ busca }}" placeholder="Pesquisar município..."
                        class="pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-fnp-400/30 transition-all w-56"
                        hx-get="{% url 'engajamento:lista_engajamento' %}" hx-trigger="keyup changed delay:300ms" hx-target="#tabela-engajamento" hx-include="closest .filtros-container">
             </div>

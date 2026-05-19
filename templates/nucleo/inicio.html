@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block titulo %}Inicio — Sistema FNP{% endblock %}
+{% block titulo %}Início — Sistema FNP{% endblock %}
 {% block titulo_pagina %}Painel Geral{% endblock %}
 
 {% block conteudo %}
@@ -24,7 +24,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Municipios</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Municípios</p>
                     <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_municipios }}</p>
                     <p class="text-xs text-emerald-600 mt-0.5">{{ total_adimplentes }} adimplentes</p>
                 </div>
@@ -38,7 +38,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Adimplencia 2026</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Adimplência 2026</p>
                     <p class="text-2xl font-bold text-emerald-600 mt-1">{{ total_adimplentes }}</p>
                     <p class="text-xs text-red-500 mt-0.5">{{ total_inadimplentes }} inadimplentes</p>
                 </div>
@@ -72,7 +72,7 @@
             <a href="{% url 'instancias:lista_instancias' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-fnp-200 transition-all group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Espacos de Dialogo</p>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Espaços de Diálogo</p>
                         <p class="text-2xl font-bold text-gray-900 mt-1 group-hover:text-fnp-600">{{ total_instancias }}</p>
                     </div>
                     <div class="w-10 h-10 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center transition-colors">
@@ -96,7 +96,7 @@
             <a href="{% url 'missoes:lista_missoes' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-fnp-200 transition-all group">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Missoes</p>
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Missões</p>
                         <p class="text-2xl font-bold text-gray-900 mt-1 group-hover:text-fnp-600">{{ total_missoes }}</p>
                     </div>
                     <div class="w-10 h-10 rounded-xl bg-rose-50 group-hover:bg-rose-100 flex items-center justify-center transition-colors">
@@ -131,7 +131,7 @@
         </div>
     </div>
 
-    <!-- Conteudo principal -->
+    <!-- Conteúdo principal -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         <!-- Eventos recentes -->

@@ -216,7 +216,7 @@ def exportar_excel(request):
 
     ws = wb.active
     ws.title = 'Engajamento'
-    _escreve_cabecalho(ws, ['Município', 'UF', 'Região', 'Biênio', 'Pts Brutos', 'Pts Normalizado', 'Participações', 'Nível'])
+    _escreve_cabecalho(ws, ['Município', 'UF', 'Região', 'Biênio', 'Pontos brutos', 'Escore', 'Participações', 'Nível'])
     for row, eng in enumerate(Engajamento.objects.select_related('municipio').order_by('-pontuacao_bruta'), 2):
         ws.cell(row=row, column=1, value=eng.municipio.nome)
         ws.cell(row=row, column=2, value=eng.municipio.uf)

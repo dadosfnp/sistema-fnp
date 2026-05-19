@@ -7,11 +7,11 @@
                     <input type="checkbox" @change="toggleTodos($event.target.checked)" :checked="todosMarcados"
                            class="rounded border-gray-300 text-fnp-500 focus:ring-fnp-500/30 cursor-pointer">
                 </th>
-                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Municipio</th>
-                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">UF</th>
-                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Regiao</th>
-                <th class="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Populacao</th>
-                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Adimplencia</th>
+                {% include "nucleo/parciais/th_ordenavel.html" with campo="nome" label="Município" %}
+                {% include "nucleo/parciais/th_ordenavel.html" with campo="uf" label="UF" %}
+                {% include "nucleo/parciais/th_ordenavel.html" with campo="regiao" label="Região" %}
+                {% include "nucleo/parciais/th_ordenavel.html" with campo="populacao" label="População" align="right" %}
+                <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Adimplência</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">

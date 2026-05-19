@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block titulo %}{% if objeto %}Editar Adimplencia{% else %}Nova Adimplencia{% endif %} — Sistema FNP{% endblock %}
+{% block titulo %}{% if objeto %}Editar Adimplência{% else %}Nova Adimplência{% endif %} — Sistema FNP{% endblock %}
 {% block titulo_pagina %}
 <div class="flex items-center gap-2 text-sm">
-    <a href="{% url 'adimplencia:lista_adimplencia' %}" class="text-gray-400 hover:text-fnp-500 transition-colors">Adimplencia</a>
+    <a href="{% url 'adimplencia:lista_adimplencia' %}" class="text-gray-400 hover:text-fnp-500 transition-colors">Adimplência</a>
     <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
     <span class="text-gray-700 font-semibold">{% if objeto %}Editar{% else %}Novo Registro{% endif %}</span>
 </div>
@@ -14,7 +14,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
             <i data-lucide="{% if objeto %}edit{% else %}wallet{% endif %}" class="w-4 h-4 text-gray-400"></i>
-            <h2 class="text-sm font-semibold text-gray-900">{% if objeto %}Editar Registro{% else %}Novo Registro de Adimplencia{% endif %}</h2>
+            <h2 class="text-sm font-semibold text-gray-900">{% if objeto %}Editar Registro{% else %}Novo Registro de Adimplência{% endif %}</h2>
         </div>
         <form method="post" class="p-6 space-y-4">
             {% csrf_token %}
