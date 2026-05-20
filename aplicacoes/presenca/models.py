@@ -178,6 +178,10 @@ class Visita(ModeloBase):
         'veio pré-credenciado?', default=False,
         help_text='True se a foto/dados vieram de um link enviado antes da visita.',
     )
+    face_embedding = models.JSONField(
+        'embedding facial (face-api.js)', default=list, blank=True,
+        help_text='Vetor de 128 floats extraído da foto via face-api.js para reconhecimento.',
+    )
 
     class Meta:
         verbose_name = 'visita à FNP'
@@ -245,6 +249,10 @@ class CredenciamentoPrevio(ModeloBase):
         default=False,
         help_text='Aceite do tratamento de imagem para credenciamento.',
     )
+    face_embedding = models.JSONField(
+        'embedding facial (face-api.js)', default=list, blank=True,
+        help_text='Vetor de 128 floats extraído da foto enviada pelo visitante.',
+    )
 
     status = models.CharField(
         'status', max_length=12, choices=Status.choices, default=Status.PENDENTE,
@@ -258,6 +266,17 @@ class CredenciamentoPrevio(ModeloBase):
         'Visita', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='origem_pre_credenciamento',
     )
+    # Entidade que originou o convite (opcional) — evento/atividade/missao/etc.
+    content_type = models.ForeignKey(
+        ContentType, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='+',
+        verbose_name='tipo da entidade de origem',
+    )
+    object_id = models.UUIDField(
+        'id do objeto de origem', null=True, blank=True,
+        help_text='Vincula o pré-credenciamento ao evento/atividade/missão que motivou o convite.',
+    )
+    entidade_origem = GenericForeignKey('content_type', 'object_id')
 
     class Meta:
         verbose_name = 'pré-credenciamento'
@@ -266,6 +285,7 @@ class CredenciamentoPrevio(ModeloBase):
         indexes = [
             models.Index(fields=['token']),
             models.Index(fields=['status', '-criado_em']),
+            models.Index(fields=['content_type', 'object_id']),
         ]
 
     def __str__(self):

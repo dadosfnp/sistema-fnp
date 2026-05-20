@@ -34,8 +34,14 @@
                     <p class="text-xs text-gray-500 uppercase tracking-wider">Ainda aqui</p>
                 </div>
                 {% endif %}
+                <a href="{% url 'presenca:identificar_facial' %}"
+                   class="ml-2 inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold text-fuchsia-700 bg-fuchsia-50 rounded-xl hover:bg-fuchsia-100 border border-fuchsia-200 transition-colors"
+                   title="Reconhecer visitante pela câmera">
+                    <i data-lucide="scan-face" class="w-4 h-4"></i>
+                    Identificar
+                </a>
                 <a href="{% url 'presenca:credenciamento_lista' %}"
-                   class="ml-2 inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold text-violet-700 bg-violet-50 rounded-xl hover:bg-violet-100 border border-violet-200 transition-colors">
+                   class="inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold text-violet-700 bg-violet-50 rounded-xl hover:bg-violet-100 border border-violet-200 transition-colors">
                     <i data-lucide="qr-code" class="w-4 h-4"></i>
                     Pré-credenciar
                 </a>

@@ -22,6 +22,7 @@
         <form method="post" enctype="multipart/form-data" x-data="webcam()" class="p-5 space-y-4">
             {% csrf_token %}
             <input type="hidden" name="foto_base64" x-model="fotoBase64">
+            <input type="hidden" name="face_embedding_json" x-model="faceEmbeddingJson">
 
             {% if erro %}
             <div class="px-3 py-2 bg-red-50 border border-red-100 text-red-700 text-sm rounded-lg">
@@ -81,10 +82,11 @@
         </form>
     </div>
 
+    {% include "presenca/parciais/face_api_loader.html" %}
     <script>
         function webcam() {
             return {
-                ativa: false, fotoBase64: '', stream: null,
+                ativa: false, fotoBase64: '', faceEmbeddingJson: '', stream: null,
                 async iniciar() {
                     try {
                         this.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:640, height:480}, audio:false});
@@ -93,15 +95,20 @@
                         this.$refs.video.srcObject = this.stream;
                     } catch (e) { alert('Não foi possível acessar a câmera. Permita o acesso no navegador.'); }
                 },
-                capturar() {
+                async capturar() {
                     const v = this.$refs.video; const c = this.$refs.canvas;
                     c.width = v.videoWidth; c.height = v.videoHeight;
                     c.getContext('2d').drawImage(v, 0, 0);
                     this.fotoBase64 = c.toDataURL('image/jpeg', 0.85);
                     this.parar();
+                    // Extrai embedding facial (silencioso — se falhar, segue sem)
+                    try {
+                        const emb = await window.faceApiExtrair(c);
+                        if (emb) this.faceEmbeddingJson = JSON.stringify(emb);
+                    } catch (e) { /* face-api falhou — continua sem embedding */ }
                 },
                 parar() { if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; } this.ativa = false; },
-                reiniciar() { this.fotoBase64 = ''; this.iniciar(); },
+                reiniciar() { this.fotoBase64 = ''; this.faceEmbeddingJson = ''; this.iniciar(); },
             };
         }
         document.addEventListener('alpine:init', () => lucide.createIcons());

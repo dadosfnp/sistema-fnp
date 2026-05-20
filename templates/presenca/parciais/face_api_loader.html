@@ -1,0 +1,71 @@
+{# Loader do face-api.js + helpers globais. Inclua antes do x-init da webcam. #}
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script>
+(function() {
+    // CDN dos modelos pré-treinados (do mesmo autor do face-api.js)
+    const MODELS_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+    let _carregando = null;
+
+    /**
+     * Carrega os 3 modelos necessários (apenas uma vez por sessão).
+     * - tiny_face_detector: detecta rostos em imagens (~190KB)
+     * - face_landmark_68_tiny: 68 pontos de referência (~200KB)
+     * - face_recognition: gera embedding de 128 dimensões (~6MB)
+     */
+    window.faceApiCarregar = function() {
+        if (_carregando) return _carregando;
+        _carregando = new Promise(async (resolve, reject) => {
+            try {
+                // Aguarda o script terminar de carregar
+                let tentativas = 0;
+                while (typeof faceapi === 'undefined' && tentativas < 50) {
+                    await new Promise(r => setTimeout(r, 100));
+                    tentativas++;
+                }
+                if (typeof faceapi === 'undefined') {
+                    throw new Error('face-api.js não carregou');
+                }
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(MODELS_URL),
+                    faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODELS_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(MODELS_URL),
+                ]);
+                resolve();
+            } catch (e) {
+                console.error('Erro ao carregar face-api', e);
+                _carregando = null;
+                reject(e);
+            }
+        });
+        return _carregando;
+    };
+
+    /**
+     * Extrai embedding facial (Float32Array de 128 dimensões) de um elemento
+     * <canvas>, <img> ou <video>. Retorna null se não detectar rosto.
+     */
+    window.faceApiExtrair = async function(elemento) {
+        await window.faceApiCarregar();
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 });
+        const det = await faceapi.detectSingleFace(elemento, opts)
+            .withFaceLandmarks(true)
+            .withFaceDescriptor();
+        if (!det) return null;
+        return Array.from(det.descriptor);
+    };
+
+    /**
+     * Distância euclidiana entre dois embeddings (arrays).
+     * < 0.6 = match (mesma pessoa). Quanto menor, mais similar.
+     */
+    window.faceApiDistancia = function(a, b) {
+        if (!a || !b || a.length !== b.length) return Infinity;
+        let soma = 0;
+        for (let i = 0; i < a.length; i++) {
+            const d = a[i] - b[i];
+            soma += d * d;
+        }
+        return Math.sqrt(soma);
+    };
+})();
+</script>

@@ -297,6 +297,9 @@ def recepcao_novo(request):
         if foto_base64:
             _processar_foto_base64(visita, foto_base64)
 
+        # Embedding facial extraido pelo face-api.js no browser
+        _aplicar_embedding(visita, request.POST.get('face_embedding_json', ''))
+
         registrar_criacao(request.user, visita)
         messages.success(request, f'{nome} registrado(a) com sucesso.')
         return redirect('presenca:recepcao')
@@ -373,6 +376,22 @@ def recepcao_historico(request):
 # ============================================================================
 # CREDENCIAMENTO PREVIO — link publico antes da visita
 # ============================================================================
+
+def _aplicar_embedding(obj, emb_json):
+    """Decodifica e grava o embedding facial enviado pelo face-api.js (128 floats)."""
+    if not emb_json:
+        return False
+    try:
+        import json as _json
+        emb = _json.loads(emb_json)
+        if isinstance(emb, list) and len(emb) == 128 and all(isinstance(x, (int, float)) for x in emb):
+            obj.face_embedding = emb
+            obj.save(update_fields=['face_embedding', 'atualizado_em'])
+            return True
+    except (ValueError, TypeError):
+        pass
+    return False
+
 
 def _processar_foto_base64(visita_ou_pre, foto_base64):
     """Decodifica string base64 (data:image/jpeg;base64,...) e salva no FileField.
@@ -486,6 +505,7 @@ def pre_credenciamento_publico(request, token):
         foto_base64 = request.POST.get('foto_base64', '')
         if foto_base64:
             _processar_foto_base64(pre, foto_base64)
+        _aplicar_embedding(pre, request.POST.get('face_embedding_json', ''))
 
         if not pre.documentos_aceitos:
             return render(request, 'presenca/credenciamento_publico.html', {
@@ -526,3 +546,158 @@ def credenciamento_confirmar_visita(request, pk):
     pre.save()
     messages.success(request, f'{visita.nome_visitante} registrado(a) com pré-credenciamento.')
     return redirect('presenca:recepcao')
+
+
+# ============================================================================
+# PRE-CREDENCIAMENTO POR ENTIDADE (eventos, atividades, missoes etc.)
+# ============================================================================
+
+@login_required
+def credenciamento_modal_entidade(request, app_label, model_name, object_id):
+    """Modal HTMX que cria pre-credenciamentos a partir de uma entidade.
+
+    GET: lista destinatarios elegiveis (pessoas com telefone vinculadas ao
+         evento/atividade/missao) + permite adicionar visitante externo.
+    POST: cria N CredenciamentoPrevio + retorna fragmento com links wa.me.
+    """
+    from datetime import timedelta
+
+    from aplicacoes.comunicacao.servicos import coletar_destinatarios, montar_link_whatsapp
+
+    content_type, entidade = _resolver_entidade(app_label, model_name, object_id)
+    destinatarios = coletar_destinatarios(entidade)
+    # So mostra pessoas com telefone OU email
+    destinatarios = [d for d in destinatarios if d['telefone'] or d['email']]
+
+    if request.method == 'POST':
+        pessoa_ids = request.POST.getlist('pessoa_ids')
+        nomes_externos = request.POST.getlist('nome_externo[]')
+        tels_externos = request.POST.getlist('telefone_externo[]')
+        emails_externos = request.POST.getlist('email_externo[]')
+
+        criados = []
+        # Pessoas internas selecionadas
+        for d in destinatarios:
+            if str(d['pessoa'].pk) not in pessoa_ids:
+                continue
+            pre = CredenciamentoPrevio.objects.create(
+                token=CredenciamentoPrevio.gerar_token(),
+                nome_visitante=d['pessoa'].nome,
+                telefone=d['telefone'],
+                email=d['email'],
+                organizacao=str(d['municipio']) if d['municipio'] else '',
+                motivo=str(entidade)[:255],
+                expira_em=timezone.now() + timedelta(days=30),
+                criado_por=request.user,
+                content_type=content_type,
+                object_id=object_id,
+            )
+            criados.append(pre)
+
+        # Visitantes externos avulsos
+        for nome, tel, email in zip(nomes_externos, tels_externos, emails_externos):
+            nome = (nome or '').strip()
+            if not nome:
+                continue
+            pre = CredenciamentoPrevio.objects.create(
+                token=CredenciamentoPrevio.gerar_token(),
+                nome_visitante=nome,
+                telefone=(tel or '').strip(),
+                email=(email or '').strip(),
+                motivo=str(entidade)[:255],
+                expira_em=timezone.now() + timedelta(days=30),
+                criado_por=request.user,
+                content_type=content_type,
+                object_id=object_id,
+            )
+            criados.append(pre)
+
+        # Monta links wa.me para cada
+        resultados = []
+        for pre in criados:
+            url = pre.url_publica(request)
+            msg = (
+                f'Olá, {pre.nome_visitante}!\n\n'
+                f'A FNP está enviando seu pré-credenciamento para "{entidade}".\n'
+                f'Use o link abaixo no celular para enviar uma foto e confirmar dados — '
+                f'assim você evita fila no dia do evento.\n\n{url}\n\n'
+                f'(válido por 30 dias)'
+            )
+            resultados.append({
+                'pre': pre,
+                'url': url,
+                'msg': msg,
+                'link_whatsapp': montar_link_whatsapp(pre.telefone, msg) if pre.telefone else '',
+            })
+
+        return render(request, 'presenca/parciais/modal_pre_cred_sucesso.html', {
+            'entidade': entidade, 'resultados': resultados,
+            'app_label': app_label, 'model_name': model_name, 'object_id': object_id,
+        })
+
+    return render(request, 'presenca/parciais/modal_pre_cred.html', {
+        'entidade': entidade, 'destinatarios': destinatarios,
+        'app_label': app_label, 'model_name': model_name, 'object_id': object_id,
+    })
+
+
+# ============================================================================
+# IDENTIFICACAO FACIAL — match automatico via face-api.js
+# ============================================================================
+
+@login_required
+def identificar_facial(request):
+    """Pagina que abre webcam continua e tenta identificar visitante via embedding."""
+    return render(request, 'presenca/identificar_facial.html')
+
+
+@login_required
+def identificar_facial_buscar(request):
+    """Endpoint JSON: recebe embedding do browser, busca match nos pre-credenciamentos.
+
+    Compara via distancia euclidiana. Threshold 0.6 (padrao face-api.js).
+    """
+    import json as _json
+    import math
+
+    if request.method != 'POST':
+        return JsonResponse({'erro': 'use POST'}, status=405)
+    try:
+        body = _json.loads(request.body.decode('utf-8'))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({'erro': 'body invalido'}, status=400)
+
+    emb = body.get('embedding')
+    if not isinstance(emb, list) or len(emb) != 128:
+        return JsonResponse({'erro': 'embedding invalido'}, status=400)
+
+    def _dist(a, b):
+        if len(a) != len(b):
+            return float('inf')
+        return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
+    # Candidatos: pre-credenciamentos preenchidos + visitas anteriores com embedding
+    pres = CredenciamentoPrevio.objects.filter(
+        status=CredenciamentoPrevio.Status.PREENCHIDO,
+    ).exclude(face_embedding=[])
+
+    melhor = None
+    melhor_dist = 0.6  # threshold de match
+    for pre in pres:
+        d = _dist(emb, pre.face_embedding or [])
+        if d < melhor_dist:
+            melhor = pre
+            melhor_dist = d
+
+    if melhor:
+        return JsonResponse({
+            'match': True,
+            'tipo': 'pre_credenciamento',
+            'id': str(melhor.pk),
+            'nome': melhor.nome_visitante,
+            'organizacao': melhor.organizacao,
+            'foto_url': melhor.foto.url if melhor.foto else '',
+            'distancia': round(melhor_dist, 3),
+        })
+
+    return JsonResponse({'match': False, 'distancia_mais_proxima': round(melhor_dist, 3)})

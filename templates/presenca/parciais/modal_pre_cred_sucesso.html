@@ -1,0 +1,57 @@
+{# Resultado do envio em lote de pre-credenciamentos. #}
+<div>
+    <div class="text-center py-3 border-b border-gray-100">
+        <div class="w-12 h-12 rounded-full bg-emerald-100 mx-auto flex items-center justify-center">
+            <i data-lucide="check" class="w-6 h-6 text-emerald-600"></i>
+        </div>
+        <h3 class="mt-2 text-base font-bold text-gray-900">
+            {{ resultados|length }} convite{{ resultados|length|pluralize:"s" }} gerado{{ resultados|length|pluralize:"s" }}
+        </h3>
+        <p class="text-xs text-gray-500 mt-0.5">Para "{{ entidade }}"</p>
+    </div>
+
+    <div class="py-3">
+        <div class="flex items-center justify-between mb-2 px-1">
+            <p class="text-[10px] uppercase tracking-widest font-semibold text-gray-600">Links prontos</p>
+            <button type="button" onclick="document.querySelectorAll('#modal-conteudo a[href*=wa\\.me]').forEach(a => window.open(a.href, '_blank'))"
+                    class="text-[10px] text-emerald-700 hover:text-emerald-800 font-semibold underline">
+                Abrir todos no WhatsApp
+            </button>
+        </div>
+        <div class="max-h-72 overflow-y-auto space-y-1.5">
+            {% for r in resultados %}
+            <div class="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs">
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold text-gray-900 truncate">{{ r.pre.nome_visitante }}</p>
+                    <p class="text-gray-500 truncate">{{ r.pre.telefone|default:r.pre.email|default:"sem contato" }}</p>
+                </div>
+                {% if r.link_whatsapp %}
+                <a href="{{ r.link_whatsapp }}" target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100 rounded hover:bg-emerald-200">
+                    <i data-lucide="message-circle" class="w-2.5 h-2.5"></i> WhatsApp
+                </a>
+                {% endif %}
+                {% if r.pre.email %}
+                <a href="mailto:{{ r.pre.email }}?subject=Pré-credenciamento FNP&body={{ r.msg|urlencode }}"
+                   class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-blue-700 bg-blue-100 rounded hover:bg-blue-200">
+                    <i data-lucide="mail" class="w-2.5 h-2.5"></i> E-mail
+                </a>
+                {% endif %}
+                <a href="{{ r.url }}" target="_blank" rel="noopener"
+                   class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-gray-600 bg-white rounded hover:bg-gray-50"
+                   title="Abrir link público">
+                    <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+        <a href="{% url 'presenca:credenciamento_lista' %}" class="text-xs text-fnp-600 hover:text-fnp-700 font-medium">
+            Ver todos os pré-credenciamentos
+        </a>
+        <button type="button" onclick="fecharModalEnvio()" class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Fechar</button>
+    </div>
+</div>
+<script>if (window.lucide) lucide.createIcons();</script>

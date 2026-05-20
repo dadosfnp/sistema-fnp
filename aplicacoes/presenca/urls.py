@@ -28,4 +28,13 @@ urlpatterns = [
     path('credenciamento/novo/', views.credenciamento_novo, name='credenciamento_novo'),
     path('credenciamento/<uuid:pk>/confirmar/', views.credenciamento_confirmar_visita, name='credenciamento_confirmar_visita'),
     path('pre/<str:token>/', views.pre_credenciamento_publico, name='pre_credenciamento_publico'),
+    # Modal de pre-credenciamento a partir de uma entidade
+    path(
+        'credenciamento/modal/<str:app_label>/<str:model_name>/<uuid:object_id>/',
+        views.credenciamento_modal_entidade,
+        name='credenciamento_modal_entidade',
+    ),
+    # Identificacao automatica via face-api.js
+    path('identificar/', views.identificar_facial, name='identificar_facial'),
+    path('identificar/buscar/', views.identificar_facial_buscar, name='identificar_facial_buscar'),
 ]

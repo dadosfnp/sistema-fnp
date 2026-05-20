@@ -1,78 +1,166 @@
 {% extends "base.html" %}
 
-{% block titulo %}Dicionario — Sistema FNP{% endblock %}
-{% block titulo_pagina %}Dicionario Institucional{% endblock %}
+{% block titulo %}Dicionário — Sistema FNP{% endblock %}
+{% block titulo_pagina %}Dicionário Institucional{% endblock %}
 
 {% block conteudo %}
-<div class="max-w-5xl mx-auto space-y-6">
+<div class="max-w-7xl mx-auto">
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div class="flex items-start gap-4">
-            <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                <i data-lucide="book-open" class="w-5 h-5 text-indigo-500"></i>
+    {# ========== HERO ========== #}
+    <div class="bg-gradient-to-br from-fnp-500 to-fnp-700 rounded-2xl shadow-md overflow-hidden mb-6">
+        <div class="p-6 sm:p-8 flex flex-col sm:flex-row items-start gap-5 text-white">
+            <div class="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center flex-shrink-0">
+                <i data-lucide="book-open-text" class="w-7 h-7"></i>
             </div>
-            <div class="flex-1">
-                <h2 class="text-xl font-bold text-gray-900">Dicionario do Sistema FNP</h2>
-                <p class="text-sm text-gray-500 mt-1">
-                    Glossario de termos institucionais usados na plataforma. Consulte aqui se tiver duvida
-                    sobre o significado de Instancia, Representacao, Atividade, Pauta e demais conceitos.
+            <div class="flex-1 min-w-0">
+                <p class="text-[10px] uppercase tracking-widest text-white/70 font-bold">Glossário institucional</p>
+                <h1 class="text-2xl sm:text-3xl font-bold mt-1">Dicionário do Sistema FNP</h1>
+                <p class="text-sm text-white/80 mt-2 max-w-2xl leading-relaxed">
+                    Significado dos termos usados na plataforma. Consulte aqui quando aparecer
+                    algum conceito institucional — Instância, Representação, Atividade, Pauta — ou
+                    use a busca para encontrar uma definição específica.
                 </p>
             </div>
-        </div>
-
-        <form method="get" class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
-            <div class="relative flex-1 min-w-[240px]">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                <input type="text" name="busca" value="{{ busca }}" placeholder="Buscar termo ou definicao..."
-                       class="pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-fnp-400/30 transition-all w-full">
+            <div class="text-center sm:text-right text-white">
+                <p class="text-3xl font-bold tabular-nums">{{ total }}</p>
+                <p class="text-[10px] uppercase tracking-widest text-white/70">termos catalogados</p>
             </div>
-            <select name="secao" class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
-                <option value="">Todas as secoes</option>
+        </div>
+    </div>
+
+    {# ========== BUSCA + filtros (sticky) ========== #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 sticky top-2 z-30">
+        <form method="get" class="flex flex-wrap items-center gap-2">
+            <div class="relative flex-1 min-w-[240px]">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                <input type="text" name="busca" value="{{ busca }}" placeholder="Buscar termo ou trecho da definição..."
+                       autofocus
+                       class="pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-fnp-400/30 transition-all w-full">
+            </div>
+            <select name="secao" class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+                <option value="">Todas as seções</option>
                 {% for val, label in secoes_disponiveis %}
                 <option value="{{ val }}" {% if val == secao_filtro %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors">
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600 transition-colors">
                 <i data-lucide="search" class="w-4 h-4"></i> Buscar
             </button>
             {% if busca or secao_filtro %}
-            <a href="{% url 'dicionario:lista_dicionario' %}" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Limpar</a>
+            <a href="{% url 'dicionario:lista_dicionario' %}" class="inline-flex items-center gap-1 px-3 py-2.5 text-sm font-medium text-red-600 hover:text-red-700">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i> Limpar
+            </a>
             {% endif %}
         </form>
     </div>
 
-    {% for valor, label, termos in grupos %}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-3 border-b border-gray-100 bg-gray-50/50">
-            <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
-                <i data-lucide="layers" class="w-4 h-4 text-gray-400"></i> {{ label }}
-                <span class="text-xs font-normal text-gray-400">({{ termos|length }})</span>
-            </h3>
-        </div>
-        <dl class="divide-y divide-gray-50">
-            {% for t in termos %}
-            <div class="px-6 py-4 hover:bg-gray-50/40 transition-colors">
-                <dt class="text-sm font-semibold text-gray-900">{{ t.termo }}</dt>
-                <dd class="mt-1 text-sm text-gray-600 leading-relaxed">{{ t.definicao }}</dd>
-                {% if t.tipo_de_dado %}
-                <dd class="mt-2 text-xs text-gray-500 flex items-start gap-1.5">
-                    <i data-lucide="info" class="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-300"></i>
-                    <span><span class="font-medium text-gray-600">Tipo de dado:</span> {{ t.tipo_de_dado }}</span>
-                </dd>
+    {# ========== Layout: TOC sidebar + conteudo ========== #}
+    <div class="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6">
+
+        {# ----- TOC lateral (sticky) ----- #}
+        {% if grupos %}
+        <aside class="hidden lg:block">
+            <nav class="sticky top-24">
+                <p class="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-3 px-3">Seções</p>
+                <ul class="space-y-1">
+                    {% for valor, label, termos in grupos %}
+                    <li>
+                        <a href="#secao-{{ valor }}" class="flex items-center justify-between gap-2 px-3 py-2 text-xs font-medium rounded-lg text-gray-600 hover:bg-fnp-50 hover:text-fnp-700 transition-colors group">
+                            <span class="truncate">{{ label }}</span>
+                            <span class="text-[10px] font-bold text-gray-400 group-hover:text-fnp-600 tabular-nums">{{ termos|length }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </nav>
+        </aside>
+        {% endif %}
+
+        {# ----- Conteudo ----- #}
+        <div>
+            {% for valor, label, termos in grupos %}
+            <section id="secao-{{ valor }}" class="mb-8 scroll-mt-24">
+                {# Cabecalho colorido por secao #}
+                {% with cor=valor %}
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center
+                        {% if valor == 'instancias' %}bg-indigo-50 text-indigo-600
+                        {% elif valor == 'representantes' %}bg-emerald-50 text-emerald-600
+                        {% elif valor == 'atividades' %}bg-teal-50 text-teal-600
+                        {% elif valor == 'eventos' %}bg-purple-50 text-purple-600
+                        {% elif valor == 'projetos' %}bg-cyan-50 text-cyan-600
+                        {% elif valor == 'missoes' %}bg-rose-50 text-rose-600
+                        {% else %}bg-gray-50 text-gray-600{% endif %}">
+                        <i data-lucide="{% if valor == 'instancias' %}messages-square
+                                       {% elif valor == 'representantes' %}user-check
+                                       {% elif valor == 'atividades' %}calendar-clock
+                                       {% elif valor == 'eventos' %}calendar-days
+                                       {% elif valor == 'projetos' %}clipboard-list
+                                       {% elif valor == 'missoes' %}plane-takeoff
+                                       {% else %}layers{% endif %}" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">{{ label }}</h2>
+                        <p class="text-xs text-gray-500">{{ termos|length }} termo{{ termos|length|pluralize:"s" }}</p>
+                    </div>
+                </div>
+
+                {# Grid de cards de termos #}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for t in termos %}
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md hover:border-gray-200 transition-all
+                        border-l-4
+                        {% if valor == 'instancias' %}border-l-indigo-400
+                        {% elif valor == 'representantes' %}border-l-emerald-400
+                        {% elif valor == 'atividades' %}border-l-teal-400
+                        {% elif valor == 'eventos' %}border-l-purple-400
+                        {% elif valor == 'projetos' %}border-l-cyan-400
+                        {% elif valor == 'missoes' %}border-l-rose-400
+                        {% else %}border-l-gray-300{% endif %}">
+                        <h3 class="text-sm font-bold text-gray-900 leading-snug">{{ t.termo }}</h3>
+                        <p class="mt-2 text-sm text-gray-600 leading-relaxed">{{ t.definicao }}</p>
+                        {% if t.tipo_de_dado %}
+                        <div class="mt-3 pt-3 border-t border-gray-100">
+                            <p class="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-0.5">Tipo / exemplos</p>
+                            <p class="text-xs text-gray-600 font-mono">{{ t.tipo_de_dado }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endwith %}
+            </section>
+            {% empty %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 py-20 text-center">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-gray-50 flex items-center justify-center">
+                    <i data-lucide="search-x" class="w-7 h-7 text-gray-300"></i>
+                </div>
+                <p class="mt-4 text-base font-semibold text-gray-700">Nenhum termo encontrado</p>
+                <p class="mt-1 text-sm text-gray-500">Tente outras palavras-chave ou remova os filtros.</p>
+                {% if busca or secao_filtro %}
+                <a href="{% url 'dicionario:lista_dicionario' %}" class="inline-flex items-center gap-1.5 mt-4 px-4 py-2 text-xs font-medium text-fnp-700 bg-fnp-50 rounded-lg hover:bg-fnp-100">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Limpar filtros
+                </a>
                 {% endif %}
             </div>
             {% endfor %}
-        </dl>
+        </div>
     </div>
-    {% empty %}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 py-16 text-center">
-        <i data-lucide="search-x" class="w-10 h-10 text-gray-300 mx-auto"></i>
-        <p class="mt-3 text-sm text-gray-500">Nenhum termo encontrado.</p>
-        {% if busca or secao_filtro %}
-        <a href="{% url 'dicionario:lista_dicionario' %}" class="inline-block mt-3 text-xs text-fnp-500 font-medium hover:text-fnp-700">Limpar filtros</a>
-        {% endif %}
-    </div>
-    {% endfor %}
 </div>
 {% endblock %}
-{% block js_extra %}<script>lucide.createIcons();</script>{% endblock %}
+{% block js_extra %}
+<script>
+lucide.createIcons();
+// Smooth scroll para anchors do TOC
+document.querySelectorAll('aside nav a').forEach(link => {
+    link.addEventListener('click', (e) => {
+        const alvo = document.querySelector(link.getAttribute('href'));
+        if (alvo) {
+            e.preventDefault();
+            alvo.scrollIntoView({behavior: 'smooth', block: 'start'});
+            history.replaceState(null, '', link.getAttribute('href'));
+        }
+    });
+});
+</script>
+{% endblock %}
