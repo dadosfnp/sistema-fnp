@@ -106,6 +106,98 @@ def painel(request):
 
     contagens = _contagens_categorias()
 
+    # ========================================================================
+    # NOVOS BLOCOS: Resumo financeiro + graficos historicos
+    # ========================================================================
+    from collections import defaultdict
+
+    from django.db.models import Sum
+
+    from aplicacoes.cadastro.models import VinculoMunicipio
+
+    municipios_qs_filtro = Municipio.objects.all()
+    if regiao:
+        municipios_qs_filtro = municipios_qs_filtro.filter(regiao=regiao)
+    if uf:
+        municipios_qs_filtro = municipios_qs_filtro.filter(uf=uf)
+
+    total_populacao_alcancada = municipios_qs_filtro.aggregate(
+        s=Sum('populacao'))['s'] or 0
+    total_devido_ano = adimplencia_qs.aggregate(s=Sum('valor_devido'))['s'] or 0
+    total_pago_ano = adimplencia_qs.aggregate(s=Sum('valor_pago'))['s'] or 0
+    receita_per_capita = (
+        float(total_devido_ano) / total_populacao_alcancada
+        if total_populacao_alcancada else 0
+    )
+    pct_arrecadada = (
+        float(total_pago_ano) / float(total_devido_ano) * 100
+        if total_devido_ano else 0
+    )
+    total_adimplentes_ano = adimplencia_qs.filter(status='adimplente').count()
+
+    # Adimplencia historica — ultimos 6 anos
+    ano_min = ano_mais_recente - 5
+    historico_adim = []
+    for ano_h in range(ano_min, ano_mais_recente + 1):
+        q = Adimplencia.objects.filter(ano_referencia=ano_h)
+        q = _filtrar_municipios(q, regiao, uf)
+        historico_adim.append({
+            'ano': ano_h,
+            'adimplentes': q.filter(status='adimplente').count(),
+            'inadimplentes': q.filter(status='inadimplente').count() + q.filter(status='parcial').count(),
+        })
+
+    # Receita por porte populacional
+    def _classificar_porte(municipio):
+        if municipio.eh_capital:
+            return 'Capital'
+        p = municipio.populacao or 0
+        if p < 80000:    return 'até 80mil hab.'
+        if p < 150000:   return '80 a 150mil hab.'
+        if p < 350000:   return '150 a 350mil hab.'
+        if p < 500000:   return '350 a 500mil hab.'
+        return '+500mil hab.'
+
+    ordem_portes = ['até 80mil hab.', '80 a 150mil hab.', '150 a 350mil hab.',
+                    '350 a 500mil hab.', '+500mil hab.', 'Capital']
+    porte_dados = {p: {'arrecadado': 0, 'potencial': 0} for p in ordem_portes}
+    for ad in adimplencia_qs.select_related('municipio'):
+        chave = _classificar_porte(ad.municipio)
+        porte_dados[chave]['arrecadado'] += float(ad.valor_pago or 0)
+        porte_dados[chave]['potencial'] += float(ad.valor_devido or 0)
+    porte_arrecadado_total = sum(d['arrecadado'] for d in porte_dados.values())
+    porte_potencial_total = sum(d['potencial'] for d in porte_dados.values())
+
+    # Distribuicao por partido (prefeito vigente)
+    from django.db.models import Q
+
+    prefeitos_qs = (
+        Pessoa.objects
+        .filter(vinculos__papel=VinculoMunicipio.Papel.PREFEITO, vinculos__vigente=True, ativo=True)
+        .exclude(Q(partido__isnull=True) | Q(partido=''))
+    )
+    if regiao:
+        prefeitos_qs = prefeitos_qs.filter(vinculos__municipio__regiao=regiao)
+    if uf:
+        prefeitos_qs = prefeitos_qs.filter(vinculos__municipio__uf=uf)
+    partidos_agregado = (
+        prefeitos_qs.values('partido').annotate(total=Count('id', distinct=True))
+        .order_by('-total')
+    )
+    total_prefeitos_partido = sum(p['total'] for p in partidos_agregado) or 1
+    partidos_top = list(partidos_agregado[:10])
+    partido_outros_total = sum(p['total'] for p in partidos_agregado[10:])
+    partidos_chart = [
+        {'partido': p['partido'],
+         'pct': round(p['total'] / total_prefeitos_partido * 100, 2)}
+        for p in partidos_top
+    ]
+    if partido_outros_total:
+        partidos_chart.append({
+            'partido': 'Demais Partidos',
+            'pct': round(partido_outros_total / total_prefeitos_partido * 100, 2),
+        })
+
     from aplicacoes.relatorios.servicos.narrativa import gerar_insights
 
     ctx = {
@@ -129,6 +221,30 @@ def painel(request):
         'total_representacoes': total_representacoes,
         'ano_adimplencia': ano_mais_recente,
         'top_engajamento': top_engajamento,
+
+        # Resumo financeiro (4 KPIs grandes)
+        'resumo_receita_per_capita': receita_per_capita,
+        'resumo_populacao_alcancada': total_populacao_alcancada,
+        'resumo_total_devido': total_devido_ano,
+        'resumo_total_pago': total_pago_ano,
+        'resumo_pct_arrecadada': pct_arrecadada,
+        'resumo_total_adimplentes': total_adimplentes_ano,
+
+        # JSON para 3 novos graficos
+        'historico_adim_json': json.dumps({
+            'labels': [str(h['ano']) for h in historico_adim],
+            'adimplentes': [h['adimplentes'] for h in historico_adim],
+            'inadimplentes': [h['inadimplentes'] for h in historico_adim],
+        }),
+        'porte_receita_json': json.dumps({
+            'labels': ordem_portes + ['Total'],
+            'arrecadado': [round(porte_dados[p]['arrecadado'], 2) for p in ordem_portes] + [round(porte_arrecadado_total, 2)],
+            'potencial':  [round(porte_dados[p]['potencial'],  2) for p in ordem_portes] + [round(porte_potencial_total, 2)],
+        }),
+        'partidos_json': json.dumps({
+            'labels': [p['partido'] for p in partidos_chart],
+            'data':   [p['pct'] for p in partidos_chart],
+        }),
 
         # JSON para Chart.js
         'adimplencia_json': json.dumps({
@@ -570,74 +686,122 @@ def comparar_indice(request):
 
 @login_required
 def comparar_mapas(request):
-    """Página com 2 mapas lado a lado para comparação visual.
-
-    Cada mapa tem seleção independente de modo (adimplência/engajamento) e ano.
-    Insight chave: cruzar municipios com alto engajamento + inadimplentes
-    (ou vice-versa) para detectar oportunidade de relacionamento.
-    """
+    """Página com 2 mapas lado a lado + filtros independentes por mapa."""
     anos = list(
         Adimplencia.objects.values_list('ano_referencia', flat=True)
         .distinct().order_by('-ano_referencia')
     )
     if not anos:
         anos = [2026]
+    ufs = list(
+        Municipio.objects.values_list('uf', flat=True).distinct().order_by('uf')
+    )
     return render(request, 'relatorios/comparar_mapas.html', {
         'anos_disponiveis': anos,
         'ano_atual': anos[0],
+        'ufs_disponiveis': ufs,
+        'regioes_disponiveis': Municipio.Regiao.choices,
     })
 
 
 @login_required
 def mapa(request):
-    """Página de mapa do Brasil com choropleth UF + marcadores + heatmap.
+    """Página de mapa do Brasil com filtros avançados (faixa pop, RM, partido, status)."""
+    from aplicacoes.cadastro.models import VinculoMunicipio
 
-    Suporta filtro temporal — usuário escolhe ano de referência e o mapa
-    redesenha com snapshot daquele momento.
-    """
     anos = list(
         Adimplencia.objects.values_list('ano_referencia', flat=True).distinct().order_by('-ano_referencia')
     )
     if not anos:
         anos = [2026]
+    ufs = list(
+        Municipio.objects.values_list('uf', flat=True).distinct().order_by('uf')
+    )
+    rms = list(
+        Municipio.objects.exclude(regiao_metropolitana='')
+        .values_list('regiao_metropolitana', flat=True).distinct().order_by('regiao_metropolitana')
+    )
+    partidos = list(
+        Pessoa.objects
+        .filter(vinculos__papel=VinculoMunicipio.Papel.PREFEITO, vinculos__vigente=True, ativo=True)
+        .exclude(partido='').values_list('partido', flat=True)
+        .distinct().order_by('partido')
+    )
     return render(request, 'relatorios/mapa.html', {
         'ano_atual': anos[0],
         'anos_disponiveis': anos,
+        'ufs_disponiveis': ufs,
+        'rms_disponiveis': rms,
+        'partidos_disponiveis': partidos,
+        'regioes_disponiveis': Municipio.Regiao.choices,
     })
 
 
 @login_required
 def mapa_dados(request):
-    """Endpoint JSON com pontos do mapa.
+    """Endpoint JSON com pontos do mapa — inclui dados para filtros client-side.
 
-    Aceita ``modo=adimplencia`` (default) ou ``modo=engajamento`` via GET.
-    Retorna apenas municípios com lat/lng ou que tenham status registrado,
-    usando coordenada da capital da UF como fallback quando faltar geoposição.
+    Cada ponto retorna: lat/lng, nome, uf, status, rótulo, valor, id,
+    população, partido do prefeito, região, região metropolitana e capital.
+    Permite filtros sofisticados no front sem novas chamadas ao backend.
     """
+    from aplicacoes.cadastro.models import VinculoMunicipio
+
     modo = request.GET.get('modo', 'adimplencia')
     pontos = []
 
+    # Pré-carrega prefeitos vigentes (para anexar partido a cada município)
+    prefeitos_por_mun = {}
+    vinc_qs = (
+        VinculoMunicipio.objects
+        .filter(papel=VinculoMunicipio.Papel.PREFEITO, vigente=True)
+        .select_related('pessoa')
+    )
+    for v in vinc_qs:
+        if v.municipio_id not in prefeitos_por_mun:
+            prefeitos_por_mun[v.municipio_id] = v.pessoa.partido or ''
+
+    def _faixa_pop(p):
+        """Classifica em faixas — case sensitive para filtragem JS."""
+        if not p:
+            return 'sem_dado'
+        if p < 5000:    return 'ate_5k'
+        if p < 20000:   return 'de_5k_20k'
+        if p < 50000:   return 'de_20k_50k'
+        if p < 100000:  return 'de_50k_100k'
+        if p < 500000:  return 'de_100k_500k'
+        return 'acima_500k'
+
+    def _ponto(m, status, rotulo, valor):
+        lat, lng = _coord_municipio(m)
+        if lat is None:
+            return None
+        return {
+            'lat': lat, 'lng': lng,
+            'nome': m.nome, 'uf': m.uf,
+            'status': status, 'rotulo': rotulo,
+            'valor': valor, 'id': str(m.id),
+            # Campos extras para filtros client-side
+            'populacao': m.populacao or 0,
+            'faixa_pop': _faixa_pop(m.populacao or 0),
+            'acima_80k': bool(m.populacao and m.populacao >= 80000),
+            'regiao': m.regiao or '',
+            'regiao_metropolitana': m.regiao_metropolitana or '',
+            'eh_capital': m.eh_capital,
+            'partido': prefeitos_por_mun.get(m.id, ''),
+        }
+
     if modo == 'engajamento':
         engajamentos = Engajamento.objects.select_related('municipio').all()
-        # Mantém só o mais recente por município
         vistos = {}
         for eng in engajamentos.order_by('-bienio'):
             if eng.municipio_id in vistos:
                 continue
             vistos[eng.municipio_id] = eng
         for eng in vistos.values():
-            m = eng.municipio
-            lat, lng = _coord_municipio(m)
-            if lat is None:
-                continue
-            pontos.append({
-                'lat': lat, 'lng': lng,
-                'nome': m.nome, 'uf': m.uf,
-                'status': eng.nivel,
-                'rotulo': eng.get_nivel_display(),
-                'valor': eng.pontuacao_normalizada,
-                'id': str(m.id),
-            })
+            p = _ponto(eng.municipio, eng.nivel, eng.get_nivel_display(), eng.pontuacao_normalizada)
+            if p:
+                pontos.append(p)
     else:
         ano_req = request.GET.get('ano')
         ano = int(ano_req) if ano_req and ano_req.isdigit() else (
@@ -645,23 +809,13 @@ def mapa_dados(request):
             .values_list('ano_referencia', flat=True).first() or 2026
         )
         adimplencias = (
-            Adimplencia.objects
-            .filter(ano_referencia=ano)
-            .select_related('municipio')
+            Adimplencia.objects.filter(ano_referencia=ano).select_related('municipio')
         )
         for ad in adimplencias:
-            m = ad.municipio
-            lat, lng = _coord_municipio(m)
-            if lat is None:
-                continue
-            pontos.append({
-                'lat': lat, 'lng': lng,
-                'nome': m.nome, 'uf': m.uf,
-                'status': ad.status,
-                'rotulo': ad.get_status_display(),
-                'valor': float(ad.valor_pago) if ad.valor_pago else 0,
-                'id': str(m.id),
-            })
+            p = _ponto(ad.municipio, ad.status, ad.get_status_display(),
+                       float(ad.valor_pago) if ad.valor_pago else 0)
+            if p:
+                pontos.append(p)
 
     return JsonResponse({'modo': modo, 'pontos': pontos, 'total': len(pontos)})
 
@@ -758,7 +912,7 @@ def comparar_municipios(request):
     ids = []
     for chunk in ids_raw:
         ids.extend([x.strip() for x in chunk.split(',') if x.strip()])
-    ids = ids[:3]  # Máximo 3 colunas para caber na tela
+    ids = ids[:6]  # Máximo 6 cartões — acima disso a comparação visual fica ruidosa
 
     municipios = list(Municipio.objects.filter(pk__in=ids))
     # Preserva a ordem original pedida via GET

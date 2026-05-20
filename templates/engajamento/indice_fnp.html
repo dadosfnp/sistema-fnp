@@ -21,7 +21,12 @@
                 </div>
                 <div>
                     <h2 class="text-xl font-bold text-gray-900">Índice FNP — Ranking institucional</h2>
-                    <p class="text-sm text-gray-500 mt-0.5">Nota composta 0-100 combinando engajamento, adimplência, participação e presença.</p>
+                    <p class="text-sm text-gray-500 mt-0.5">
+                        Nota composta 0-100 combinando engajamento, adimplência, participação e presença.
+                        <a href="{% url 'engajamento:metodologia' %}#indice-fnp" class="inline-flex items-center gap-1 text-fnp-600 hover:text-fnp-700 font-medium ml-1">
+                            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Como é calculado?
+                        </a>
+                    </p>
                 </div>
             </div>
             <form method="get" class="flex items-center gap-2">

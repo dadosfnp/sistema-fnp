@@ -1,210 +1,301 @@
 {% extends "base.html" %}
+{% load fnp_tags %}
 
 {% block titulo %}Relatórios — Sistema FNP{% endblock %}
 {% block titulo_pagina %}Relatórios{% endblock %}
 
 {% block conteudo %}
-<div class="space-y-6">
+<div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Header com filtros e exportação -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div class="flex items-start gap-4">
-                <div class="w-11 h-11 rounded-xl bg-rose-50 flex items-center justify-center flex-shrink-0">
-                    <i data-lucide="pie-chart" class="w-5 h-5 text-rose-500"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900">Painel de Relatórios</h2>
-                    <p class="text-sm text-gray-500 mt-0.5">Visão consolidada de pessoas, municípios, categorias institucionais e engajamento. Use os filtros para focar em uma região ou UF.</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap">
-                <form method="get" class="flex items-center gap-2">
-                    <select name="regiao" onchange="this.form.submit()" class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
-                        <option value="">Todas as regiões</option>
-                        {% for val, label in regioes %}<option value="{{ val }}" {% if val == regiao_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
-                    </select>
-                    <select name="uf" onchange="this.form.submit()" class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
-                        <option value="">Todas as UFs</option>
-                        {% for val, label in ufs %}<option value="{{ val }}" {% if val == uf_filtro %}selected{% endif %}>{{ val }}</option>{% endfor %}
-                    </select>
-                    {% if regiao_filtro or uf_filtro %}
-                    <a href="{% url 'relatorios:painel' %}" class="text-xs text-gray-500 hover:text-fnp-500 px-2">Limpar</a>
-                    {% endif %}
-                </form>
-                <a href="{% url 'relatorios:comparar_municipios' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 border border-indigo-200 transition-colors">
-                    <i data-lucide="git-compare" class="w-4 h-4"></i> Comparar
+    {# ========== HEADER limpo: titulo + filtros + export ========== #}
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Painel de Relatórios</h2>
+            <p class="text-sm text-gray-500 mt-0.5">Visão consolidada — use filtros para focar em uma região ou UF.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <form method="get" class="flex items-center gap-2">
+                <select name="regiao" onchange="this.form.submit()" class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+                    <option value="">Todas as regiões</option>
+                    {% for val, label in regioes %}<option value="{{ val }}" {% if val == regiao_filtro %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <select name="uf" onchange="this.form.submit()" class="text-sm border border-gray-200 rounded-lg bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-fnp-400/30">
+                    <option value="">Todas as UFs</option>
+                    {% for val, label in ufs %}<option value="{{ val }}" {% if val == uf_filtro %}selected{% endif %}>{{ val }}</option>{% endfor %}
+                </select>
+                {% if regiao_filtro or uf_filtro %}
+                <a href="{% url 'relatorios:painel' %}" class="text-xs text-gray-500 hover:text-fnp-500 px-2">Limpar</a>
+                {% endif %}
+            </form>
+            <div class="inline-flex bg-gray-50 border border-gray-200 rounded-lg p-1 gap-1">
+                <a href="{% url 'relatorios:exportar_excel' %}" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 rounded hover:bg-emerald-50 transition-colors" title="Baixar Excel">
+                    <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Excel
                 </a>
-                <a href="{% url 'relatorios:exportar_excel' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 border border-emerald-200 transition-colors">
-                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Excel
-                </a>
-                <a href="{% url 'relatorios:exportar_pdf' %}" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-red-700 bg-red-50 rounded-lg hover:bg-red-100 border border-red-200 transition-colors">
-                    <i data-lucide="file-text" class="w-4 h-4"></i> PDF
+                <a href="{% url 'relatorios:exportar_pdf' %}" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-red-700 rounded hover:bg-red-50 transition-colors" title="Baixar PDF">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i> PDF
                 </a>
             </div>
         </div>
     </div>
 
-    {# Narrativa: insights gerados a partir dos dados #}
-    {% if insights %}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center gap-2 mb-3">
-            <i data-lucide="sparkles" class="w-4 h-4 text-fnp-500"></i>
-            <h3 class="text-sm font-semibold text-gray-700">Leitura rápida</h3>
-            <span class="text-xs text-gray-400">— gerado dos dados atuais</span>
+    {# ========== RESUMO FINANCEIRO (4 KPIs com tarja colorida) ========== #}
+    <div>
+        <p class="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-2">Resumo {{ ano_adimplencia }}</p>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white rounded-xl shadow-sm border-l-4 border-blue-400 border-y border-r border-gray-100 p-5">
+                <p class="text-[10px] uppercase tracking-widest font-bold text-gray-500">Receita per capita</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">R$ {{ resumo_receita_per_capita|floatformat:2 }}</p>
+                <p class="text-[11px] text-gray-400 mt-0.5">Média da base filtrada</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border-l-4 border-emerald-400 border-y border-r border-gray-100 p-5">
+                <p class="text-[10px] uppercase tracking-widest font-bold text-gray-500">População alcançada</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ resumo_populacao_alcancada|floatformat:"0g" }}</p>
+                <p class="text-[11px] text-gray-400 mt-0.5"><i data-lucide="users" class="w-3 h-3 inline -mt-0.5"></i> Habitantes nos municípios cobertos</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border-l-4 border-amber-400 border-y border-r border-gray-100 p-5">
+                <p class="text-[10px] uppercase tracking-widest font-bold text-gray-500">Contribuição</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">R$ {{ resumo_total_devido|floatformat:"0g" }}</p>
+                <p class="text-[11px] text-gray-400 mt-0.5"><i data-lucide="hand-coins" class="w-3 h-3 inline -mt-0.5"></i> R$ {{ resumo_total_pago|floatformat:"0g" }} arrecadado ({{ resumo_pct_arrecadada|floatformat:1 }}%)</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border-l-4 border-fnp-400 border-y border-r border-gray-100 p-5">
+                <p class="text-[10px] uppercase tracking-widest font-bold text-gray-500">Municípios</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_municipios }}</p>
+                <p class="text-[11px] text-gray-400 mt-0.5"><i data-lucide="building-2" class="w-3 h-3 inline -mt-0.5"></i> {{ resumo_total_adimplentes }} adimplentes</p>
+            </div>
         </div>
-        <ul class="space-y-2">
+    </div>
+
+    {# ========== INSIGHTS em destaque (foco principal) ========== #}
+    {% if insights %}
+    <div class="bg-gradient-to-r from-fnp-500/5 to-violet-500/5 border border-fnp-100 rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center">
+                <i data-lucide="sparkles" class="w-4 h-4 text-fnp-600"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-gray-900">Leitura rápida</h3>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest">Gerado dos dados atuais</p>
+            </div>
+        </div>
+        <ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5">
             {% for i in insights %}
-            <li class="flex items-start gap-3 text-sm">
-                <span class="mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0
+            <li class="flex items-start gap-2.5 text-sm">
+                <span class="mt-1.5 w-2 h-2 rounded-full flex-shrink-0
                     {% if i.severidade == 'positivo' %}bg-emerald-500
                     {% elif i.severidade == 'critico' %}bg-red-500
                     {% elif i.severidade == 'atencao' %}bg-amber-500
                     {% else %}bg-gray-300{% endif %}"></span>
-                <span class="text-gray-700 leading-relaxed">{{ i.texto }}</span>
+                <span class="text-gray-700 leading-snug">{{ i.texto }}</span>
             </li>
             {% endfor %}
         </ul>
     </div>
     {% endif %}
 
-    <!-- KPIs principais -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 uppercase">Pessoas ativas</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_pessoas }}</p>
+    {# ========== KPIs COBERTURA (4 cards principais) ========== #}
+    <div>
+        <p class="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-2">Cobertura</p>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Pessoas ativas</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_pessoas }}</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><i data-lucide="users" class="w-4 h-4 text-blue-500"></i></div>
                 </div>
-                <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center"><i data-lucide="users" class="w-4 h-4 text-blue-500"></i></div>
             </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 uppercase">Municípios</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_municipios }}</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Municípios</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_municipios }}</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><i data-lucide="building-2" class="w-4 h-4 text-emerald-500"></i></div>
                 </div>
-                <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center"><i data-lucide="building-2" class="w-4 h-4 text-emerald-500"></i></div>
             </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 uppercase">Representações vigentes</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_representacoes }}</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Representações</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_representacoes }}</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center"><i data-lucide="user-check" class="w-4 h-4 text-indigo-500"></i></div>
                 </div>
-                <div class="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center"><i data-lucide="user-check" class="w-4 h-4 text-indigo-500"></i></div>
             </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-medium text-gray-500 uppercase">Participações</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_participacoes }}</p>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Participações</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{{ total_participacoes }}</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><i data-lucide="check-square" class="w-4 h-4 text-purple-500"></i></div>
                 </div>
-                <div class="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center"><i data-lucide="how-to-reg" class="w-4 h-4 text-purple-500"></i></div>
             </div>
         </div>
     </div>
 
-    <!-- KPIs por categoria -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
-            <p class="text-xs font-medium text-gray-500 uppercase">Espaços de Diálogo</p>
-            <p class="text-2xl font-bold text-indigo-600 mt-1 tabular-nums">{{ total_instancias }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
-            <p class="text-xs font-medium text-gray-500 uppercase">Projetos</p>
-            <p class="text-2xl font-bold text-cyan-600 mt-1 tabular-nums">{{ total_projetos }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
-            <p class="text-xs font-medium text-gray-500 uppercase">Missões</p>
-            <p class="text-2xl font-bold text-rose-600 mt-1 tabular-nums">{{ total_missoes }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
-            <p class="text-xs font-medium text-gray-500 uppercase">Atividades</p>
-            <p class="text-2xl font-bold text-teal-600 mt-1 tabular-nums">{{ total_atividades }}</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
-            <p class="text-xs font-medium text-gray-500 uppercase">Eventos</p>
-            <p class="text-2xl font-bold text-purple-600 mt-1 tabular-nums">{{ total_eventos }}</p>
-        </div>
-    </div>
-
-    <!-- Gráficos: Adimplência + Engajamento + Regiões -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Adimplência {{ ano_adimplencia }}</h3>
-            <div class="flex justify-center"><canvas id="chartAdimplencia" width="240" height="240"></canvas></div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Engajamento por nível</h3>
-            <div class="flex justify-center"><canvas id="chartEngajamento" width="240" height="240"></canvas></div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Municípios por região</h3>
-            <div class="flex justify-center"><canvas id="chartRegioes" width="240" height="240"></canvas></div>
+    {# ========== KPIs INSTITUCIONAIS (5 cards menores) ========== #}
+    <div>
+        <p class="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-2">Atividade institucional</p>
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <a href="{% url 'instancias:lista_instancias' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 hover:shadow-md hover:border-indigo-200 transition-all group">
+                <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Espaços</p>
+                <p class="text-xl font-bold text-indigo-600 mt-0.5 tabular-nums group-hover:text-indigo-700">{{ total_instancias }}</p>
+            </a>
+            <a href="{% url 'projetos:lista_projetos' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 hover:shadow-md hover:border-cyan-200 transition-all group">
+                <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Projetos</p>
+                <p class="text-xl font-bold text-cyan-600 mt-0.5 tabular-nums">{{ total_projetos }}</p>
+            </a>
+            <a href="{% url 'missoes:lista_missoes' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 hover:shadow-md hover:border-rose-200 transition-all group">
+                <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Missões</p>
+                <p class="text-xl font-bold text-rose-600 mt-0.5 tabular-nums">{{ total_missoes }}</p>
+            </a>
+            <a href="{% url 'atividades:lista_atividades' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 hover:shadow-md hover:border-teal-200 transition-all group">
+                <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Atividades</p>
+                <p class="text-xl font-bold text-teal-600 mt-0.5 tabular-nums">{{ total_atividades }}</p>
+            </a>
+            <a href="{% url 'eventos:lista_eventos' %}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 hover:shadow-md hover:border-purple-200 transition-all group">
+                <p class="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Eventos</p>
+                <p class="text-xl font-bold text-purple-600 mt-0.5 tabular-nums">{{ total_eventos }}</p>
+            </a>
         </div>
     </div>
 
-    <!-- Gráficos: Categorias -->
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Instâncias por origem</h3>
-            <div class="flex justify-center"><canvas id="chartInstancias" width="220" height="220"></canvas></div>
+    {# ========== GRAFICOS — bloco 1: CUMPRIMENTO (financeiro + engajamento) ========== #}
+    <div>
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-[10px] uppercase tracking-widest font-bold text-gray-400">Cumprimento</p>
+            <a href="{% url 'engajamento:metodologia' %}" class="text-[11px] text-fnp-500 hover:text-fnp-700 inline-flex items-center gap-1">
+                <i data-lucide="info" class="w-3 h-3"></i> Como é calculado
+            </a>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Projetos por status</h3>
-            <div class="flex justify-center"><canvas id="chartProjetos" width="220" height="220"></canvas></div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Missões nacional × internacional</h3>
-            <div class="flex justify-center"><canvas id="chartMissoes" width="220" height="220"></canvas></div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-sm font-semibold text-gray-900 mb-4">Atividades por status</h3>
-            <div class="flex justify-center"><canvas id="chartAtividades" width="220" height="220"></canvas></div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-xs font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                    <i data-lucide="wallet" class="w-3.5 h-3.5 text-emerald-500"></i>
+                    Adimplência {{ ano_adimplencia }}
+                </h3>
+                <div class="flex justify-center"><canvas id="chartAdimplencia" width="220" height="220"></canvas></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-xs font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                    <i data-lucide="trending-up" class="w-3.5 h-3.5 text-blue-500"></i>
+                    Engajamento por nível
+                </h3>
+                <div class="flex justify-center"><canvas id="chartEngajamento" width="220" height="220"></canvas></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-xs font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                    <i data-lucide="map" class="w-3.5 h-3.5 text-rose-500"></i>
+                    Municípios por região
+                </h3>
+                <div class="flex justify-center"><canvas id="chartRegioes" width="220" height="220"></canvas></div>
+            </div>
         </div>
     </div>
 
-    <!-- Top 10 Engajamento -->
+    {# ========== GRAFICOS — bloco 2: CATEGORIAS ========== #}
+    <div>
+        <p class="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-2">Distribuição por categoria</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <h3 class="text-xs font-semibold text-gray-700 mb-3">Instâncias por origem</h3>
+                <div class="flex justify-center"><canvas id="chartInstancias" width="200" height="200"></canvas></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <h3 class="text-xs font-semibold text-gray-700 mb-3">Projetos por status</h3>
+                <div class="flex justify-center"><canvas id="chartProjetos" width="200" height="200"></canvas></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <h3 class="text-xs font-semibold text-gray-700 mb-3">Missões nacional × intl.</h3>
+                <div class="flex justify-center"><canvas id="chartMissoes" width="200" height="200"></canvas></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <h3 class="text-xs font-semibold text-gray-700 mb-3">Atividades por status</h3>
+                <div class="flex justify-center"><canvas id="chartAtividades" width="200" height="200"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    {# ========== GRAFICOS — historico + porte + partido (analise profunda) ========== #}
+    <div>
+        <p class="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-2">Análise profunda</p>
+        <div class="space-y-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                    <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-emerald-500"></i>
+                    Quantidade de municípios adimplentes vs. inadimplentes (últimos 6 anos)
+                </h3>
+                <div style="position: relative; height: 280px;"><canvas id="chartHistoricoAdim"></canvas></div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                    <i data-lucide="trending-up" class="w-3.5 h-3.5 text-amber-500"></i>
+                    Receita arrecadada vs. receita potencial por porte ({{ ano_adimplencia }})
+                </h3>
+                <div style="position: relative; height: 280px;"><canvas id="chartPorteReceita"></canvas></div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                    <i data-lucide="flag" class="w-3.5 h-3.5 text-fuchsia-500"></i>
+                    Percentual de municípios por partido do prefeito ({{ ano_adimplencia }})
+                </h3>
+                <div style="position: relative; height: 280px;"><canvas id="chartPartidos"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    {# ========== TOP 10 ENGAJAMENTO com avatar ========== #}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i> Top 10 municípios mais engajados</h3>
-            <a href="{% url 'engajamento:metodologia' %}" class="text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver metodologia</a>
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i>
+                Top 10 municípios mais engajados
+            </h3>
+            <a href="{% url 'engajamento:lista_engajamento' %}" class="text-xs text-fnp-500 hover:text-fnp-700 font-medium">Ver ranking completo →</a>
         </div>
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50/50">
-                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    <th class="px-6 py-3 w-12">#</th>
-                    <th class="px-6 py-3">Município</th>
-                    <th class="px-6 py-3">Região</th>
-                    <th class="px-6 py-3">Nível</th>
-                    <th class="px-6 py-3 text-right">Pontos (0-100)</th>
-                    <th class="px-6 py-3 text-right">Participações</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-50">
-                {% for eng in top_engajamento %}
-                <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='{% url 'cadastro:detalhe_municipio' eng.municipio.pk %}'">
-                    <td class="px-6 py-3 font-bold text-gray-400 tabular-nums">{{ forloop.counter }}</td>
-                    <td class="px-6 py-3 font-medium text-gray-900">{{ eng.municipio.nome }}/{{ eng.municipio.uf }}</td>
-                    <td class="px-6 py-3 text-gray-600">{{ eng.municipio.get_regiao_display }}</td>
-                    <td class="px-6 py-3">
-                        {% if eng.nivel == 'alto' %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700">{{ eng.get_nivel_display }}</span>
-                        {% elif eng.nivel == 'medio' %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 text-blue-700">{{ eng.get_nivel_display }}</span>
-                        {% elif eng.nivel == 'baixo' %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700">{{ eng.get_nivel_display }}</span>
-                        {% else %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-500">{{ eng.get_nivel_display }}</span>{% endif %}
-                    </td>
-                    <td class="px-6 py-3 text-right font-semibold text-gray-700 tabular-nums">{{ eng.pontuacao_normalizada }}/100</td>
-                    <td class="px-6 py-3 text-right text-gray-600 tabular-nums">{{ eng.total_participacoes }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6" class="px-6 py-10 text-center text-gray-400">Nenhum engajamento calculado ainda.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="divide-y divide-gray-50">
+            {% for eng in top_engajamento %}
+            <a href="{% url 'cadastro:detalhe_municipio' eng.municipio.pk %}" class="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/70 transition-colors group">
+                <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
+                    {% if forloop.counter == 1 %}bg-amber-100 text-amber-700
+                    {% elif forloop.counter == 2 %}bg-gray-200 text-gray-600
+                    {% elif forloop.counter == 3 %}bg-orange-100 text-orange-700
+                    {% else %}bg-gray-50 text-gray-500{% endif %}">
+                    {{ forloop.counter }}
+                </div>
+                <div class="w-8 h-8 rounded-lg overflow-hidden bg-white p-0.5 ring-1 ring-gray-100 flex-shrink-0">
+                    {% brasao_municipio eng.municipio as brasao_url %}<img src="{{ brasao_url }}" class="w-full h-full object-contain" alt="">
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 truncate group-hover:text-fnp-600">{{ eng.municipio.nome }}/{{ eng.municipio.uf }}</p>
+                    <p class="text-xs text-gray-400">{{ eng.municipio.get_regiao_display }}</p>
+                </div>
+                <div class="hidden sm:flex items-center gap-2 w-40">
+                    <div class="flex-1 h-1.5 bg-gray-100 rounded-full">
+                        <div class="h-1.5 rounded-full
+                            {% if eng.pontuacao_normalizada >= 70 %}bg-emerald-500
+                            {% elif eng.pontuacao_normalizada >= 40 %}bg-blue-500
+                            {% elif eng.pontuacao_normalizada >= 10 %}bg-amber-500
+                            {% else %}bg-gray-300{% endif %}"
+                            style="width: {{ eng.pontuacao_normalizada }}%"></div>
+                    </div>
+                    <span class="text-xs font-semibold text-gray-700 tabular-nums w-10 text-right">{{ eng.pontuacao_normalizada }}</span>
+                </div>
+                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full
+                    {% if eng.nivel == 'alto' %}bg-emerald-50 text-emerald-700
+                    {% elif eng.nivel == 'medio' %}bg-blue-50 text-blue-700
+                    {% elif eng.nivel == 'baixo' %}bg-amber-50 text-amber-700
+                    {% else %}bg-gray-100 text-gray-500{% endif %}">{{ eng.get_nivel_display }}</span>
+                <span class="text-xs text-gray-400 hidden md:inline tabular-nums w-16 text-right">{{ eng.total_participacoes }} part.</span>
+            </a>
+            {% empty %}
+            <p class="px-5 py-10 text-center text-sm text-gray-400">Nenhum engajamento calculado ainda.</p>
+            {% endfor %}
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -213,7 +304,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const optsDoughnut = { responsive: false, plugins: { legend: { position: 'bottom', labels: { padding: 10, usePointStyle: true, font: { size: 11 } } } } };
+    const optsDoughnut = { responsive: false, plugins: { legend: { position: 'bottom', labels: { padding: 8, usePointStyle: true, font: { size: 10 } } } } };
     const optsBar = { responsive: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } };
 
     new Chart(document.getElementById('chartAdimplencia'), {
@@ -250,6 +341,79 @@ document.addEventListener('DOMContentLoaded', function() {
         type: 'doughnut',
         data: { labels: {{ atividades_json|safe }}.labels, datasets: [{ data: {{ atividades_json|safe }}.data, backgroundColor: ['#3b82f6','#10b981','#9ca3af','#ef4444'], borderWidth: 0 }] },
         options: optsDoughnut
+    });
+
+    // ====== Charts adicionais: historico + porte + partido ======
+    const optsResponsivo = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } },
+        scales: { y: { beginAtZero: true } },
+    };
+
+    // Helper para formatar valor monetario nas labels
+    const formatBRL = (v) => v >= 1e6 ? (v/1e6).toFixed(2)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(0);
+
+    const histAdim = {{ historico_adim_json|safe }};
+    new Chart(document.getElementById('chartHistoricoAdim'), {
+        type: 'bar',
+        data: {
+            labels: histAdim.labels,
+            datasets: [
+                { label: 'Inadimplentes', data: histAdim.inadimplentes, backgroundColor: '#fca5a5', borderRadius: 4 },
+                { label: 'Adimplentes',   data: histAdim.adimplentes,   backgroundColor: '#86efac', borderRadius: 4 },
+            ],
+        },
+        options: {
+            ...optsResponsivo,
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'Número de municípios' } } },
+        },
+    });
+
+    const porteR = {{ porte_receita_json|safe }};
+    new Chart(document.getElementById('chartPorteReceita'), {
+        type: 'bar',
+        data: {
+            labels: porteR.labels,
+            datasets: [
+                { label: 'Arrecadado', data: porteR.arrecadado, backgroundColor: '#86efac', borderRadius: 4 },
+                { label: 'Potencial',  data: porteR.potencial,  backgroundColor: '#fdba74', borderRadius: 4 },
+            ],
+        },
+        options: {
+            ...optsResponsivo,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Valor (R$)' },
+                    ticks: { callback: (v) => 'R$ ' + formatBRL(v) },
+                },
+            },
+            plugins: {
+                ...optsResponsivo.plugins,
+                tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: R$ ${formatBRL(ctx.parsed.y)}` } },
+            },
+        },
+    });
+
+    const partidos = {{ partidos_json|safe }};
+    const corPartidos = ['#06b6d4','#d97706','#10b981','#ec4899','#f87171','#84cc16','#a855f7','#14b8a6','#3b82f6','#c084fc','#ca8a04'];
+    new Chart(document.getElementById('chartPartidos'), {
+        type: 'bar',
+        data: {
+            labels: partidos.labels,
+            datasets: [{
+                label: '% Municípios', data: partidos.data,
+                backgroundColor: partidos.labels.map((_, i) => corPartidos[i % corPartidos.length]),
+                borderRadius: 4,
+            }],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ctx.parsed.y.toFixed(2) + '%' } } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: '% Municípios' }, ticks: { callback: (v) => v + '%' } },
+            },
+        },
     });
 });
 </script>

@@ -30,7 +30,7 @@
                 ).slice(0, 8);
             },
             adicionar(id) {
-                if (this.selecionados.length >= 3) return;
+                if (this.selecionados.length >= 6) return;
                 if (this.selecionados.includes(id)) return;
                 this.selecionados.push(id);
                 this.aplicar();
@@ -52,7 +52,7 @@
         <div class="flex items-center justify-between mb-3">
             <p class="text-sm font-semibold text-gray-700">
                 Municípios selecionados
-                <span class="ml-1 text-xs font-normal text-gray-400" x-text="`(${selecionados.length}/3)`"></span>
+                <span class="ml-1 text-xs font-normal text-gray-400" x-text="`(${selecionados.length}/6)`"></span>
             </p>
             {% if cartoes %}
             <a href="{% url 'relatorios:comparar_municipios' %}" class="text-xs text-gray-500 hover:text-red-500">Limpar</a>
@@ -73,7 +73,7 @@
         </div>
 
         {# Busca + sugestoes #}
-        <div class="relative" x-show="selecionados.length < 3">
+        <div class="relative" x-show="selecionados.length < 6">
             <div class="relative">
                 <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
                 <input type="text" x-model="busca" placeholder="Buscar município por nome ou UF..."

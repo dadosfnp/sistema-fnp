@@ -72,16 +72,22 @@ def indice_fnp_ranking(request):
 
 @login_required
 def metodologia(request):
-    """Página de Metodologia — explica como o engajamento é calculado.
+    """Página de Metodologia — explica engajamento + Índice FNP composto.
 
-    Mostra a configuração geral (meta, decaimento, penalidades) e a tabela
-    de pesos por categoria. Todos os valores vêm do banco e podem ser
-    ajustados pelo admin sem alteração de código.
+    Mostra a configuração geral (meta, decaimento, penalidades), a tabela
+    de pesos por categoria e a fórmula do Índice FNP (combinação 4 dimensões).
     """
+    from aplicacoes.engajamento.servicos.indice_fnp import (
+        META_PARTICIPACOES_ANO, META_PRESENCAS_ANO, PESOS as PESOS_INDICE,
+    )
+
     config = ConfiguracaoEngajamento.atual()
     pesos = PesoEngajamento.objects.filter(ativo=True).order_by('chave')
     ctx = {
         'config': config,
         'pesos': pesos,
+        'pesos_indice': PESOS_INDICE,
+        'meta_participacoes': META_PARTICIPACOES_ANO,
+        'meta_presencas': META_PRESENCAS_ANO,
     }
     return render(request, 'engajamento/metodologia.html', ctx)

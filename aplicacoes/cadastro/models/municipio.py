@@ -38,6 +38,10 @@ class Municipio(ModeloBase):
     brasao = models.ImageField('brasao', upload_to='municipios/brasoes/', blank=True)
     eh_capital = models.BooleanField('é capital?', default=False)
     associado_fnp = models.BooleanField('associado FNP?', default=False)
+    regiao_metropolitana = models.CharField(
+        'região metropolitana', max_length=80, blank=True,
+        help_text='Nome da Região Metropolitana se o município faz parte (ex: RM de São Paulo).',
+    )
     latitude = models.DecimalField('latitude', max_digits=10, decimal_places=7, blank=True, null=True)
     longitude = models.DecimalField('longitude', max_digits=10, decimal_places=7, blank=True, null=True)
 

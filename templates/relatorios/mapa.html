@@ -98,8 +98,104 @@
 
             <div class="flex items-center gap-2 ml-auto">
                 <span class="text-xs text-gray-500" x-text="contadorTexto"></span>
+                <button @click="filtrosAbertos = !filtrosAbertos"
+                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors"
+                        :class="filtrosAtivos > 0 ? 'text-fnp-700 bg-fnp-50 border-fnp-200' : 'text-gray-600 bg-gray-50 hover:bg-gray-100 border-gray-200'">
+                    <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+                    Filtros
+                    <span x-show="filtrosAtivos > 0" class="ml-1 inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full bg-fnp-500 text-white" x-text="filtrosAtivos"></span>
+                </button>
                 <button @click="resetarVisao()" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 border border-gray-200">
                     <i data-lucide="locate" class="w-3.5 h-3.5"></i> Centralizar
+                </button>
+            </div>
+        </div>
+
+        {# ====== Painel de filtros avancados ====== #}
+        <div x-show="filtrosAbertos" x-transition class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {# Status (checkboxes) #}
+            <div>
+                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <i data-lucide="circle-dot" class="w-3 h-3"></i> Status
+                </p>
+                <div class="space-y-1.5">
+                    <template x-for="s in opcoesStatus" :key="s.valor">
+                        <label class="flex items-center gap-2 text-xs cursor-pointer">
+                            <input type="checkbox" :value="s.valor" x-model="filtroStatus" @change="aplicarFiltros()"
+                                   class="rounded border-gray-300 text-fnp-500 focus:ring-fnp-500/30">
+                            <span class="w-2.5 h-2.5 rounded-full" :style="`background: ${s.cor}`"></span>
+                            <span class="text-gray-700" x-text="s.rotulo"></span>
+                        </label>
+                    </template>
+                </div>
+            </div>
+
+            {# Faixa populacional #}
+            <div>
+                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <i data-lucide="users" class="w-3 h-3"></i> Faixa populacional
+                </p>
+                <div class="space-y-1">
+                    <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" value="ate_5k" x-model="filtroFaixaPop" @change="aplicarFiltros()" class="rounded border-gray-300 text-fnp-500"><span>Até 5 mil</span></label>
+                    <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" value="de_5k_20k" x-model="filtroFaixaPop" @change="aplicarFiltros()" class="rounded border-gray-300 text-fnp-500"><span>5 a 20 mil</span></label>
+                    <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" value="de_20k_50k" x-model="filtroFaixaPop" @change="aplicarFiltros()" class="rounded border-gray-300 text-fnp-500"><span>20 a 50 mil</span></label>
+                    <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" value="de_50k_100k" x-model="filtroFaixaPop" @change="aplicarFiltros()" class="rounded border-gray-300 text-fnp-500"><span>50 a 100 mil</span></label>
+                    <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" value="de_100k_500k" x-model="filtroFaixaPop" @change="aplicarFiltros()" class="rounded border-gray-300 text-fnp-500"><span>100 a 500 mil</span></label>
+                    <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" value="acima_500k" x-model="filtroFaixaPop" @change="aplicarFiltros()" class="rounded border-gray-300 text-fnp-500"><span>+500 mil</span></label>
+                </div>
+                <div class="mt-2 pt-2 border-t border-gray-100">
+                    <select x-model="filtro80k" @change="aplicarFiltros()" class="w-full text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        <option value="">Sem corte 80k</option>
+                        <option value="acima">Acima de 80 mil</option>
+                        <option value="abaixo">Abaixo de 80 mil</option>
+                    </select>
+                </div>
+            </div>
+
+            {# UF / Região / RM #}
+            <div>
+                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <i data-lucide="map-pin" class="w-3 h-3"></i> Localização
+                </p>
+                <div class="space-y-2">
+                    <select x-model="filtroUF" @change="aplicarFiltros()" class="w-full text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        <option value="">Todas UFs</option>
+                        {% for uf in ufs_disponiveis %}<option value="{{ uf }}">{{ uf }}</option>{% endfor %}
+                    </select>
+                    <select x-model="filtroRegiao" @change="aplicarFiltros()" class="w-full text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        <option value="">Todas regiões</option>
+                        {% for v, l in regioes_disponiveis %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+                    </select>
+                    <select x-model="filtroRM" @change="aplicarFiltros()" class="w-full text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        <option value="">Todas RMs</option>
+                        {% for rm in rms_disponiveis %}<option value="{{ rm }}">{{ rm }}</option>{% endfor %}
+                        <option value="__sem_rm__">Sem região metropolitana</option>
+                    </select>
+                </div>
+            </div>
+
+            {# Partido + capital + acoes #}
+            <div>
+                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <i data-lucide="flag" class="w-3 h-3"></i> Partido / Tipo
+                </p>
+                <select x-model="filtroPartido" @change="aplicarFiltros()" class="w-full text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                    <option value="">Todos os partidos</option>
+                    {% for p in partidos_disponiveis %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+                    <option value="__sem_partido__">Sem partido informado</option>
+                </select>
+                <label class="flex items-center gap-2 text-xs cursor-pointer mt-3">
+                    <input type="checkbox" x-model="filtroSoCapital" @change="aplicarFiltros()" class="rounded border-gray-300 text-fnp-500">
+                    <span class="text-gray-700">Apenas capitais</span>
+                </label>
+                <label class="flex items-center gap-2 text-xs cursor-pointer mt-1.5">
+                    <input type="checkbox" x-model="filtroSoAssociado" @change="aplicarFiltros()" class="rounded border-gray-300 text-fnp-500">
+                    <span class="text-gray-700">Apenas associados FNP</span>
+                </label>
+                <button @click="limparFiltros()" type="button"
+                        x-show="filtrosAtivos > 0"
+                        class="mt-3 inline-flex items-center gap-1 px-2 py-1 text-xs text-red-600 hover:text-red-700">
+                    <i data-lucide="x-circle" class="w-3 h-3"></i> Limpar filtros
                 </button>
             </div>
         </div>
@@ -162,11 +258,53 @@ function mapaBrasil() {
         carregando: false,
         totalMunicipios: 0,
         totalUF: 0,
+        // Filtros avancados (client-side)
+        filtrosAbertos: false,
+        filtroStatus: [],       // ex: ['adimplente','parcial']
+        filtroFaixaPop: [],     // ex: ['ate_5k','de_5k_20k']
+        filtro80k: '',          // 'acima' | 'abaixo' | ''
+        filtroUF: '',
+        filtroRegiao: '',
+        filtroRM: '',           // '__sem_rm__' = filtra municipios sem RM
+        filtroPartido: '',      // '__sem_partido__' = sem partido
+        filtroSoCapital: false,
+        filtroSoAssociado: false,
+        _pontosCache: [],       // dados brutos da API (filtros aplicam sem nova chamada)
         _mapa: null,
         _camadaMarkers: null,
         _camadaUF: null,
         _geoJsonUFCache: null,
         _legenda: null,
+        // Opcoes de status dinamicas conforme modo
+        get opcoesStatus() {
+            if (this.modo === 'engajamento') {
+                return [
+                    {valor:'alto', rotulo:'Alto', cor:'#10b981'},
+                    {valor:'medio', rotulo:'Médio', cor:'#f59e0b'},
+                    {valor:'baixo', rotulo:'Baixo', cor:'#f97316'},
+                    {valor:'inativo', rotulo:'Inativo', cor:'#6b7280'},
+                ];
+            }
+            return [
+                {valor:'adimplente', rotulo:'Adimplente', cor:'#10b981'},
+                {valor:'parcial', rotulo:'Adimplência parcial', cor:'#f59e0b'},
+                {valor:'inadimplente', rotulo:'Inadimplente', cor:'#ef4444'},
+                {valor:'isento', rotulo:'Isento', cor:'#6b7280'},
+            ];
+        },
+        get filtrosAtivos() {
+            let n = 0;
+            if (this.filtroStatus.length > 0) n++;
+            if (this.filtroFaixaPop.length > 0) n++;
+            if (this.filtro80k) n++;
+            if (this.filtroUF) n++;
+            if (this.filtroRegiao) n++;
+            if (this.filtroRM) n++;
+            if (this.filtroPartido) n++;
+            if (this.filtroSoCapital) n++;
+            if (this.filtroSoAssociado) n++;
+            return n;
+        },
 
         get contadorTexto() {
             const partes = [];
@@ -227,36 +365,70 @@ function mapaBrasil() {
         },
 
         async _recarregarMunicipios() {
-            this._camadaMarkers.clearLayers();
             try {
                 const r = await fetch(`{% url 'relatorios:mapa_dados' %}?modo=${this.modo}&ano=${this.ano}`);
                 const d = await r.json();
-                this.totalMunicipios = d.total;
-                const paleta = this.modo === 'engajamento' ? CORES_ENGAJAMENTO_MARKER : CORES_ADIMPLENCIA_MARKER;
-                const fallback = {cor: '#9ca3af', rotulo: '—'};
-                d.pontos.forEach(p => {
-                    const meta = paleta[p.status] || fallback;
-                    // CircleMarker e vetor: acompanha o zoom corretamente.
-                    const marker = L.circleMarker([p.lat, p.lng], {
-                        radius: 7,
-                        fillColor: meta.cor,
-                        fillOpacity: 0.85,
-                        color: '#ffffff',
-                        weight: 2,
-                    });
-                    const urlDetalhe = URL_BASE_MUNICIPIO + p.id + '/';
-                    marker.bindPopup(`
-                        <strong>${p.nome}/${p.uf}</strong><br>
-                        <span style="font-size:11px;color:#6b7280;">${this.modo === 'engajamento' ? 'Engajamento' : 'Adimplência'}: <b style="color:${meta.cor};">${p.rotulo}</b></span>
-                        ${this.modo === 'engajamento' ? `<br><span style="font-size:11px;">Pontuação: ${p.valor}/100</span>` : ''}
-                        <br><a href="${urlDetalhe}" style="font-size:11px;color:#1e3a5f;font-weight:600;">Ver detalhe →</a>
-                    `);
-                    this._camadaMarkers.addLayer(marker);
-                });
+                this._pontosCache = d.pontos;
+                this.aplicarFiltros();
             } catch (e) {
                 console.error('Erro municipios', e);
                 if (window.toast) window.toast('error', 'Falha ao carregar municípios');
             }
+        },
+
+        aplicarFiltros() {
+            this._camadaMarkers.clearLayers();
+            const paleta = this.modo === 'engajamento' ? CORES_ENGAJAMENTO_MARKER : CORES_ADIMPLENCIA_MARKER;
+            const fallback = {cor: '#9ca3af', rotulo: '—'};
+            let visiveis = 0;
+            (this._pontosCache || []).forEach(p => {
+                if (this.filtroStatus.length > 0 && !this.filtroStatus.includes(p.status)) return;
+                if (this.filtroFaixaPop.length > 0 && !this.filtroFaixaPop.includes(p.faixa_pop)) return;
+                if (this.filtro80k === 'acima' && !p.acima_80k) return;
+                if (this.filtro80k === 'abaixo' && p.acima_80k) return;
+                if (this.filtroUF && p.uf !== this.filtroUF) return;
+                if (this.filtroRegiao && p.regiao !== this.filtroRegiao) return;
+                if (this.filtroRM) {
+                    if (this.filtroRM === '__sem_rm__' && p.regiao_metropolitana) return;
+                    if (this.filtroRM !== '__sem_rm__' && p.regiao_metropolitana !== this.filtroRM) return;
+                }
+                if (this.filtroPartido) {
+                    if (this.filtroPartido === '__sem_partido__' && p.partido) return;
+                    if (this.filtroPartido !== '__sem_partido__' && p.partido !== this.filtroPartido) return;
+                }
+                if (this.filtroSoCapital && !p.eh_capital) return;
+
+                const meta = paleta[p.status] || fallback;
+                const marker = L.circleMarker([p.lat, p.lng], {
+                    radius: 7, fillColor: meta.cor, fillOpacity: 0.85,
+                    color: '#ffffff', weight: 2,
+                });
+                const urlDetalhe = URL_BASE_MUNICIPIO + p.id + '/';
+                marker.bindPopup(`
+                    <strong>${p.nome}/${p.uf}</strong><br>
+                    <span style="font-size:11px;color:#6b7280;">${this.modo === 'engajamento' ? 'Engajamento' : 'Adimplência'}: <b style="color:${meta.cor};">${p.rotulo}</b></span>
+                    ${this.modo === 'engajamento' ? `<br><span style="font-size:11px;">Pontuação: ${p.valor}/100</span>` : ''}
+                    <br><span style="font-size:11px;color:#9ca3af;">${p.populacao ? p.populacao.toLocaleString('pt-BR') + ' hab.' : ''}${p.partido ? ' · ' + p.partido : ''}</span>
+                    ${p.regiao_metropolitana ? `<br><span style="font-size:11px;color:#9ca3af;">RM: ${p.regiao_metropolitana}</span>` : ''}
+                    <br><a href="${urlDetalhe}" style="font-size:11px;color:#1e3a5f;font-weight:600;">Ver detalhe →</a>
+                `);
+                this._camadaMarkers.addLayer(marker);
+                visiveis++;
+            });
+            this.totalMunicipios = visiveis;
+        },
+
+        limparFiltros() {
+            this.filtroStatus = [];
+            this.filtroFaixaPop = [];
+            this.filtro80k = '';
+            this.filtroUF = '';
+            this.filtroRegiao = '';
+            this.filtroRM = '';
+            this.filtroPartido = '';
+            this.filtroSoCapital = false;
+            this.filtroSoAssociado = false;
+            this.aplicarFiltros();
         },
 
         async _recarregarUF() {

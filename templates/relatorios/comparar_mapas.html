@@ -3,9 +3,9 @@
 {% block titulo %}Comparar mapas — Sistema FNP{% endblock %}
 {% block titulo_pagina %}
 <div class="flex items-center gap-2 text-sm">
-    <a href="{% url 'relatorios:painel' %}" class="text-gray-400 hover:text-fnp-500">Relatórios</a>
+    <a href="{% url 'relatorios:comparar_indice' %}" class="text-gray-400 hover:text-fnp-500">Comparar</a>
     <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
-    <span class="text-gray-700 font-semibold">Comparar mapas</span>
+    <span class="text-gray-700 font-semibold">Mapas</span>
 </div>
 {% endblock %}
 
@@ -14,16 +14,14 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 <style>
-    .mapa-comp { height: calc(100vh - 320px); min-height: 420px; width: 100%; z-index: 1; border-radius: 0.5rem; }
+    .mapa-comp { height: calc(100vh - 360px); min-height: 380px; width: 100%; z-index: 1; }
     .leaflet-container { background: #f3f4f6; }
-    .uf-tooltip { background: rgba(31, 41, 55, 0.95); color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; border: none; }
-    .uf-tooltip::before { display: none; }
 </style>
 {% endblock %}
 
 {% block conteudo %}
 <div class="max-w-7xl mx-auto space-y-4">
-    {# Header com chamada do insight #}
+    {# Header com chamada #}
     <div class="bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-200 rounded-xl p-5">
         <div class="flex items-start gap-4">
             <div class="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
@@ -33,9 +31,8 @@
                 <h2 class="text-xl font-bold text-gray-900">Comparar mapas lado a lado</h2>
                 <p class="text-sm text-gray-700 mt-1 leading-relaxed">
                     Cruze adimplência × engajamento para detectar oportunidades:
-                    <b>municípios engajados mas inadimplentes</b> (potencial de cobrança)
-                    ou <b>adimplentes com baixo engajamento</b> (potencial de mobilização).
-                    Cada mapa tem seleção independente.
+                    <b>municípios engajados mas inadimplentes</b> (potencial de cobrança) ou
+                    <b>adimplentes com baixo engajamento</b> (potencial de mobilização).
                 </p>
             </div>
         </div>
@@ -46,50 +43,77 @@
 
         {# Mapa A #}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" x-data="mapaComp('A','engajamento')">
-            <div class="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-2">
-                <span class="text-[10px] uppercase tracking-widest font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded">Mapa A</span>
-                <div class="inline-flex bg-gray-100 rounded-lg p-0.5 text-xs">
-                    <button @click="trocarModo('adimplencia')" class="px-2 py-1 rounded font-medium transition-colors"
-                            :class="modo === 'adimplencia' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">
-                        Adimplência
-                    </button>
-                    <button @click="trocarModo('engajamento')" class="px-2 py-1 rounded font-medium transition-colors"
-                            :class="modo === 'engajamento' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">
-                        Engajamento
-                    </button>
+            <div class="px-4 py-3 border-b border-gray-100 space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-[10px] uppercase tracking-widest font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded">Mapa A</span>
+                    <div class="inline-flex bg-gray-100 rounded-lg p-0.5 text-xs">
+                        <button @click="trocarModo('adimplencia')" class="px-2 py-1 rounded font-medium transition-colors"
+                                :class="modo === 'adimplencia' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">Adimplência</button>
+                        <button @click="trocarModo('engajamento')" class="px-2 py-1 rounded font-medium transition-colors"
+                                :class="modo === 'engajamento' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">Engajamento</button>
+                    </div>
+                    <select x-model="ano" @change="recarregar()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        {% for a in anos_disponiveis %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+                    </select>
+                    <span class="text-xs text-gray-400 ml-auto" x-text="`${visiveis}/${total}`"></span>
                 </div>
-                <select x-model="ano" @change="recarregar()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
-                    {% for a in anos_disponiveis %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
-                </select>
-                <span class="text-xs text-gray-400 ml-auto" x-text="`${total} municípios`"></span>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select x-model="ufFiltro" @change="aplicarFiltros()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        <option value="">Todas UFs</option>
+                        {% for uf in ufs_disponiveis %}<option value="{{ uf }}">{{ uf }}</option>{% endfor %}
+                    </select>
+                    <select x-model="regiaoFiltro" @change="aplicarFiltros()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        <option value="">Todas regiões</option>
+                        {% for v, l in regioes_disponiveis %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+                    </select>
+                    <div class="relative flex-1 min-w-[140px]">
+                        <i data-lucide="search" class="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400"></i>
+                        <input type="text" x-model="buscaTexto" @input.debounce.200ms="aplicarFiltros()"
+                               placeholder="Buscar município..."
+                               class="w-full pl-6 pr-2 py-1 text-xs border border-gray-200 rounded">
+                    </div>
+                </div>
             </div>
             <div id="mapa-a" class="mapa-comp"></div>
         </div>
 
         {# Mapa B #}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" x-data="mapaComp('B','adimplencia')">
-            <div class="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-2">
-                <span class="text-[10px] uppercase tracking-widest font-bold text-fuchsia-600 bg-fuchsia-50 px-2 py-0.5 rounded">Mapa B</span>
-                <div class="inline-flex bg-gray-100 rounded-lg p-0.5 text-xs">
-                    <button @click="trocarModo('adimplencia')" class="px-2 py-1 rounded font-medium transition-colors"
-                            :class="modo === 'adimplencia' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">
-                        Adimplência
-                    </button>
-                    <button @click="trocarModo('engajamento')" class="px-2 py-1 rounded font-medium transition-colors"
-                            :class="modo === 'engajamento' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">
-                        Engajamento
-                    </button>
+            <div class="px-4 py-3 border-b border-gray-100 space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-[10px] uppercase tracking-widest font-bold text-fuchsia-600 bg-fuchsia-50 px-2 py-0.5 rounded">Mapa B</span>
+                    <div class="inline-flex bg-gray-100 rounded-lg p-0.5 text-xs">
+                        <button @click="trocarModo('adimplencia')" class="px-2 py-1 rounded font-medium transition-colors"
+                                :class="modo === 'adimplencia' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">Adimplência</button>
+                        <button @click="trocarModo('engajamento')" class="px-2 py-1 rounded font-medium transition-colors"
+                                :class="modo === 'engajamento' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">Engajamento</button>
+                    </div>
+                    <select x-model="ano" @change="recarregar()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        {% for a in anos_disponiveis %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+                    </select>
+                    <span class="text-xs text-gray-400 ml-auto" x-text="`${visiveis}/${total}`"></span>
                 </div>
-                <select x-model="ano" @change="recarregar()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
-                    {% for a in anos_disponiveis %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
-                </select>
-                <span class="text-xs text-gray-400 ml-auto" x-text="`${total} municípios`"></span>
+                <div class="flex flex-wrap items-center gap-2">
+                    <select x-model="ufFiltro" @change="aplicarFiltros()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        <option value="">Todas UFs</option>
+                        {% for uf in ufs_disponiveis %}<option value="{{ uf }}">{{ uf }}</option>{% endfor %}
+                    </select>
+                    <select x-model="regiaoFiltro" @change="aplicarFiltros()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                        <option value="">Todas regiões</option>
+                        {% for v, l in regioes_disponiveis %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+                    </select>
+                    <div class="relative flex-1 min-w-[140px]">
+                        <i data-lucide="search" class="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400"></i>
+                        <input type="text" x-model="buscaTexto" @input.debounce.200ms="aplicarFiltros()"
+                               placeholder="Buscar município..."
+                               class="w-full pl-6 pr-2 py-1 text-xs border border-gray-200 rounded">
+                    </div>
+                </div>
             </div>
             <div id="mapa-b" class="mapa-comp"></div>
         </div>
     </div>
 
-    {# Legenda compacta #}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-xs">
         <p class="font-semibold text-gray-700 mb-2">Legenda</p>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -107,18 +131,28 @@
 const URL_MUNI = "{% url 'cadastro:lista_municipios' %}";
 const CORES_ADIM = {adimplente:'#10b981', parcial:'#f59e0b', inadimplente:'#ef4444', isento:'#6b7280'};
 const CORES_ENG  = {alto:'#10b981', medio:'#f59e0b', baixo:'#f97316', inativo:'#6b7280'};
+const REGIAO_POR_UF = {
+    'AC':'norte','AP':'norte','AM':'norte','PA':'norte','RO':'norte','RR':'norte','TO':'norte',
+    'AL':'nordeste','BA':'nordeste','CE':'nordeste','MA':'nordeste','PB':'nordeste','PE':'nordeste','PI':'nordeste','RN':'nordeste','SE':'nordeste',
+    'DF':'centro_oeste','GO':'centro_oeste','MT':'centro_oeste','MS':'centro_oeste',
+    'ES':'sudeste','MG':'sudeste','RJ':'sudeste','SP':'sudeste',
+    'PR':'sul','RS':'sul','SC':'sul',
+};
 
 function mapaComp(slot, modoInicial) {
     return {
         slot,
         modo: modoInicial,
         ano: '{{ ano_atual }}',
+        ufFiltro: '',
+        regiaoFiltro: '',
+        buscaTexto: '',
         total: 0,
+        visiveis: 0,
         _mapa: null,
         _markers: null,
-        init() {
-            this.$nextTick(() => this.iniciar());
-        },
+        _pontos: [],
+        init() { this.$nextTick(() => this.iniciar()); },
         iniciar() {
             const el = document.getElementById('mapa-' + this.slot.toLowerCase());
             this._mapa = L.map(el, {scrollWheelZoom: true}).setView([-14.235, -51.925], 4);
@@ -127,23 +161,31 @@ function mapaComp(slot, modoInicial) {
             }).addTo(this._mapa);
             this._markers = L.markerClusterGroup({maxClusterRadius: 40, showCoverageOnHover: false});
             this._mapa.addLayer(this._markers);
-            // Garante render
             const fix = () => this._mapa.invalidateSize();
             setTimeout(fix, 100); setTimeout(fix, 500); setTimeout(fix, 1500);
             if (window.ResizeObserver) new ResizeObserver(fix).observe(el);
             this.recarregar();
         },
         async recarregar() {
-            this._markers.clearLayers();
             const r = await fetch(`{% url 'relatorios:mapa_dados' %}?modo=${this.modo}&ano=${this.ano}`);
             const d = await r.json();
+            this._pontos = d.pontos;
             this.total = d.total;
+            this.aplicarFiltros();
+        },
+        aplicarFiltros() {
+            this._markers.clearLayers();
             const paleta = this.modo === 'engajamento' ? CORES_ENG : CORES_ADIM;
-            d.pontos.forEach(p => {
+            const busca = (this.buscaTexto || '').trim().toLowerCase();
+            let bounds = [];
+            let n = 0;
+            this._pontos.forEach(p => {
+                if (this.ufFiltro && p.uf !== this.ufFiltro) return;
+                if (this.regiaoFiltro && REGIAO_POR_UF[p.uf] !== this.regiaoFiltro) return;
+                if (busca && !p.nome.toLowerCase().includes(busca) && !p.uf.toLowerCase().includes(busca)) return;
                 const cor = paleta[p.status] || '#9ca3af';
                 const marker = L.circleMarker([p.lat, p.lng], {
-                    radius: 6, fillColor: cor, fillOpacity: 0.85,
-                    color: '#fff', weight: 2,
+                    radius: 6, fillColor: cor, fillOpacity: 0.85, color: '#fff', weight: 2,
                 });
                 marker.bindPopup(`
                     <strong>${p.nome}/${p.uf}</strong><br>
@@ -151,7 +193,13 @@ function mapaComp(slot, modoInicial) {
                     <br><a href="${URL_MUNI}${p.id}/" style="font-size:11px;color:#1e3a5f;font-weight:600;">Ver detalhe →</a>
                 `);
                 this._markers.addLayer(marker);
+                bounds.push([p.lat, p.lng]);
+                n++;
             });
+            this.visiveis = n;
+            if ((this.ufFiltro || this.regiaoFiltro || busca) && bounds.length > 0) {
+                this._mapa.fitBounds(bounds, {padding: [40, 40], maxZoom: 8});
+            }
         },
         trocarModo(novo) { if (this.modo !== novo) { this.modo = novo; this.recarregar(); } },
     };
