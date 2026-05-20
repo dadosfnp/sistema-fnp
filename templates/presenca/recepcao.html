@@ -34,8 +34,13 @@
                     <p class="text-xs text-gray-500 uppercase tracking-wider">Ainda aqui</p>
                 </div>
                 {% endif %}
+                <a href="{% url 'presenca:credenciamento_lista' %}"
+                   class="ml-2 inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold text-violet-700 bg-violet-50 rounded-xl hover:bg-violet-100 border border-violet-200 transition-colors">
+                    <i data-lucide="qr-code" class="w-4 h-4"></i>
+                    Pré-credenciar
+                </a>
                 <a href="{% url 'presenca:recepcao_novo' %}"
-                   class="ml-2 inline-flex items-center gap-2 px-5 py-3 text-base font-semibold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600 transition-colors shadow-md">
+                   class="inline-flex items-center gap-2 px-5 py-3 text-base font-semibold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600 transition-colors shadow-md">
                     <i data-lucide="user-plus" class="w-5 h-5"></i>
                     Registrar visitante
                 </a>

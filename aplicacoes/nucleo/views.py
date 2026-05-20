@@ -35,19 +35,87 @@ def entrar(request):
 
 @login_required
 def inicio(request):
-    """Renderiza o dashboard principal com indicadores agregados do sistema."""
+    """Dashboard principal — layout focado em "o que importa hoje + 3 KPIs principais".
+
+    Reduziu poluicao: KPIs grandes no topo, agenda da semana (eventos +
+    atividades + missoes proximos), alertas e top 5 engajamento.
+    Categorias acessadas pela sidebar.
+    """
+    from datetime import date, timedelta
+
+    from aplicacoes.atividades.models import Atividade as AtividadeModel
+    from aplicacoes.missoes.models import Missao as MissaoModel
+    from aplicacoes.nucleo.servicos.notificacoes import listar_notificacoes
+
+    hoje = date.today()
+    em_7_dias = hoje + timedelta(days=7)
+    ano = hoje.year
+
+    # Agenda da semana (eventos + atividades + missoes)
+    eventos_semana = list(
+        Evento.objects.filter(data_inicio__gte=hoje, data_inicio__lte=em_7_dias)
+        .order_by('data_inicio')[:5]
+    )
+    atividades_semana = list(
+        AtividadeModel.objects.select_related('instancia')
+        .filter(data_reuniao__gte=hoje, data_reuniao__lte=em_7_dias)
+        .order_by('data_reuniao')[:5]
+    )
+    missoes_semana = list(
+        MissaoModel.objects.filter(data_inicio__gte=hoje, data_inicio__lte=em_7_dias)
+        .order_by('data_inicio')[:3]
+    )
+
+    # Compila uma agenda unificada ordenada por data
+    agenda = []
+    for ev in eventos_semana:
+        agenda.append({'tipo': 'Evento', 'icone': 'calendar-days', 'cor': 'sky',
+                       'data': ev.data_inicio, 'titulo': ev.titulo,
+                       'desc': ev.get_tipo_display(),
+                       'url': f'/eventos/{ev.pk}/'})
+    for atv in atividades_semana:
+        agenda.append({'tipo': 'Atividade', 'icone': 'calendar-clock', 'cor': 'teal',
+                       'data': atv.data_reuniao, 'titulo': atv.titulo or atv.instancia.nome,
+                       'desc': atv.instancia.nome,
+                       'url': f'/atividades/{atv.pk}/'})
+    for miss in missoes_semana:
+        agenda.append({'tipo': 'Missão', 'icone': 'plane-takeoff', 'cor': 'violet',
+                       'data': miss.data_inicio, 'titulo': miss.titulo,
+                       'desc': f'{miss.cidade or ""} {miss.pais or ""}'.strip(),
+                       'url': f'/missoes/{miss.pk}/'})
+    agenda.sort(key=lambda x: x['data'])
+
+    # Adimplencia: contagens compactas
+    adim_qs = Adimplencia.objects.filter(ano_referencia=ano)
+    total_adimplentes = adim_qs.filter(status='adimplente').count()
+    total_inadimplentes = adim_qs.filter(status='inadimplente').count()
+    total_parciais = adim_qs.filter(status='parcial').count()
+    total_adim_registros = adim_qs.count()
+    pct_adim = (
+        round(total_adimplentes / total_adim_registros * 100) if total_adim_registros else 0
+    )
+
     contexto = {
-        'total_pessoas': Pessoa.objects.filter(ativo=True).count(),
+        # 3 KPIs principais (hero)
         'total_municipios': Municipio.objects.count(),
-        'total_eventos': Evento.objects.count(),
-        'total_instancias': Instancia.objects.count(),
-        'total_projetos': Projeto.objects.count(),
-        'total_missoes': Missao.objects.count(),
-        'total_atividades': Atividade.objects.count(),
-        'total_adimplentes': Adimplencia.objects.filter(ano_referencia=2026, status='adimplente').count(),
-        'total_inadimplentes': Adimplencia.objects.filter(ano_referencia=2026, status='inadimplente').count(),
-        'eventos_recentes': Evento.objects.order_by('-data_inicio')[:5],
-        'top_engajamento': Engajamento.objects.select_related('municipio').order_by('-pontuacao_bruta')[:5],
+        'total_pessoas': Pessoa.objects.filter(ativo=True).count(),
+        'pct_adimplencia': pct_adim,
+        'total_adim_registros': total_adim_registros,
+        'total_adimplentes': total_adimplentes,
+        'total_parciais': total_parciais,
+        'total_inadimplentes': total_inadimplentes,
+
+        # Agenda da semana
+        'agenda_semana': agenda[:8],
+
+        # Top 5 engajamento
+        'top_engajamento': Engajamento.objects.select_related('municipio')
+            .order_by('-pontuacao_normalizada')[:5],
+
+        # Alertas (primeiros 3)
+        'alertas': listar_notificacoes(request.user, limite=3),
+
+        'ano_referencia': ano,
     }
     return render(request, 'nucleo/inicio.html', contexto)
 

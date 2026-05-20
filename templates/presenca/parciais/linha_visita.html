@@ -1,7 +1,11 @@
 {% load fnp_tags %}
 <div id="visita-{{ v.pk }}" class="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
-    {# Avatar de iniciais #}
+    {# Foto se houver, caso contrario iniciais #}
+    {% if v.foto %}
+    <img src="{{ v.foto.url }}" alt="" class="w-10 h-10 rounded-full object-cover ring-2 {% if v.pre_credenciado %}ring-violet-200{% else %}ring-emerald-200{% endif %}">
+    {% else %}
     {% avatar_iniciais v.nome_visitante "w-10 h-10" "text-sm" %}
+    {% endif %}
 
     {# Dados principais #}
     <div class="flex-1 min-w-0">

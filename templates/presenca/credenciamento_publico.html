@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pré-credenciamento FNP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { fnp: { 500:'#1e3a5f', 600:'#17304f', 700:'#112640' } } } } }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-fnp-500 to-fnp-700 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+        <div class="bg-fnp-700 px-6 py-5 text-white text-center">
+            <p class="text-[10px] uppercase tracking-widest text-white/70 font-semibold">Frente Nacional de Prefeitos</p>
+            <h1 class="text-xl font-bold mt-1">Pré-credenciamento</h1>
+            <p class="text-sm text-white/80 mt-2">Olá, <b>{{ pre.nome_visitante }}</b>! Envie sua foto e confirme alguns dados para agilizar sua chegada.</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" x-data="webcam()" class="p-5 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="foto_base64" x-model="fotoBase64">
+
+            {% if erro %}
+            <div class="px-3 py-2 bg-red-50 border border-red-100 text-red-700 text-sm rounded-lg">
+                <i data-lucide="alert-circle" class="w-3.5 h-3.5 inline -mt-0.5 mr-1"></i> {{ erro }}
+            </div>
+            {% endif %}
+
+            {# Camera #}
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Sua foto <span class="text-red-500">*</span></label>
+                <div x-show="!ativa && !fotoBase64"
+                     class="flex flex-col items-center justify-center gap-2 p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                    <i data-lucide="camera" class="w-10 h-10 text-gray-400"></i>
+                    <p class="text-xs text-gray-500 text-center">Foto clara, rosto centralizado. Usaremos para identificar você no dia.</p>
+                    <button type="button" @click="iniciar()" class="mt-2 px-4 py-2 text-sm font-semibold text-white bg-fnp-500 rounded-lg">
+                        Abrir câmera
+                    </button>
+                </div>
+
+                <div x-show="ativa" class="space-y-2">
+                    <video x-ref="video" autoplay playsinline class="w-full rounded-xl bg-gray-900"></video>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="capturar()" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-fnp-500 rounded-lg">
+                            <i data-lucide="aperture" class="w-4 h-4"></i> Capturar
+                        </button>
+                        <button type="button" @click="parar()" class="px-3 py-2 text-sm text-gray-500">Cancelar</button>
+                    </div>
+                </div>
+
+                <div x-show="fotoBase64 && !ativa" class="space-y-2">
+                    <img :src="fotoBase64" class="w-full rounded-xl border-2 border-emerald-200">
+                    <button type="button" @click="reiniciar()" class="text-xs text-gray-500 underline">Tirar outra</button>
+                </div>
+                <canvas x-ref="canvas" class="hidden"></canvas>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Organização / cargo</label>
+                <input type="text" name="organizacao" value="{{ pre.organizacao }}" class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Motivo da visita</label>
+                <input type="text" name="motivo" value="{{ pre.motivo }}" class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500">
+            </div>
+
+            <label class="flex items-start gap-2 cursor-pointer text-xs text-gray-700 bg-gray-50 p-3 rounded-lg">
+                <input type="checkbox" name="aceite_lgpd" {% if pre.documentos_aceitos %}checked{% endif %} class="mt-0.5 rounded border-gray-300">
+                <span>
+                    Autorizo a FNP a tratar minha foto exclusivamente para fins de credenciamento e identificação no dia da visita,
+                    conforme a <b>LGPD (Lei 13.709/2018)</b>. A imagem é apagada após 90 dias da visita.
+                </span>
+            </label>
+
+            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-base font-semibold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600">
+                <i data-lucide="check" class="w-5 h-5"></i> Confirmar credenciamento
+            </button>
+        </form>
+    </div>
+
+    <script>
+        function webcam() {
+            return {
+                ativa: false, fotoBase64: '', stream: null,
+                async iniciar() {
+                    try {
+                        this.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:640, height:480}, audio:false});
+                        this.ativa = true;
+                        await this.$nextTick();
+                        this.$refs.video.srcObject = this.stream;
+                    } catch (e) { alert('Não foi possível acessar a câmera. Permita o acesso no navegador.'); }
+                },
+                capturar() {
+                    const v = this.$refs.video; const c = this.$refs.canvas;
+                    c.width = v.videoWidth; c.height = v.videoHeight;
+                    c.getContext('2d').drawImage(v, 0, 0);
+                    this.fotoBase64 = c.toDataURL('image/jpeg', 0.85);
+                    this.parar();
+                },
+                parar() { if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; } this.ativa = false; },
+                reiniciar() { this.fotoBase64 = ''; this.iniciar(); },
+            };
+        }
+        document.addEventListener('alpine:init', () => lucide.createIcons());
+        lucide.createIcons();
+    </script>
+</body>
+</html>

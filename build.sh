@@ -18,3 +18,4 @@ fi
 python manage.py popular_dicionario || true
 python manage.py popular_pesos_engajamento || true
 python manage.py popular_mapa_brasil || true
+python manage.py popular_mockups_massivo || true

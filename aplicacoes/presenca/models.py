@@ -166,6 +166,18 @@ class Visita(ModeloBase):
         null=True, blank=True,
         related_name='visitas_registradas',
     )
+    # Foto de credenciamento — capturada via webcam no momento do check-in
+    # ou pré-enviada pelo visitante via link.
+    foto = models.ImageField(
+        'foto de credenciamento',
+        upload_to='visitas/%Y/%m/',
+        blank=True, null=True,
+        help_text='Foto da pessoa visitando (webcam local ou enviada via pré-credenciamento).',
+    )
+    pre_credenciado = models.BooleanField(
+        'veio pré-credenciado?', default=False,
+        help_text='True se a foto/dados vieram de um link enviado antes da visita.',
+    )
 
     class Meta:
         verbose_name = 'visita à FNP'
@@ -189,3 +201,86 @@ class Visita(ModeloBase):
         from django.utils import timezone
         self.saiu_em = timezone.now()
         self.save(update_fields=['saiu_em', 'atualizado_em'])
+
+
+class CredenciamentoPrevio(ModeloBase):
+    """Pré-credenciamento enviado por link público — preenche dados e foto antes da visita.
+
+    Fluxo:
+    1. Secretária clica em "Enviar pré-credenciamento" e informa nome + telefone/email.
+    2. Sistema gera token único e URL pública /recepcao/pre/<token>/
+    3. Link é enviado por WhatsApp/e-mail.
+    4. Visitante abre o link no celular, tira foto, confirma dados.
+    5. Quando chega na sede, secretária vê o pré-credenciamento "Pronto"
+       e basta confirmar a entrada — Visita já tem foto e dados.
+
+    Reduz fila no dia do evento e melhora a identificação visual da pessoa.
+    """
+
+    class Status(models.TextChoices):
+        PENDENTE = 'pendente', 'Pendente (link enviado)'
+        PREENCHIDO = 'preenchido', 'Preenchido (aguardando chegada)'
+        UTILIZADO = 'utilizado', 'Utilizado (visitou)'
+        EXPIRADO = 'expirado', 'Expirado'
+
+    token = models.CharField(
+        'token publico', max_length=64, unique=True,
+        help_text='Slug aleatorio usado na URL publica. Expira em 30 dias.',
+    )
+    nome_visitante = models.CharField('nome do visitante', max_length=255)
+    telefone = models.CharField('telefone (WhatsApp)', max_length=20, blank=True)
+    email = models.EmailField('e-mail', blank=True)
+    organizacao = models.CharField('organização/cargo', max_length=255, blank=True)
+    motivo = models.CharField('motivo da visita', max_length=255, blank=True)
+    data_visita_prevista = models.DateField('data prevista da visita', null=True, blank=True)
+
+    # Preenchido pelo proprio visitante via link publico
+    foto = models.ImageField(
+        'foto enviada pelo visitante',
+        upload_to='credenciamentos/%Y/%m/',
+        blank=True, null=True,
+    )
+    documentos_aceitos = models.BooleanField(
+        'aceitou termos LGPD?',
+        default=False,
+        help_text='Aceite do tratamento de imagem para credenciamento.',
+    )
+
+    status = models.CharField(
+        'status', max_length=12, choices=Status.choices, default=Status.PENDENTE,
+    )
+    expira_em = models.DateTimeField('expira em')
+    criado_por = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='credenciamentos_enviados',
+    )
+    visita_gerada = models.ForeignKey(
+        'Visita', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='origem_pre_credenciamento',
+    )
+
+    class Meta:
+        verbose_name = 'pré-credenciamento'
+        verbose_name_plural = 'pré-credenciamentos'
+        ordering = ['-criado_em']
+        indexes = [
+            models.Index(fields=['token']),
+            models.Index(fields=['status', '-criado_em']),
+        ]
+
+    def __str__(self):
+        return f'{self.nome_visitante} ({self.get_status_display()})'
+
+    @classmethod
+    def gerar_token(cls):
+        """Gera token URL-safe único de 32 caracteres."""
+        import secrets
+        return secrets.token_urlsafe(24)
+
+    def url_publica(self, request=None):
+        """Retorna a URL absoluta do link de pré-credenciamento."""
+        from django.urls import reverse
+        path = reverse('presenca:pre_credenciamento_publico', args=[self.token])
+        if request:
+            return request.build_absolute_uri(path)
+        return path

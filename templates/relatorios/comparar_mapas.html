@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block titulo %}Comparar mapas — Sistema FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <a href="{% url 'relatorios:painel' %}" class="text-gray-400 hover:text-fnp-500">Relatórios</a>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold">Comparar mapas</span>
+</div>
+{% endblock %}
+
+{% block css_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+    .mapa-comp { height: calc(100vh - 320px); min-height: 420px; width: 100%; z-index: 1; border-radius: 0.5rem; }
+    .leaflet-container { background: #f3f4f6; }
+    .uf-tooltip { background: rgba(31, 41, 55, 0.95); color: white; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; border: none; }
+    .uf-tooltip::before { display: none; }
+</style>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-7xl mx-auto space-y-4">
+    {# Header com chamada do insight #}
+    <div class="bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-200 rounded-xl p-5">
+        <div class="flex items-start gap-4">
+            <div class="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center flex-shrink-0">
+                <i data-lucide="git-compare-arrows" class="w-5 h-5 text-violet-600"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Comparar mapas lado a lado</h2>
+                <p class="text-sm text-gray-700 mt-1 leading-relaxed">
+                    Cruze adimplência × engajamento para detectar oportunidades:
+                    <b>municípios engajados mas inadimplentes</b> (potencial de cobrança)
+                    ou <b>adimplentes com baixo engajamento</b> (potencial de mobilização).
+                    Cada mapa tem seleção independente.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {# 2 mapas lado a lado #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {# Mapa A #}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" x-data="mapaComp('A','engajamento')">
+            <div class="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-2">
+                <span class="text-[10px] uppercase tracking-widest font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded">Mapa A</span>
+                <div class="inline-flex bg-gray-100 rounded-lg p-0.5 text-xs">
+                    <button @click="trocarModo('adimplencia')" class="px-2 py-1 rounded font-medium transition-colors"
+                            :class="modo === 'adimplencia' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">
+                        Adimplência
+                    </button>
+                    <button @click="trocarModo('engajamento')" class="px-2 py-1 rounded font-medium transition-colors"
+                            :class="modo === 'engajamento' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">
+                        Engajamento
+                    </button>
+                </div>
+                <select x-model="ano" @change="recarregar()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                    {% for a in anos_disponiveis %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+                </select>
+                <span class="text-xs text-gray-400 ml-auto" x-text="`${total} municípios`"></span>
+            </div>
+            <div id="mapa-a" class="mapa-comp"></div>
+        </div>
+
+        {# Mapa B #}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" x-data="mapaComp('B','adimplencia')">
+            <div class="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-2">
+                <span class="text-[10px] uppercase tracking-widest font-bold text-fuchsia-600 bg-fuchsia-50 px-2 py-0.5 rounded">Mapa B</span>
+                <div class="inline-flex bg-gray-100 rounded-lg p-0.5 text-xs">
+                    <button @click="trocarModo('adimplencia')" class="px-2 py-1 rounded font-medium transition-colors"
+                            :class="modo === 'adimplencia' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">
+                        Adimplência
+                    </button>
+                    <button @click="trocarModo('engajamento')" class="px-2 py-1 rounded font-medium transition-colors"
+                            :class="modo === 'engajamento' ? 'bg-white text-fnp-700 shadow-sm' : 'text-gray-600'">
+                        Engajamento
+                    </button>
+                </div>
+                <select x-model="ano" @change="recarregar()" class="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
+                    {% for a in anos_disponiveis %}<option value="{{ a }}">{{ a }}</option>{% endfor %}
+                </select>
+                <span class="text-xs text-gray-400 ml-auto" x-text="`${total} municípios`"></span>
+            </div>
+            <div id="mapa-b" class="mapa-comp"></div>
+        </div>
+    </div>
+
+    {# Legenda compacta #}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-xs">
+        <p class="font-semibold text-gray-700 mb-2">Legenda</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Adimplente / Alto</div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Parcial / Médio</div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-orange-500"></span> Baixo</div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-500"></span> Inadimplente / Inativo</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const URL_MUNI = "{% url 'cadastro:lista_municipios' %}";
+const CORES_ADIM = {adimplente:'#10b981', parcial:'#f59e0b', inadimplente:'#ef4444', isento:'#6b7280'};
+const CORES_ENG  = {alto:'#10b981', medio:'#f59e0b', baixo:'#f97316', inativo:'#6b7280'};
+
+function mapaComp(slot, modoInicial) {
+    return {
+        slot,
+        modo: modoInicial,
+        ano: '{{ ano_atual }}',
+        total: 0,
+        _mapa: null,
+        _markers: null,
+        init() {
+            this.$nextTick(() => this.iniciar());
+        },
+        iniciar() {
+            const el = document.getElementById('mapa-' + this.slot.toLowerCase());
+            this._mapa = L.map(el, {scrollWheelZoom: true}).setView([-14.235, -51.925], 4);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                maxZoom: 18, subdomains: 'abcd', attribution: '&copy; CARTO',
+            }).addTo(this._mapa);
+            this._markers = L.markerClusterGroup({maxClusterRadius: 40, showCoverageOnHover: false});
+            this._mapa.addLayer(this._markers);
+            // Garante render
+            const fix = () => this._mapa.invalidateSize();
+            setTimeout(fix, 100); setTimeout(fix, 500); setTimeout(fix, 1500);
+            if (window.ResizeObserver) new ResizeObserver(fix).observe(el);
+            this.recarregar();
+        },
+        async recarregar() {
+            this._markers.clearLayers();
+            const r = await fetch(`{% url 'relatorios:mapa_dados' %}?modo=${this.modo}&ano=${this.ano}`);
+            const d = await r.json();
+            this.total = d.total;
+            const paleta = this.modo === 'engajamento' ? CORES_ENG : CORES_ADIM;
+            d.pontos.forEach(p => {
+                const cor = paleta[p.status] || '#9ca3af';
+                const marker = L.circleMarker([p.lat, p.lng], {
+                    radius: 6, fillColor: cor, fillOpacity: 0.85,
+                    color: '#fff', weight: 2,
+                });
+                marker.bindPopup(`
+                    <strong>${p.nome}/${p.uf}</strong><br>
+                    <span style="font-size:11px;color:#6b7280;">${this.modo === 'engajamento' ? 'Engajamento' : 'Adimplência'}: <b style="color:${cor};">${p.rotulo}</b></span>
+                    <br><a href="${URL_MUNI}${p.id}/" style="font-size:11px;color:#1e3a5f;font-weight:600;">Ver detalhe →</a>
+                `);
+                this._markers.addLayer(marker);
+            });
+        },
+        trocarModo(novo) { if (this.modo !== novo) { this.modo = novo; this.recarregar(); } },
+    };
+}
+</script>
+{% endblock %}

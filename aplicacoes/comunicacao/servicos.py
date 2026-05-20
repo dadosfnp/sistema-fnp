@@ -64,15 +64,40 @@ def coletar_destinatarios(entidade):
 
     destinatarios = []
     for pessoa in pessoas_qs.order_by('nome'):
-        if not pessoa.email:
-            continue
         vinculo = pessoa.vinculos.filter(vigente=True).select_related('municipio').first()
         destinatarios.append({
             'pessoa': pessoa,
-            'email': pessoa.email,
+            'email': pessoa.email or '',
+            'telefone': pessoa.telefone or '',
             'municipio': vinculo.municipio if vinculo else None,
         })
     return destinatarios
+
+
+def montar_link_whatsapp(telefone, mensagem):
+    """Constrói URL wa.me que abre o WhatsApp já com número e mensagem.
+
+    Args:
+        telefone: número em formato livre (caracteres não-dígito são removidos).
+                  Se não tiver código do país, adiciona 55 (Brasil).
+        mensagem: texto pré-preenchido (será URL-encoded).
+
+    Returns:
+        URL string tipo ``https://wa.me/5511999998888?text=Olá``,
+        ou string vazia se telefone inválido.
+    """
+    import re
+    import urllib.parse
+
+    if not telefone:
+        return ''
+    digitos = re.sub(r'\D', '', telefone)
+    if not digitos:
+        return ''
+    if len(digitos) <= 11:
+        digitos = '55' + digitos
+    texto = urllib.parse.quote(mensagem or '')
+    return f'https://wa.me/{digitos}?text={texto}'
 
 
 def categoria_para_entidade(entidade):

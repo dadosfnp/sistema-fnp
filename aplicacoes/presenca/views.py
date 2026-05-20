@@ -13,7 +13,7 @@ from django.utils import timezone
 from aplicacoes.cadastro.models import Municipio, Pessoa, VinculoMunicipio
 from aplicacoes.instancias.models import Representacao
 from aplicacoes.nucleo.servicos.auditoria import registrar_criacao
-from aplicacoes.presenca.models import Presenca, Visita
+from aplicacoes.presenca.models import CredenciamentoPrevio, Presenca, Visita
 
 
 def _eh_editor(request):
@@ -291,6 +291,12 @@ def recepcao_novo(request):
             municipio=municipio,
             registrado_por=request.user,
         )
+
+        # Foto da webcam (data:image/jpeg;base64,...)
+        foto_base64 = request.POST.get('foto_base64', '')
+        if foto_base64:
+            _processar_foto_base64(visita, foto_base64)
+
         registrar_criacao(request.user, visita)
         messages.success(request, f'{nome} registrado(a) com sucesso.')
         return redirect('presenca:recepcao')
@@ -362,3 +368,161 @@ def recepcao_historico(request):
         'motivo': motivo,
         'motivos': Visita.Motivo.choices,
     })
+
+
+# ============================================================================
+# CREDENCIAMENTO PREVIO — link publico antes da visita
+# ============================================================================
+
+def _processar_foto_base64(visita_ou_pre, foto_base64):
+    """Decodifica string base64 (data:image/jpeg;base64,...) e salva no FileField.
+
+    Aceita formatos: jpg, png, webp. Limita tamanho a 5MB.
+    """
+    import base64
+    import io
+    import re
+
+    from django.core.files.base import ContentFile
+    from PIL import Image
+
+    if not foto_base64 or not foto_base64.startswith('data:image/'):
+        return False
+
+    match = re.match(r'data:image/(\w+);base64,(.+)', foto_base64)
+    if not match:
+        return False
+    formato, data = match.groups()
+    if formato not in ('jpeg', 'jpg', 'png', 'webp'):
+        return False
+    try:
+        raw = base64.b64decode(data)
+        if len(raw) > 5 * 1024 * 1024:  # 5MB
+            return False
+        # Valida que e imagem de verdade
+        img = Image.open(io.BytesIO(raw))
+        img.verify()
+        # Salva no FileField
+        nome = f'foto-{visita_ou_pre.pk}.{formato}'
+        visita_ou_pre.foto.save(nome, ContentFile(raw), save=True)
+        return True
+    except Exception:
+        return False
+
+
+@login_required
+def credenciamento_lista(request):
+    """Lista pre-credenciamentos pendentes para a recepcao."""
+    de = timezone.now() - timedelta(days=30)
+    pendentes = CredenciamentoPrevio.objects.filter(
+        criado_em__gte=de,
+        status__in=[CredenciamentoPrevio.Status.PENDENTE, CredenciamentoPrevio.Status.PREENCHIDO],
+    ).order_by('-criado_em')
+    return render(request, 'presenca/credenciamento_lista.html', {
+        'pendentes': pendentes,
+    })
+
+
+@login_required
+def credenciamento_novo(request):
+    """Cria um pre-credenciamento e gera link + mensagem WhatsApp pronta."""
+    if request.method == 'POST':
+        from aplicacoes.comunicacao.servicos import montar_link_whatsapp
+
+        nome = (request.POST.get('nome_visitante') or '').strip()
+        telefone = (request.POST.get('telefone') or '').strip()
+        email = (request.POST.get('email') or '').strip()
+        organizacao = (request.POST.get('organizacao') or '').strip()
+        motivo = (request.POST.get('motivo') or '').strip()
+        data_prev = request.POST.get('data_visita_prevista') or None
+
+        if not nome:
+            messages.error(request, 'Nome do visitante é obrigatório.')
+            return redirect('presenca:credenciamento_novo')
+
+        pre = CredenciamentoPrevio.objects.create(
+            token=CredenciamentoPrevio.gerar_token(),
+            nome_visitante=nome, telefone=telefone, email=email,
+            organizacao=organizacao, motivo=motivo,
+            data_visita_prevista=data_prev or None,
+            expira_em=timezone.now() + timedelta(days=30),
+            criado_por=request.user,
+        )
+
+        url_publica = pre.url_publica(request)
+        msg_whats = (
+            f'Olá, {nome}!\n\n'
+            f'A Frente Nacional de Prefeitos (FNP) preparou um pré-credenciamento '
+            f'rápido para sua visita. Use o link abaixo para enviar uma foto e '
+            f'confirmar seus dados — assim você evita fila no dia.\n\n'
+            f'{url_publica}\n\n'
+            f'O link expira em 30 dias.'
+        )
+        link_whats = montar_link_whatsapp(telefone, msg_whats) if telefone else ''
+
+        return render(request, 'presenca/credenciamento_enviado.html', {
+            'pre': pre,
+            'url_publica': url_publica,
+            'mensagem_whatsapp': msg_whats,
+            'link_whatsapp': link_whats,
+        })
+
+    return render(request, 'presenca/credenciamento_novo.html')
+
+
+def pre_credenciamento_publico(request, token):
+    """Pagina publica (sem login) que o visitante usa para enviar foto e dados."""
+    pre = get_object_or_404(CredenciamentoPrevio, token=token)
+    if pre.expira_em < timezone.now() or pre.status == CredenciamentoPrevio.Status.EXPIRADO:
+        return render(request, 'presenca/credenciamento_publico_expirado.html', {'pre': pre})
+    if pre.status == CredenciamentoPrevio.Status.UTILIZADO:
+        return render(request, 'presenca/credenciamento_publico_utilizado.html', {'pre': pre})
+
+    if request.method == 'POST':
+        pre.organizacao = (request.POST.get('organizacao') or pre.organizacao or '').strip()
+        pre.motivo = (request.POST.get('motivo') or pre.motivo or '').strip()
+        pre.documentos_aceitos = request.POST.get('aceite_lgpd') == 'on'
+
+        foto_base64 = request.POST.get('foto_base64', '')
+        if foto_base64:
+            _processar_foto_base64(pre, foto_base64)
+
+        if not pre.documentos_aceitos:
+            return render(request, 'presenca/credenciamento_publico.html', {
+                'pre': pre, 'erro': 'É necessário aceitar o termo de imagem.',
+            })
+        if not pre.foto:
+            return render(request, 'presenca/credenciamento_publico.html', {
+                'pre': pre, 'erro': 'Foto é obrigatória para o credenciamento.',
+            })
+
+        pre.status = CredenciamentoPrevio.Status.PREENCHIDO
+        pre.save()
+        return render(request, 'presenca/credenciamento_publico_ok.html', {'pre': pre})
+
+    return render(request, 'presenca/credenciamento_publico.html', {'pre': pre})
+
+
+@login_required
+def credenciamento_confirmar_visita(request, pk):
+    """Converte um pre-credenciamento preenchido em uma Visita real (chegou agora)."""
+    if request.method != 'POST':
+        return redirect('presenca:credenciamento_lista')
+    pre = get_object_or_404(CredenciamentoPrevio, pk=pk)
+    if pre.status != CredenciamentoPrevio.Status.PREENCHIDO:
+        messages.error(request, 'Pré-credenciamento ainda não foi preenchido.')
+        return redirect('presenca:credenciamento_lista')
+
+    visita = Visita.objects.create(
+        nome_visitante=pre.nome_visitante,
+        telefone=pre.telefone, email=pre.email,
+        organizacao=pre.organizacao, motivo=pre.motivo or Visita.Motivo.OUTRO,
+        pre_credenciado=True,
+        foto=pre.foto,
+        registrado_por=request.user,
+    )
+    pre.status = CredenciamentoPrevio.Status.UTILIZADO
+    pre.visita_gerada = visita
+    pre.save()
+    messages.success(request, f'{visita.nome_visitante} registrado(a) com pré-credenciamento.')
+    return redirect('presenca:recepcao')

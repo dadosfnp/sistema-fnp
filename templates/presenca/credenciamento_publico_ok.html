@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credenciamento concluído</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen bg-emerald-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
+        <div class="w-20 h-20 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
+            <i data-lucide="check" class="w-10 h-10 text-emerald-600"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 mt-4">Pronto, {{ pre.nome_visitante }}!</h1>
+        <p class="text-sm text-gray-600 mt-3 leading-relaxed">
+            Seu pré-credenciamento foi enviado com sucesso. No dia da visita à FNP,
+            basta se apresentar na recepção que sua foto já estará identificada.
+        </p>
+        {% if pre.data_visita_prevista %}
+        <p class="text-xs text-gray-500 mt-3">Data prevista: {{ pre.data_visita_prevista|date:"d/m/Y" }}</p>
+        {% endif %}
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

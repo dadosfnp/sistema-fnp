@@ -284,6 +284,15 @@
                     <span x-show="sidebarAberta" x-transition.opacity class="truncate">Mapa</span>
                 </a>
 
+                <a href="{% url 'relatorios:comparar_indice' %}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
+                          {% if 'comparar' in request.path %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"
+                   :class="!sidebarAberta && 'justify-center !px-0'"
+                   title="Comparar">
+                    <i data-lucide="git-compare" class="w-[18px] h-[18px] flex-shrink-0"></i>
+                    <span x-show="sidebarAberta" x-transition.opacity class="truncate">Comparar</span>
+                </a>
+
                 <a href="{% url 'relatorios:calendario' %}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 mt-0.5
                           {% if request.resolver_match.url_name == 'calendario' %}bg-white/15 text-white{% else %}text-white/70 hover:text-white hover:bg-white/10{% endif %}"

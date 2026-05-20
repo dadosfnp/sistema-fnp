@@ -79,6 +79,11 @@ class Envio(ModeloBase):
         FALHA = 'falha', 'Falha'
         PARCIAL = 'parcial', 'Parcial (alguns destinatários falharam)'
 
+    class Canal(models.TextChoices):
+        EMAIL = 'email', 'E-mail'
+        WHATSAPP = 'whatsapp', 'WhatsApp (link wa.me)'
+        AMBOS = 'ambos', 'E-mail + WhatsApp'
+
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
@@ -131,6 +136,19 @@ class Envio(ModeloBase):
         blank=True,
         null=True,
         help_text='Arquivo opcional anexado ao envio.',
+    )
+    canal = models.CharField(
+        'canal de envio',
+        max_length=10,
+        choices=Canal.choices,
+        default=Canal.EMAIL,
+        help_text='WhatsApp gera links wa.me (cliquei e envio manual); e-mail envia via SMTP.',
+    )
+    links_whatsapp = models.JSONField(
+        'links wa.me gerados',
+        default=list,
+        blank=True,
+        help_text='Lista de URLs wa.me prontas para o usuário clicar e disparar a mensagem.',
     )
 
     class Meta:

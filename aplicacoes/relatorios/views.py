@@ -563,6 +563,32 @@ def equipe_interna(request):
 
 
 @login_required
+def comparar_indice(request):
+    """Hub de comparação — atalho para os dois modos: municipios (cards) e mapas."""
+    return render(request, 'relatorios/comparar_indice.html')
+
+
+@login_required
+def comparar_mapas(request):
+    """Página com 2 mapas lado a lado para comparação visual.
+
+    Cada mapa tem seleção independente de modo (adimplência/engajamento) e ano.
+    Insight chave: cruzar municipios com alto engajamento + inadimplentes
+    (ou vice-versa) para detectar oportunidade de relacionamento.
+    """
+    anos = list(
+        Adimplencia.objects.values_list('ano_referencia', flat=True)
+        .distinct().order_by('-ano_referencia')
+    )
+    if not anos:
+        anos = [2026]
+    return render(request, 'relatorios/comparar_mapas.html', {
+        'anos_disponiveis': anos,
+        'ano_atual': anos[0],
+    })
+
+
+@login_required
 def mapa(request):
     """Página de mapa do Brasil com choropleth UF + marcadores + heatmap.
 

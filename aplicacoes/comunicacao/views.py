@@ -16,7 +16,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template import Context, Template
 
 from aplicacoes.comunicacao.models import Envio, TemplateEmail
-from aplicacoes.comunicacao.servicos import categoria_para_entidade, coletar_destinatarios
+from aplicacoes.comunicacao.servicos import (
+    categoria_para_entidade, coletar_destinatarios, montar_link_whatsapp,
+)
 
 
 def _eh_editor(request):
@@ -102,17 +104,27 @@ def processar_envio(request, app_label, model_name, object_id):
 
     assunto_template = request.POST.get('assunto', '').strip()
     corpo_template = request.POST.get('corpo', '').strip()
+    canal = request.POST.get('canal', Envio.Canal.EMAIL)
     anexo = request.FILES.get('anexo')
 
     if not destinatarios:
         ctx.update({'assunto': assunto_template, 'corpo': corpo_template,
+                    'canal': canal,
                     'erro_form': 'Nenhum destinatário válido.'})
         return render(request, 'comunicacao/parciais/modal_envio.html', ctx)
 
+    enviar_email = canal in (Envio.Canal.EMAIL, Envio.Canal.AMBOS)
+    enviar_whatsapp = canal in (Envio.Canal.WHATSAPP, Envio.Canal.AMBOS)
+
     emails_disparados = []
+    links_whatsapp = []  # lista de dicts {nome, telefone, url} para o usuario clicar
+
     try:
-        connection = get_connection()
-        connection.open()
+        connection = None
+        if enviar_email:
+            connection = get_connection()
+            connection.open()
+
         for dest in destinatarios:
             placeholders = {
                 'entidade': str(entidade),
@@ -121,18 +133,35 @@ def processar_envio(request, app_label, model_name, object_id):
             }
             assunto = _renderizar(assunto_template, placeholders)
             corpo = _renderizar(corpo_template, placeholders)
-            email = EmailMessage(
-                subject=assunto,
-                body=corpo,
-                to=[dest['email']],
-                connection=connection,
-            )
-            if anexo:
-                email.attach(anexo.name, anexo.read(), anexo.content_type)
-                anexo.seek(0)
-            email.send(fail_silently=False)
-            emails_disparados.append(dest['email'])
-        connection.close()
+
+            # E-mail (se canal pedir e pessoa tiver email)
+            if enviar_email and dest['email']:
+                email = EmailMessage(
+                    subject=assunto, body=corpo,
+                    to=[dest['email']], connection=connection,
+                )
+                if anexo:
+                    email.attach(anexo.name, anexo.read(), anexo.content_type)
+                    anexo.seek(0)
+                email.send(fail_silently=False)
+                emails_disparados.append(dest['email'])
+
+            # WhatsApp: gera link clicavel (sem disparar — o usuario abre)
+            if enviar_whatsapp and dest['telefone']:
+                # No WhatsApp colocamos titulo + corpo unidos (sem HTML)
+                mensagem = f'*{assunto}*\n\n{corpo}'
+                link = montar_link_whatsapp(dest['telefone'], mensagem)
+                if link:
+                    links_whatsapp.append({
+                        'nome': dest['pessoa'].nome,
+                        'telefone': dest['telefone'],
+                        'municipio': str(dest['municipio']) if dest['municipio'] else '',
+                        'url': link,
+                    })
+
+        if connection:
+            connection.close()
+
         envio = Envio.objects.create(
             content_type=content_type,
             object_id=object_id,
@@ -140,10 +169,12 @@ def processar_envio(request, app_label, model_name, object_id):
             assunto=assunto_template,
             corpo=corpo_template,
             destinatarios=emails_disparados,
-            total_destinatarios=len(emails_disparados),
+            total_destinatarios=max(len(emails_disparados), len(links_whatsapp)),
             status=Envio.StatusEnvio.ENVIADO,
             enviado_por=request.user,
             anexo=anexo,
+            canal=canal,
+            links_whatsapp=links_whatsapp,
         )
         return render(request, 'comunicacao/parciais/modal_sucesso.html', {
             'envio': envio,
@@ -160,8 +191,11 @@ def processar_envio(request, app_label, model_name, object_id):
             total_destinatarios=len(emails_disparados),
             status=Envio.StatusEnvio.FALHA,
             enviado_por=request.user, erro=str(exc),
+            canal=canal,
+            links_whatsapp=links_whatsapp,
         )
         ctx.update({'assunto': assunto_template, 'corpo': corpo_template,
+                    'canal': canal,
                     'erro_form': f'Falha ao enviar: {exc}'})
         return render(request, 'comunicacao/parciais/modal_envio.html', ctx)
 

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load fnp_tags %}
+
+{% block titulo %}Pré-credenciamentos — Recepção FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <a href="{% url 'presenca:recepcao' %}" class="text-gray-400 hover:text-fnp-500">Recepção</a>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold">Pré-credenciamentos</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-5xl mx-auto space-y-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
+        <div class="flex items-start gap-4">
+            <div class="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center">
+                <i data-lucide="qr-code" class="w-5 h-5 text-violet-500"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Pré-credenciamentos</h2>
+                <p class="text-sm text-gray-500 mt-0.5">Links enviados por WhatsApp/e-mail para visitantes preencherem antes da chegada.</p>
+            </div>
+        </div>
+        <a href="{% url 'presenca:credenciamento_novo' %}" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-violet-500 rounded-xl hover:bg-violet-600 shadow-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i> Novo
+        </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {% if pendentes %}
+        <div class="divide-y divide-gray-50">
+            {% for pre in pendentes %}
+            <div class="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
+                {% if pre.foto %}
+                <img src="{{ pre.foto.url }}" alt="" class="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-200">
+                {% else %}
+                {% avatar_iniciais pre.nome_visitante "w-10 h-10" "text-sm" %}
+                {% endif %}
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 truncate">{{ pre.nome_visitante }}</p>
+                    <p class="text-xs text-gray-500">
+                        {% if pre.organizacao %}{{ pre.organizacao }} · {% endif %}
+                        {{ pre.telefone|default:pre.email }}
+                    </p>
+                </div>
+                <div class="text-right text-xs">
+                    {% if pre.status == 'pendente' %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Aguardando preenchimento
+                    </span>
+                    {% elif pre.status == 'preenchido' %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Pronto para chegada
+                    </span>
+                    {% endif %}
+                </div>
+                {% if pre.status == 'preenchido' %}
+                <form method="post" action="{% url 'presenca:credenciamento_confirmar_visita' pre.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-emerald-500 rounded-lg hover:bg-emerald-600">
+                        <i data-lucide="log-in" class="w-3.5 h-3.5"></i> Confirmar entrada
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        {% url 'presenca:credenciamento_novo' as url_criar %}
+        {% include "nucleo/parciais/estado_vazio.html" with icone="qr-code" titulo="Nenhum pré-credenciamento" descricao="Crie um link para enviar ao visitante antes da chegada." cta_url=url_criar cta_label="Novo pré-credenciamento" %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
