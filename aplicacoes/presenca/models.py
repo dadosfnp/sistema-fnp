@@ -234,6 +234,14 @@ class CredenciamentoPrevio(ModeloBase):
     nome_visitante = models.CharField('nome do visitante', max_length=255)
     telefone = models.CharField('telefone (WhatsApp)', max_length=20, blank=True)
     email = models.EmailField('e-mail', blank=True)
+    cpf = models.CharField(
+        'CPF', max_length=14, blank=True,
+        help_text='Opcional. Apenas dígitos ou formato XXX.XXX.XXX-XX.',
+    )
+    rg = models.CharField(
+        'RG', max_length=20, blank=True,
+        help_text='Opcional. Útil quando o visitante não tem CPF à mão.',
+    )
     organizacao = models.CharField('organização/cargo', max_length=255, blank=True)
     motivo = models.CharField('motivo da visita', max_length=255, blank=True)
     data_visita_prevista = models.DateField('data prevista da visita', null=True, blank=True)

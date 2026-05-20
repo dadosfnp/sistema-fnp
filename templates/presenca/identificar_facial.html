@@ -1,28 +1,91 @@
 {% extends "base.html" %}
 
-{% block titulo %}Identificação Facial — Recepção FNP{% endblock %}
+{% block titulo %}Identificação — Recepção FNP{% endblock %}
 {% block titulo_pagina %}
 <div class="flex items-center gap-2 text-sm">
     <a href="{% url 'presenca:recepcao' %}" class="text-gray-400 hover:text-fnp-500">Recepção</a>
     <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
-    <span class="text-gray-700 font-semibold">Identificação facial</span>
+    <span class="text-gray-700 font-semibold">Identificação</span>
 </div>
 {% endblock %}
 
 {% block conteudo %}
 {% include "presenca/parciais/face_api_loader.html" %}
 
-<div class="max-w-3xl mx-auto" x-data="identificadorFacial()" x-init="iniciar()">
+<div class="max-w-4xl mx-auto space-y-4" x-data="identificador()" x-init="iniciar()">
+
+    {# ========== Busca manual ========== #}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+                <i data-lucide="search" class="w-4 h-4 text-blue-500"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-sm font-bold text-gray-900">Busca rápida</h3>
+                <p class="text-xs text-gray-500">Por nome, CPF, RG, telefone ou e-mail.</p>
+            </div>
+        </div>
+        <div class="relative">
+            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+            <input type="text" x-model="termoBusca" @input.debounce.250ms="buscarManual()"
+                   placeholder="Digite nome, CPF (números), RG..."
+                   class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500 focus:ring-2 focus:ring-fnp-500/20">
+        </div>
+        <template x-if="resultadosBusca.length > 0">
+            <div class="mt-3 space-y-1.5 max-h-64 overflow-y-auto">
+                <template x-for="r in resultadosBusca" :key="r.id">
+                    <div class="flex items-center gap-3 p-2 bg-gray-50 hover:bg-gray-100 rounded-lg">
+                        <template x-if="r.foto_url">
+                            <img :src="r.foto_url" class="w-12 h-12 rounded-full object-cover ring-2 ring-emerald-200">
+                        </template>
+                        <template x-if="!r.foto_url">
+                            <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                                <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
+                            </div>
+                        </template>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-900 truncate" x-text="r.nome"></p>
+                            <p class="text-xs text-gray-500 truncate">
+                                <span x-show="r.organizacao" x-text="r.organizacao"></span>
+                                <span x-show="r.cpf"> · CPF <span x-text="r.cpf"></span></span>
+                                <span x-show="r.telefone"> · <span x-text="r.telefone"></span></span>
+                            </p>
+                            <p class="text-[10px] text-gray-400 mt-0.5">
+                                <span x-text="r.status_display"></span>
+                                <span x-show="!r.tem_foto"> · sem foto</span>
+                            </p>
+                        </div>
+                        <form method="post" :action="`/presenca/credenciamento/${r.id}/confirmar/`" x-show="r.status === 'preenchido'">
+                            {% csrf_token %}
+                            <button type="submit" class="px-3 py-2 text-xs font-semibold text-white bg-emerald-500 rounded-lg hover:bg-emerald-600">
+                                <i data-lucide="log-in" class="w-3 h-3 inline -mt-0.5"></i> Confirmar entrada
+                            </button>
+                        </form>
+                        <span x-show="r.status === 'pendente'" class="text-[10px] px-2 py-1 bg-amber-50 text-amber-700 rounded font-semibold">
+                            Aguarda preenchimento
+                        </span>
+                    </div>
+                </template>
+            </div>
+        </template>
+        <template x-if="termoBusca.length >= 2 && resultadosBusca.length === 0 && !buscandoManual">
+            <p class="text-xs text-gray-400 mt-3 text-center py-3">Nenhum pré-credenciamento encontrado para "<span x-text="termoBusca"></span>".</p>
+        </template>
+    </div>
+
+    {# ========== Reconhecimento facial ========== #}
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-5 border-b border-gray-100 flex items-center gap-3">
-            <div class="w-11 h-11 rounded-xl bg-fuchsia-50 flex items-center justify-center">
-                <i data-lucide="scan-face" class="w-5 h-5 text-fuchsia-500"></i>
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-fuchsia-50 flex items-center justify-center">
+                <i data-lucide="scan-face" class="w-4 h-4 text-fuchsia-500"></i>
             </div>
             <div class="flex-1 min-w-0">
-                <h2 class="text-lg font-bold text-gray-900">Identificação facial automática</h2>
-                <p class="text-xs text-gray-500 mt-0.5">
-                    Aponte a câmera para o visitante. O sistema compara com os pré-credenciamentos
-                    da semana e auto-completa a entrada.
+                <h3 class="text-sm font-bold text-gray-900">Identificação facial automática</h3>
+                <p class="text-xs text-gray-500">
+                    <span x-text="`${candidatosProntos}/${totalCandidatos} candidatos prontos`"></span>
+                    <template x-if="extraindoEmbeddings">
+                        <span class="text-amber-700 inline-flex items-center gap-1">· <i data-lucide="loader" class="w-3 h-3 animate-spin"></i> processando fotos...</span>
+                    </template>
                 </p>
             </div>
             <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded"
@@ -33,36 +96,30 @@
                   x-text="rotuloStatus"></span>
         </div>
 
-        <div class="p-6 space-y-4">
+        <div class="p-5 space-y-3">
             <div class="relative bg-gray-900 rounded-xl overflow-hidden">
-                <video x-ref="video" autoplay playsinline muted class="w-full max-h-[480px] mx-auto"></video>
+                <video x-ref="video" autoplay playsinline muted class="w-full max-h-[400px] mx-auto"></video>
                 <canvas x-ref="canvas" class="hidden"></canvas>
-
-                {# Overlay status #}
-                <div x-show="!ativo" class="absolute inset-0 flex items-center justify-center text-white text-sm">
-                    <button type="button" @click="iniciarWebcam()" class="px-4 py-2 bg-fnp-500 rounded-lg font-semibold hover:bg-fnp-600">
+                <div x-show="!ativo" class="absolute inset-0 flex items-center justify-center text-white">
+                    <button type="button" @click="iniciarWebcam()" class="px-4 py-2.5 bg-fnp-500 rounded-lg font-semibold hover:bg-fnp-600">
                         <i data-lucide="camera" class="w-4 h-4 inline -mt-0.5"></i> Abrir câmera
                     </button>
                 </div>
-
                 <div x-show="ativo" class="absolute top-3 right-3 flex items-center gap-2 px-3 py-1.5 bg-black/70 rounded-full text-xs text-white">
                     <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                    Analisando... <span x-text="tentativas"></span>
+                    Analisando · <span x-text="tentativas"></span>
                 </div>
             </div>
 
-            {# Resultado #}
             <template x-if="match">
                 <div class="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4">
                     <div class="flex items-center gap-4">
-                        <template x-if="match.foto_url">
-                            <img :src="match.foto_url" alt="" class="w-16 h-16 rounded-full object-cover ring-2 ring-emerald-300">
-                        </template>
+                        <img :src="match.foto_url" alt="" class="w-16 h-16 rounded-full object-cover ring-2 ring-emerald-300">
                         <div class="flex-1 min-w-0">
-                            <p class="text-[10px] uppercase tracking-widest text-emerald-700 font-bold">Pessoa reconhecida</p>
+                            <p class="text-[10px] uppercase tracking-widest text-emerald-700 font-bold">Reconhecido</p>
                             <p class="text-lg font-bold text-gray-900 mt-0.5" x-text="match.nome"></p>
                             <p class="text-xs text-gray-600" x-text="match.organizacao"></p>
-                            <p class="text-[10px] text-gray-400 mt-1">Distância: <span x-text="match.distancia"></span> (quanto menor, mais similar)</p>
+                            <p class="text-[10px] text-gray-400 mt-1">Distância: <span x-text="match.distancia"></span></p>
                         </div>
                         <form method="post" :action="`/presenca/credenciamento/${match.id}/confirmar/`">
                             {% csrf_token %}
@@ -74,67 +131,119 @@
                 </div>
             </template>
 
-            <template x-if="!match && status === 'sem_match'">
+            <template x-if="status === 'sem_match' && !match">
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm">
-                    <p class="font-semibold text-amber-800">Nenhum pré-credenciamento corresponde.</p>
+                    <p class="font-semibold text-amber-800">Rosto não corresponde a nenhum pré-credenciamento.</p>
                     <p class="text-amber-700/90 mt-1 text-xs">
-                        Distância mínima: <b x-text="distanciaMinima"></b>.
-                        Se essa pessoa não fez pré-credenciamento, use o botão "Registrar visitante" na recepção.
+                        Distância mínima: <b x-text="distMinima"></b>. Use a busca manual acima ou registre como visitante novo.
                     </p>
                 </div>
             </template>
 
-            <div class="text-xs text-gray-500 flex items-center justify-between">
-                <button @click="pausar()" x-show="ativo" class="text-gray-500 hover:text-red-600">
-                    <i data-lucide="pause" class="w-3.5 h-3.5 inline"></i> Pausar
-                </button>
+            <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center gap-3">
+                    <button @click="pausar()" x-show="ativo" class="text-gray-500 hover:text-red-600">
+                        <i data-lucide="pause" class="w-3 h-3 inline"></i> Pausar
+                    </button>
+                    <button @click="recarregarCandidatos()" class="text-gray-500 hover:text-fnp-700">
+                        <i data-lucide="refresh-ccw" class="w-3 h-3 inline"></i> Recarregar
+                    </button>
+                </div>
                 <a href="{% url 'presenca:recepcao' %}" class="text-fnp-600 hover:text-fnp-700">← Voltar à recepção</a>
             </div>
         </div>
     </div>
 
-    <p class="mt-3 text-center text-[11px] text-gray-400">
-        Reconhecimento facial 100% no dispositivo (face-api.js). Foto não é enviada ao servidor.
+    <p class="text-center text-[11px] text-gray-400">
+        Reconhecimento 100% no dispositivo. Foto ao vivo não é enviada ao servidor.
     </p>
 </div>
 
 <script>
-function identificadorFacial() {
+function identificador() {
     return {
-        ativo: false,
-        stream: null,
-        timerId: null,
-        tentativas: 0,
-        status: 'inicial', // inicial | ativo | buscando | match | sem_match
-        match: null,
-        distanciaMinima: null,
+        ativo: false, stream: null, timerId: null, tentativas: 0,
+        status: 'inicial', match: null, distMinima: null,
+        termoBusca: '', resultadosBusca: [], buscandoManual: false,
+        candidatos: [], totalCandidatos: 0, candidatosProntos: 0,
+        extraindoEmbeddings: false,
+
         get rotuloStatus() {
             return {inicial:'Aguardando', ativo:'Capturando', buscando:'Analisando', match:'Reconhecido', sem_match:'Sem match'}[this.status] || '';
         },
+
         async iniciar() {
             await window.faceApiCarregar();
+            await this.recarregarCandidatos();
         },
+
+        async recarregarCandidatos() {
+            try {
+                const r = await fetch('{% url "presenca:identificar_facial_buscar" %}');
+                const d = await r.json();
+                this.candidatos = d.candidatos || [];
+                this.totalCandidatos = this.candidatos.length;
+                this.candidatosProntos = this.candidatos.filter(c => c.embedding && c.embedding.length === 128).length;
+                this.processarCandidatosSemEmbedding();
+            } catch (e) {
+                console.error('Erro candidatos', e);
+            }
+        },
+
+        async processarCandidatosSemEmbedding() {
+            const pendentes = this.candidatos.filter(c => !c.embedding || c.embedding.length !== 128);
+            if (pendentes.length === 0) return;
+            this.extraindoEmbeddings = true;
+            for (const cand of pendentes) {
+                try {
+                    const img = await this._carregarImagem(cand.foto_url);
+                    const emb = await window.faceApiExtrair(img);
+                    if (emb) {
+                        cand.embedding = emb;
+                        this.candidatosProntos++;
+                        // Cache no servidor
+                        fetch(`/presenca/identificar/${cand.id}/embedding/`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json', 'X-CSRFToken': window.csrftoken ? window.csrftoken() : ''},
+                            body: JSON.stringify({embedding: emb}),
+                        }).catch(() => {});
+                    }
+                } catch (e) {
+                    console.warn(`Falha em ${cand.nome}`, e);
+                }
+            }
+            this.extraindoEmbeddings = false;
+        },
+
+        _carregarImagem(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = url;
+            });
+        },
+
         async iniciarWebcam() {
             try {
                 this.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:640, height:480}, audio:false});
-                this.ativo = true;
-                this.status = 'ativo';
+                this.ativo = true; this.status = 'ativo'; this.tentativas = 0; this.match = null;
                 await this.$nextTick();
                 this.$refs.video.srcObject = this.stream;
-                // Inicia loop de captura a cada 2s
                 this.timerId = setInterval(() => this.tentarIdentificar(), 2000);
-            } catch (e) {
-                alert('Sem acesso à câmera. Permita o navegador.');
-            }
+            } catch (e) { alert('Sem acesso à câmera.'); }
         },
+
         pausar() {
             if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
             if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
             this.ativo = false;
-            this.status = 'inicial';
+            if (!this.match) this.status = 'inicial';
         },
+
         async tentarIdentificar() {
-            if (this.match) return; // ja achou
+            if (this.match) return;
             this.tentativas++;
             const v = this.$refs.video; const c = this.$refs.canvas;
             if (!v.videoWidth) return;
@@ -145,32 +254,39 @@ function identificadorFacial() {
             const emb = await window.faceApiExtrair(c);
             if (!emb) { this.status = 'ativo'; return; }
 
-            try {
-                const r = await fetch('{% url "presenca:identificar_facial_buscar" %}', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': window.csrftoken ? window.csrftoken() : ''},
-                    body: JSON.stringify({embedding: emb}),
-                });
-                const d = await r.json();
-                if (d.match) {
-                    this.match = d;
-                    this.status = 'match';
-                    this.pausar();
-                    if (window.toast) window.toast('success', `Reconhecido: ${d.nome}`);
-                    this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
-                } else {
-                    this.distanciaMinima = d.distancia_mais_proxima;
-                    if (this.tentativas >= 10) {
-                        this.status = 'sem_match';
-                        this.pausar();
-                    } else {
-                        this.status = 'ativo';
-                    }
-                }
-            } catch (e) {
-                console.error(e);
-                this.status = 'ativo';
+            let melhor = null, melhorDist = 0.6;
+            for (const cand of this.candidatos) {
+                if (!cand.embedding) continue;
+                const d = window.faceApiDistancia(emb, cand.embedding);
+                if (d < melhorDist) { melhor = cand; melhorDist = d; }
             }
+            if (melhor) {
+                this.match = {...melhor, distancia: melhorDist.toFixed(3)};
+                this.status = 'match';
+                this.pausar();
+                if (window.toast) window.toast('success', `Reconhecido: ${melhor.nome}`);
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            } else {
+                this.distMinima = melhorDist.toFixed(3);
+                if (this.tentativas >= 10) {
+                    this.status = 'sem_match';
+                    this.pausar();
+                } else {
+                    this.status = 'ativo';
+                }
+            }
+        },
+
+        async buscarManual() {
+            if (this.termoBusca.length < 2) { this.resultadosBusca = []; return; }
+            this.buscandoManual = true;
+            try {
+                const r = await fetch(`{% url "presenca:identificar_facial_busca_manual" %}?q=${encodeURIComponent(this.termoBusca)}`);
+                const d = await r.json();
+                this.resultadosBusca = d.resultados || [];
+                this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+            } catch (e) { this.resultadosBusca = []; }
+            finally { this.buscandoManual = false; }
         },
     };
 }

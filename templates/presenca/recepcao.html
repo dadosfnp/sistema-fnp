@@ -28,12 +28,6 @@
                     <p class="text-3xl font-bold text-gray-900 tabular-nums">{{ total_hoje }}</p>
                     <p class="text-xs text-gray-500 uppercase tracking-wider">Visitas hoje</p>
                 </div>
-                {% if ainda_presentes %}
-                <div class="text-right pl-4 border-l border-gray-200">
-                    <p class="text-3xl font-bold text-emerald-600 tabular-nums">{{ ainda_presentes }}</p>
-                    <p class="text-xs text-gray-500 uppercase tracking-wider">Ainda aqui</p>
-                </div>
-                {% endif %}
                 <a href="{% url 'presenca:identificar_facial' %}"
                    class="ml-2 inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold text-fuchsia-700 bg-fuchsia-50 rounded-xl hover:bg-fuchsia-100 border border-fuchsia-200 transition-colors"
                    title="Reconhecer visitante pela câmera">

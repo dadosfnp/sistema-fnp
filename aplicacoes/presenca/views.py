@@ -261,29 +261,84 @@ def recepcao(request):
     })
 
 
+def _criar_ou_obter_pessoa(nome, email, telefone, tipo, cargo, request_user):
+    """Cria (ou reusa) uma Pessoa para quem chegou à recepção.
+
+    Se existir Pessoa com mesmo e-mail, reusa (atualiza telefone/tipo se vazio).
+    Senão, cria nova com o tipo (profissão) informado pela secretária.
+    """
+    pessoa = None
+    if email:
+        pessoa = Pessoa.objects.filter(email__iexact=email).first()
+    if pessoa is None:
+        pessoa = Pessoa.objects.create(
+            nome=nome,
+            email=email or None,
+            telefone=telefone,
+            tipo=tipo or Pessoa.TipoPessoa.OUTRO,
+            cargo=cargo or '',
+            ativo=True,
+        )
+        registrar_criacao(request_user, pessoa)
+    else:
+        # Atualiza apenas campos vazios para não sobrescrever informações boas
+        precisa_save = False
+        if not pessoa.telefone and telefone:
+            pessoa.telefone = telefone; precisa_save = True
+        if cargo and not pessoa.cargo:
+            pessoa.cargo = cargo; precisa_save = True
+        if precisa_save:
+            pessoa.save()
+    return pessoa
+
+
 @login_required
 def recepcao_novo(request):
-    """Formulario simples de check-in. Cria Visita e opcionalmente Pessoa."""
+    """Check-in de visitante — foto obrigatória, cria Pessoa correspondente."""
     if request.method == 'POST':
         nome = (request.POST.get('nome_visitante') or '').strip()
+        foto_base64 = request.POST.get('foto_base64', '')
+
         if not nome:
-            messages.error(request, 'Nome do visitante e obrigatorio.')
+            messages.error(request, 'Nome do visitante é obrigatório.')
+            return redirect('presenca:recepcao_novo')
+        if not foto_base64 or not foto_base64.startswith('data:image/'):
+            messages.error(request, 'Foto de credenciamento é obrigatória — tire pela webcam antes de concluir.')
             return redirect('presenca:recepcao_novo')
 
-        # Reusa Pessoa existente se informada (via pessoa_id) ou pesquisa por nome
+        # Reusa Pessoa existente se informada (via pessoa_id) ou cria pela recepção
         pessoa = None
         pessoa_id = request.POST.get('pessoa_id') or None
         if pessoa_id:
             pessoa = Pessoa.objects.filter(pk=pessoa_id).first()
 
+        email = (request.POST.get('email') or '').strip()
+        telefone = (request.POST.get('telefone') or '').strip()
         municipio_id = request.POST.get('municipio_id') or None
         municipio = Municipio.objects.filter(pk=municipio_id).first() if municipio_id else None
+
+        # Tipo (profissao) informado pela secretaria — prefeito, secretario etc.
+        tipo_profissao = request.POST.get('tipo_pessoa') or Pessoa.TipoPessoa.OUTRO
+        cargo_informado = (request.POST.get('cargo') or '').strip()
+
+        # Sempre garante uma Pessoa associada — visitante vira parte da base
+        if pessoa is None:
+            pessoa = _criar_ou_obter_pessoa(
+                nome, email, telefone, tipo_profissao, cargo_informado, request.user,
+            )
+
+        # Vincula município se for capturado e a pessoa nao tem
+        if municipio and not pessoa.vinculos.filter(vigente=True).exists():
+            VinculoMunicipio.objects.create(
+                pessoa=pessoa, municipio=municipio,
+                papel=VinculoMunicipio.Papel.CONTATO, vigente=True,
+            )
 
         visita = Visita.objects.create(
             pessoa=pessoa,
             nome_visitante=nome,
-            email=(request.POST.get('email') or '').strip(),
-            telefone=(request.POST.get('telefone') or '').strip(),
+            email=email,
+            telefone=telefone,
             organizacao=(request.POST.get('organizacao') or '').strip(),
             motivo=request.POST.get('motivo') or Visita.Motivo.OUTRO,
             pessoa_recebida_por=(request.POST.get('pessoa_recebida_por') or '').strip(),
@@ -293,19 +348,81 @@ def recepcao_novo(request):
         )
 
         # Foto da webcam (data:image/jpeg;base64,...)
-        foto_base64 = request.POST.get('foto_base64', '')
-        if foto_base64:
-            _processar_foto_base64(visita, foto_base64)
+        _processar_foto_base64(visita, foto_base64)
+        # Aplica a mesma foto na Pessoa se ela ainda nao tinha — para aparecer no perfil
+        if not pessoa.foto and visita.foto:
+            from django.core.files.base import ContentFile
+            visita.foto.open('rb')
+            pessoa.foto.save(f'pessoa-{pessoa.pk}.jpg', ContentFile(visita.foto.read()), save=True)
+            visita.foto.close()
 
         # Embedding facial extraido pelo face-api.js no browser
         _aplicar_embedding(visita, request.POST.get('face_embedding_json', ''))
 
         registrar_criacao(request.user, visita)
-        messages.success(request, f'{nome} registrado(a) com sucesso.')
+        messages.success(request, f'{nome} registrado(a) — ja consta na base de pessoas.')
         return redirect('presenca:recepcao')
 
-    # Lista de pessoas conhecidas e municipios pra autocomplete
     return render(request, 'presenca/recepcao_novo.html', {
+        'motivos': Visita.Motivo.choices,
+    })
+
+
+@login_required
+def recepcao_editar(request, pk):
+    """Editar visita já registrada — corrige clique acidental em concluir."""
+    visita = get_object_or_404(Visita, pk=pk)
+
+    if request.method == 'POST':
+        nome = (request.POST.get('nome_visitante') or visita.nome_visitante).strip()
+        if not nome:
+            messages.error(request, 'Nome do visitante é obrigatório.')
+            return redirect('presenca:recepcao_editar', pk=pk)
+
+        visita.nome_visitante = nome
+        visita.email = (request.POST.get('email') or '').strip()
+        visita.telefone = (request.POST.get('telefone') or '').strip()
+        visita.organizacao = (request.POST.get('organizacao') or '').strip()
+        visita.motivo = request.POST.get('motivo') or visita.motivo
+        visita.pessoa_recebida_por = (request.POST.get('pessoa_recebida_por') or '').strip()
+        visita.observacao = (request.POST.get('observacao') or '').strip()
+        visita.save()
+
+        # Foto nova se vier
+        foto_base64 = request.POST.get('foto_base64', '')
+        if foto_base64 and foto_base64.startswith('data:image/'):
+            _processar_foto_base64(visita, foto_base64)
+            if visita.pessoa and visita.foto:
+                from django.core.files.base import ContentFile
+                visita.foto.open('rb')
+                visita.pessoa.foto.save(f'pessoa-{visita.pessoa.pk}.jpg', ContentFile(visita.foto.read()), save=True)
+                visita.foto.close()
+
+        _aplicar_embedding(visita, request.POST.get('face_embedding_json', ''))
+
+        # Sincroniza dados basicos + profissao com a Pessoa vinculada
+        if visita.pessoa:
+            atualizou = False
+            if visita.pessoa.nome != nome:
+                visita.pessoa.nome = nome; atualizou = True
+            if visita.email and visita.pessoa.email != visita.email:
+                visita.pessoa.email = visita.email; atualizou = True
+            if visita.telefone and visita.pessoa.telefone != visita.telefone:
+                visita.pessoa.telefone = visita.telefone; atualizou = True
+            tipo_novo = request.POST.get('tipo_pessoa')
+            if tipo_novo and tipo_novo in dict(Pessoa.TipoPessoa.choices) and visita.pessoa.tipo != tipo_novo:
+                visita.pessoa.tipo = tipo_novo; atualizou = True
+            cargo_novo = (request.POST.get('cargo') or '').strip()
+            if cargo_novo and visita.pessoa.cargo != cargo_novo:
+                visita.pessoa.cargo = cargo_novo; atualizou = True
+            if atualizou:
+                visita.pessoa.save()
+
+        messages.success(request, 'Visita atualizada.')
+        return redirect('presenca:recepcao')
+
+    return render(request, 'presenca/recepcao_editar.html', {
+        'visita': visita,
         'motivos': Visita.Motivo.choices,
     })
 
@@ -500,6 +617,8 @@ def pre_credenciamento_publico(request, token):
     if request.method == 'POST':
         pre.organizacao = (request.POST.get('organizacao') or pre.organizacao or '').strip()
         pre.motivo = (request.POST.get('motivo') or pre.motivo or '').strip()
+        pre.cpf = (request.POST.get('cpf') or pre.cpf or '').strip()
+        pre.rg = (request.POST.get('rg') or pre.rg or '').strip()
         pre.documentos_aceitos = request.POST.get('aceite_lgpd') == 'on'
 
         foto_base64 = request.POST.get('foto_base64', '')
@@ -653,51 +772,96 @@ def identificar_facial(request):
 
 @login_required
 def identificar_facial_buscar(request):
-    """Endpoint JSON: recebe embedding do browser, busca match nos pre-credenciamentos.
+    """Lista candidatos para identificacao facial — todos os pre-cred preenchidos.
 
-    Compara via distancia euclidiana. Threshold 0.6 (padrao face-api.js).
+    O matching acontece no navegador da recepcao: para cada candidato sem
+    embedding gravado, a pagina baixa a foto e calcula localmente via
+    face-api.js. Isso torna o sistema robusto a falhas no celular do
+    visitante (modelos pesados, navegador mobile, foto borrada).
     """
+    pres = (
+        CredenciamentoPrevio.objects
+        .filter(status=CredenciamentoPrevio.Status.PREENCHIDO)
+        .exclude(foto='')
+    )
+    candidatos = []
+    for pre in pres:
+        if not pre.foto:
+            continue
+        candidatos.append({
+            'id': str(pre.pk),
+            'nome': pre.nome_visitante,
+            'organizacao': pre.organizacao,
+            'foto_url': pre.foto.url,
+            'embedding': pre.face_embedding or None,  # null se ainda nao calculado
+        })
+    return JsonResponse({'candidatos': candidatos, 'total': len(candidatos)})
+
+
+@login_required
+def identificar_facial_atualizar_embedding(request, pk):
+    """Salva embedding calculado no navegador da recepcao (cache no banco)."""
     import json as _json
-    import math
 
     if request.method != 'POST':
         return JsonResponse({'erro': 'use POST'}, status=405)
+    pre = get_object_or_404(CredenciamentoPrevio, pk=pk)
     try:
         body = _json.loads(request.body.decode('utf-8'))
     except (ValueError, UnicodeDecodeError):
         return JsonResponse({'erro': 'body invalido'}, status=400)
-
     emb = body.get('embedding')
     if not isinstance(emb, list) or len(emb) != 128:
         return JsonResponse({'erro': 'embedding invalido'}, status=400)
+    pre.face_embedding = emb
+    pre.save(update_fields=['face_embedding', 'atualizado_em'])
+    return JsonResponse({'ok': True})
 
-    def _dist(a, b):
-        if len(a) != len(b):
-            return float('inf')
-        return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
 
-    # Candidatos: pre-credenciamentos preenchidos + visitas anteriores com embedding
-    pres = CredenciamentoPrevio.objects.filter(
-        status=CredenciamentoPrevio.Status.PREENCHIDO,
-    ).exclude(face_embedding=[])
+@login_required
+def identificar_facial_busca_manual(request):
+    """Busca textual por nome / CPF / RG / e-mail / telefone nos pre-cred preenchidos.
 
-    melhor = None
-    melhor_dist = 0.6  # threshold de match
-    for pre in pres:
-        d = _dist(emb, pre.face_embedding or [])
-        if d < melhor_dist:
-            melhor = pre
-            melhor_dist = d
+    Fallback para quando o reconhecimento facial nao funciona — secretaria
+    digita pedaco do nome ou CPF e ve foto + dados.
+    """
+    termo = (request.GET.get('q') or '').strip()
+    if len(termo) < 2:
+        return JsonResponse({'resultados': []})
 
-    if melhor:
-        return JsonResponse({
-            'match': True,
-            'tipo': 'pre_credenciamento',
-            'id': str(melhor.pk),
-            'nome': melhor.nome_visitante,
-            'organizacao': melhor.organizacao,
-            'foto_url': melhor.foto.url if melhor.foto else '',
-            'distancia': round(melhor_dist, 3),
+    # Normaliza CPF/RG removendo nao-digitos (so para o filtro digital)
+    import re as _re
+    termo_digitos = _re.sub(r'\D', '', termo)
+
+    qs = CredenciamentoPrevio.objects.filter(
+        status__in=[
+            CredenciamentoPrevio.Status.PREENCHIDO,
+            CredenciamentoPrevio.Status.PENDENTE,
+        ],
+    )
+    from django.db.models import Q as _Q
+    filtros = (
+        _Q(nome_visitante__icontains=termo)
+        | _Q(email__icontains=termo)
+        | _Q(organizacao__icontains=termo)
+    )
+    if termo_digitos:
+        filtros |= _Q(cpf__icontains=termo_digitos) | _Q(rg__icontains=termo_digitos) | _Q(telefone__icontains=termo_digitos)
+    qs = qs.filter(filtros)[:10]
+
+    resultados = []
+    for pre in qs:
+        resultados.append({
+            'id': str(pre.pk),
+            'nome': pre.nome_visitante,
+            'organizacao': pre.organizacao,
+            'cpf': pre.cpf,
+            'rg': pre.rg,
+            'telefone': pre.telefone,
+            'email': pre.email,
+            'status': pre.status,
+            'status_display': pre.get_status_display(),
+            'foto_url': pre.foto.url if pre.foto else '',
+            'tem_foto': bool(pre.foto),
         })
-
-    return JsonResponse({'match': False, 'distancia_mais_proxima': round(melhor_dist, 3)})
+    return JsonResponse({'resultados': resultados, 'total': len(resultados)})

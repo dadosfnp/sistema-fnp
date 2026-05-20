@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block titulo %}Editar visita — Recepção FNP{% endblock %}
+{% block titulo_pagina %}
+<div class="flex items-center gap-2 text-sm">
+    <a href="{% url 'presenca:recepcao' %}" class="text-gray-400 hover:text-fnp-500">Recepção</a>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-gray-300"></i>
+    <span class="text-gray-700 font-semibold">Editar visita</span>
+</div>
+{% endblock %}
+
+{% block conteudo %}
+{% include "presenca/parciais/face_api_loader.html" %}
+
+<div class="max-w-2xl mx-auto">
+    <form method="post" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" x-data="webcamCapture()">
+        {% csrf_token %}
+        <div class="px-6 py-5 border-b border-gray-100 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-fnp-50 flex items-center justify-center">
+                <i data-lucide="edit-3" class="w-5 h-5 text-fnp-500"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Editar visita</h2>
+                <p class="text-xs text-gray-500">
+                    Registrada em {{ visita.chegou_em|date:"d/m/Y H:i" }}.
+                    {% if visita.pessoa %}Vinculada à pessoa <a href="{% url 'cadastro:detalhe_pessoa' visita.pessoa.pk %}" class="text-fnp-600 underline">{{ visita.pessoa.nome }}</a>.{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="p-6 space-y-5">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nome completo <span class="text-red-500">*</span></label>
+                <input type="text" name="nome_visitante" value="{{ visita.nome_visitante }}" required
+                       class="w-full px-4 py-3 text-base border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500 focus:ring-2 focus:ring-fnp-500/20">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">E-mail</label>
+                    <input type="email" name="email" value="{{ visita.email }}"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Telefone</label>
+                    <input type="text" name="telefone" value="{{ visita.telefone }}" placeholder="(00) 00000-0000"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500">
+                </div>
+            </div>
+
+            {% if visita.pessoa %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Profissão / Tipo</label>
+                    <select name="tipo_pessoa"
+                            class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-fnp-500">
+                        <option value="prefeito" {% if visita.pessoa.tipo == 'prefeito' %}selected{% endif %}>Prefeito(a)</option>
+                        <option value="vice_prefeito" {% if visita.pessoa.tipo == 'vice_prefeito' %}selected{% endif %}>Vice-prefeito(a)</option>
+                        <option value="secretario" {% if visita.pessoa.tipo == 'secretario' %}selected{% endif %}>Secretário(a)</option>
+                        <option value="assessor" {% if visita.pessoa.tipo == 'assessor' %}selected{% endif %}>Assessor(a)</option>
+                        <option value="vereador" {% if visita.pessoa.tipo == 'vereador' %}selected{% endif %}>Vereador(a)</option>
+                        <option value="interno" {% if visita.pessoa.tipo == 'interno' %}selected{% endif %}>Equipe interna FNP</option>
+                        <option value="outro" {% if visita.pessoa.tipo == 'outro' %}selected{% endif %}>Outro</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1.5">Cargo específico</label>
+                    <input type="text" name="cargo" value="{{ visita.pessoa.cargo }}"
+                           class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500">
+                </div>
+            </div>
+            {% endif %}
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Organização</label>
+                <input type="text" name="organizacao" value="{{ visita.organizacao }}"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Motivo da visita</label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {% for valor, label in motivos %}
+                    <label class="flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg border-2 cursor-pointer transition-colors has-[:checked]:border-fnp-500 has-[:checked]:bg-fnp-50 has-[:checked]:text-fnp-700 border-gray-200 hover:border-gray-300">
+                        <input type="radio" name="motivo" value="{{ valor }}" class="sr-only" {% if valor == visita.motivo %}checked{% endif %}>
+                        {{ label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Recebido(a) por</label>
+                <input type="text" name="pessoa_recebida_por" value="{{ visita.pessoa_recebida_por }}"
+                       class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Observação</label>
+                <textarea name="observacao" rows="2"
+                          class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-fnp-500">{{ visita.observacao }}</textarea>
+            </div>
+
+            {# Foto: mostra atual + permite trocar #}
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Foto de credenciamento</label>
+                <input type="hidden" name="foto_base64" x-model="fotoBase64">
+                <input type="hidden" name="face_embedding_json" x-model="faceEmbeddingJson">
+
+                {% if visita.foto %}
+                <div class="mb-3 flex items-center gap-3" x-show="!fotoBase64 && !ativa">
+                    <img src="{{ visita.foto.url }}" class="w-20 h-20 rounded-lg object-cover ring-2 ring-emerald-200">
+                    <div>
+                        <p class="text-xs text-gray-500">Foto atual</p>
+                        <button type="button" @click="iniciar()" class="mt-1 text-xs text-fnp-600 hover:text-fnp-700 underline">
+                            Substituir
+                        </button>
+                    </div>
+                </div>
+                {% else %}
+                <div x-show="!ativa && !fotoBase64" class="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600"></i>
+                    <p class="text-xs text-amber-700 flex-1">Esta visita não tem foto. Adicione agora.</p>
+                    <button type="button" @click="iniciar()"
+                            class="px-3 py-1.5 text-xs font-semibold text-fnp-700 bg-fnp-50 rounded-lg border border-fnp-200">
+                        Tirar foto
+                    </button>
+                </div>
+                {% endif %}
+
+                <div x-show="ativa" class="space-y-2">
+                    <video x-ref="video" autoplay playsinline class="w-full max-w-xs rounded-lg bg-gray-900"></video>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="capturar()"
+                                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-fnp-500 rounded-lg hover:bg-fnp-600">
+                            <i data-lucide="aperture" class="w-3.5 h-3.5"></i> Capturar
+                        </button>
+                        <button type="button" @click="parar()" class="text-xs text-gray-500">Cancelar</button>
+                    </div>
+                </div>
+                <div x-show="fotoBase64 && !ativa" class="space-y-2">
+                    <img :src="fotoBase64" class="w-full max-w-xs rounded-lg border-2 border-emerald-200 shadow-sm">
+                    <button type="button" @click="reiniciar()" class="text-xs text-gray-500 underline">Tirar outra</button>
+                </div>
+                <canvas x-ref="canvas" class="hidden"></canvas>
+            </div>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+            <a href="{% url 'presenca:recepcao' %}" class="text-sm text-gray-500 hover:text-gray-700">Cancelar</a>
+            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 text-base font-semibold text-white bg-fnp-500 rounded-xl hover:bg-fnp-600 shadow-md">
+                <i data-lucide="save" class="w-4 h-4"></i> Salvar alterações
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function webcamCapture() {
+    return {
+        ativa: false, fotoBase64: '', faceEmbeddingJson: '', stream: null,
+        async iniciar() {
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:640, height:480}, audio:false});
+                this.ativa = true;
+                await this.$nextTick();
+                this.$refs.video.srcObject = this.stream;
+            } catch (e) { alert('Sem acesso à câmera.'); }
+        },
+        async capturar() {
+            const v = this.$refs.video; const c = this.$refs.canvas;
+            c.width = v.videoWidth; c.height = v.videoHeight;
+            c.getContext('2d').drawImage(v, 0, 0);
+            this.fotoBase64 = c.toDataURL('image/jpeg', 0.8);
+            this.parar();
+            try {
+                const emb = await window.faceApiExtrair(c);
+                if (emb) this.faceEmbeddingJson = JSON.stringify(emb);
+            } catch (e) { /* segue sem embedding */ }
+        },
+        parar() { if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; } this.ativa = false; },
+        reiniciar() { this.fotoBase64 = ''; this.faceEmbeddingJson = ''; this.iniciar(); },
+    };
+}
+</script>
+{% endblock %}
