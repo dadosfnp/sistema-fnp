@@ -47,6 +47,19 @@ CSRF_TRUSTED_ORIGINS = [
     for host in ALLOWED_HOSTS
 ]
 
+# Origens extras (ex: IP cru do droplet via http:// durante setup, domínio
+# temporário em homologação). Lidas de EXTRA_CSRF_ORIGINS no .env como
+# CSV de URLs completas:
+#   EXTRA_CSRF_ORIGINS=http://203.0.113.45,https://homolog.fnp.org.br
+# Útil enquanto o certbot ainda não emitiu o certificado e o acesso é
+# feito via IP — sem isso, o Django bloqueia o POST de login com 403 CSRF.
+EXTRA_CSRF_ORIGINS = [
+    origem.strip()
+    for origem in os.environ.get('EXTRA_CSRF_ORIGINS', '').split(',')
+    if origem.strip()
+]
+CSRF_TRUSTED_ORIGINS.extend(EXTRA_CSRF_ORIGINS)
+
 # CORS — em produção libera só os hosts do próprio sistema (face-api.js
 # acessando /media/ e clientes da API REST que rodam no mesmo domínio).
 CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS[:]
@@ -67,7 +80,13 @@ MIDDLEWARE.insert(
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        # CompressedStaticFilesStorage (sem 'Manifest') é a versão tolerante:
+        # comprime e serve gzipped, mas não exige que TODOS os {% static %}
+        # apontem para arquivos existentes. O manifest estrito quebrava o
+        # collectstatic em produção quando havia referências legadas (favicons,
+        # SVGs antigos) que somem em refactors. Em troca não temos hash no
+        # nome — cache busting depende do header Cache-Control do WhiteNoise.
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
     },
 }
 
