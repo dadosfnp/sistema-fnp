@@ -16,6 +16,8 @@ api_router.register(r'engajamentos', EngajamentoViewSet, basename='api-engajamen
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # django-allauth — login social Google + flows padrão
+    path('accounts/', include('allauth.urls')),
     path('api/v1/', include(api_router.urls)),
     path('api/v1/token/', obtain_auth_token, name='api-token'),
     path('portal/', __import__('aplicacoes.nucleo.views', fromlist=['portal_prefeito']).portal_prefeito, name='portal_prefeito'),

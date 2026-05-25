@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block titulo %}Configurar 2FA — Sistema FNP{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-xl mx-auto p-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <header class="mb-6">
+      <h1 class="text-xl font-semibold text-slate-900">Configurar autenticação em dois fatores (2FA)</h1>
+      <p class="text-sm text-slate-600 mt-2">
+        Seu perfil exige 2FA. Vamos configurar uma única vez — depois você só precisa abrir o app autenticador no celular para entrar.
+      </p>
+    </header>
+
+    <ol class="space-y-4 text-sm">
+      <li>
+        <p class="font-medium text-slate-800">1. Instale um app autenticador</p>
+        <p class="text-slate-600">Google Authenticator, Microsoft Authenticator, Authy ou 1Password.</p>
+      </li>
+
+      <li>
+        <p class="font-medium text-slate-800">2. Escaneie o QR code</p>
+        <div class="mt-2 flex flex-col sm:flex-row gap-4 items-center">
+          <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR code 2FA" class="border border-slate-200 rounded-lg w-48 h-48">
+          <div class="text-xs text-slate-500">
+            <p>Se preferir digitar o código manualmente:</p>
+            <code class="bg-slate-100 px-2 py-1 rounded font-mono text-[11px] mt-1 inline-block break-all">{{ secret }}</code>
+          </div>
+        </div>
+      </li>
+
+      <li>
+        <p class="font-medium text-slate-800">3. Digite o código de 6 dígitos que aparece no app</p>
+        <form method="post" class="mt-2">
+          {% csrf_token %}
+          {% if erro %}
+            <div class="mb-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">{{ erro }}</div>
+          {% endif %}
+          <div class="flex gap-2">
+            <input type="text" name="token" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required autofocus
+                   class="flex-1 rounded-lg border-slate-300 text-lg tracking-widest text-center"
+                   placeholder="000000">
+            <button type="submit" class="px-5 py-2 bg-fnp-500 hover:bg-fnp-600 text-white text-sm font-medium rounded-lg">
+              Verificar e ativar
+            </button>
+          </div>
+        </form>
+      </li>
+    </ol>
+  </div>
+</div>
+{% endblock %}

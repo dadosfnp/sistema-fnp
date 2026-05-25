@@ -35,10 +35,22 @@ THIRD_PARTY_APPS = [
     'unfold.contrib.filters',
     'unfold.contrib.forms',
     'django.contrib.admin',  # deve vir após unfold
+    'django.contrib.sites',  # exigido pelo allauth
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    # Auth — login social + 2FA + brute-force
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',  # códigos de backup
+    'axes',
 ]
+
+SITE_ID = 1
 
 # DRF — autenticação por token + session, somente leitura para clientes externos
 # por enquanto. Pagina respostas grandes automaticamente.
@@ -92,13 +104,68 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # 2FA — django-otp injeta is_verified() em request.user (deve vir depois do auth)
+    'django_otp.middleware.OTPMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'aplicacoes.nucleo.middleware.IsolarPortalPrefeitoMiddleware',
+    'aplicacoes.nucleo.middleware.BloquearAcessoExpiradoMiddleware',
+    'aplicacoes.nucleo.middleware.Exigir2FAMiddleware',
     # LGPD — força aceite do termo de uso. Vem depois do Auth e do Isolar
     # para que prefeitos do portal externo também sejam exigidos.
     'aplicacoes.nucleo.middleware.ExigirAceiteTermoMiddleware',
+    # Axes deve vir POR ÚLTIMO para receber sinal de login e contabilizar falhas.
+    'axes.middleware.AxesMiddleware',
 ]
+
+# ---------------------------------------------------------------------------
+# Authentication backends (django-allauth + django-axes)
+# ---------------------------------------------------------------------------
+AUTHENTICATION_BACKENDS = [
+    # Axes envolve os demais para registrar tentativas falhas — deve ser o primeiro.
+    'axes.backends.AxesStandaloneBackend',
+    # Backend padrão (usuário/senha local)
+    'django.contrib.auth.backends.ModelBackend',
+    # Allauth — login via Google
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# ---------------------------------------------------------------------------
+# Allauth — login social com Google + e-mail obrigatório
+# ---------------------------------------------------------------------------
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # FNP/equipe interna já vem do Google verificado
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_SESSION_REMEMBER = False  # sessão por aba — segurança
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        # Auto-conecta contas Google com mesmo e-mail (evita usuário duplicado)
+        'OAUTH_PKCE_ENABLED': True,
+    }
+}
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_ADAPTER = 'aplicacoes.nucleo.adapters.SocialAccountAdapterFNP'
+
+# Domínio FNP é auto-aprovado; outros entram como PENDENTE.
+DOMINIOS_AUTOAPROVADOS = ['fnp.org.br']
+
+# ---------------------------------------------------------------------------
+# django-axes — bloqueio brute-force
+# Desabilitado em modo teste (axes exige `request` no authenticate, o que
+# quebra `client.login(username, password)` usado nos TestCase).
+# ---------------------------------------------------------------------------
+import sys  # noqa: E402
+
+AXES_ENABLED = 'test' not in sys.argv
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1  # horas
+AXES_LOCKOUT_PARAMETERS = ['ip_address', 'username']
+AXES_RESET_ON_SUCCESS = True
+AXES_VERBOSE = False  # evita poluir o log do Render
 
 # CORS — libera /media/ (fotos) e /api/v1/ (REST) para origens same-origin
 # por padrão. Em produção, ajustar CORS_ALLOWED_ORIGINS se for consumir de outro domínio.

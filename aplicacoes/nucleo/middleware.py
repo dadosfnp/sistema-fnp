@@ -55,6 +55,75 @@ ROTAS_LIBERADAS_TERMO = (
 )
 
 
+ROTAS_LIBERADAS_ACESSO = (
+    '/entrar/', '/sair/', '/conta/',
+    '/static/', '/estaticos/', '/media/',
+    '/accounts/',  # allauth (login social, callback, etc.)
+    '/recepcao/pre/',
+)
+
+
+ROTAS_LIBERADAS_2FA = (
+    '/entrar/', '/sair/', '/conta/2fa/', '/conta/aguardando-aprovacao/',
+    '/static/', '/estaticos/', '/media/',
+    '/accounts/', '/admin/login/', '/admin/logout/',
+)
+
+
+class Exigir2FAMiddleware:
+    """Redireciona para configuração/verificação 2FA quem o perfil exige.
+
+    Externos e admins têm ``requer_2fa=True``. Se ainda não verificaram
+    TOTP nesta sessão (``request.user.is_verified()`` do django-otp == False),
+    são mandados para ``/conta/2fa/setup/`` (primeira vez) ou ``/conta/2fa/login/``.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if _EM_MODO_TESTE:
+            return self.get_response(request)
+        user = getattr(request, 'user', None)
+        if user and user.is_authenticated and not user.is_superuser:
+            perfil = getattr(user, 'perfil', None)
+            if perfil and perfil.requer_2fa:
+                path = request.path
+                if not any(path.startswith(r) for r in ROTAS_LIBERADAS_2FA):
+                    # django-otp injeta is_verified(); se nao verificou, redireciona
+                    if not getattr(user, 'is_verified', lambda: False)():
+                        return HttpResponseRedirect('/conta/2fa/login/')
+        return self.get_response(request)
+
+
+class BloquearAcessoExpiradoMiddleware:
+    """Bloqueia perfis PENDENTE/BLOQUEADO/EXPIRADO antes de qualquer view.
+
+    Roda DEPOIS do AuthenticationMiddleware. Redireciona o usuário sem
+    acesso válido para ``/conta/aguardando-aprovacao/`` com mensagem clara.
+    Atende ao "auto-aprova @fnp.org.br + externos pendentes" — externos
+    completam OAuth do Google mas não passam daqui até o DPO liberar.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if _EM_MODO_TESTE:
+            return self.get_response(request)
+        user = getattr(request, 'user', None)
+        if user and user.is_authenticated and not user.is_superuser:
+            path = request.path
+            if not any(path.startswith(r) for r in ROTAS_LIBERADAS_ACESSO):
+                perfil = getattr(user, 'perfil', None)
+                if perfil:
+                    # Marca expirado caso já tenha passado da data
+                    perfil.expirar_se_necessario()
+                    if not perfil.acesso_valido:
+                        return HttpResponseRedirect('/conta/aguardando-aprovacao/')
+        return self.get_response(request)
+
+
 class ExigirAceiteTermoMiddleware:
     """Força o aceite do termo de uso/LGPD antes de qualquer navegação.
 

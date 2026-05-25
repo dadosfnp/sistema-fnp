@@ -118,6 +118,21 @@ def exportar_meus_dados(request):
 
 
 @login_required
+def aguardando_aprovacao(request):
+    """Tela final para perfis pendentes/expirados/bloqueados.
+
+    Aqui o usuário Google externo cai depois do OAuth — mostra mensagem
+    institucional, contato do DPO e botão de sair. Não vaza nada do BD.
+    """
+    perfil = getattr(request.user, 'perfil', None)
+    status = perfil.get_status_aprovacao_display() if perfil else 'sem perfil'
+    return render(request, 'nucleo/aguardando_aprovacao.html', {
+        'status': status,
+        'expira_em': perfil.expira_em if perfil else None,
+    })
+
+
+@login_required
 def solicitar_exclusao(request):
     """Registra pedido formal de exclusão de dados (LGPD Art. 18, VI).
 

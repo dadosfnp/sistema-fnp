@@ -13,6 +13,7 @@ from django.utils import timezone
 from aplicacoes.cadastro.models import Municipio, Pessoa, VinculoMunicipio
 from aplicacoes.instancias.models import Representacao
 from aplicacoes.nucleo.servicos.auditoria import registrar_criacao
+from aplicacoes.nucleo.servicos.auditoria_leitura import registrar_leitura_sensivel
 from aplicacoes.presenca.models import CredenciamentoPrevio, Presenca, Visita
 
 
@@ -369,8 +370,13 @@ def recepcao_novo(request):
 
 
 @login_required
+@registrar_leitura_sensivel(modelo='Visita', contexto='editar', id_kwarg='pk')
 def recepcao_editar(request, pk):
-    """Editar visita já registrada — corrige clique acidental em concluir."""
+    """Editar visita já registrada — corrige clique acidental em concluir.
+
+    Auditoria LGPD: cada abertura desta view registra um LogAcessoSensivel
+    (a Visita tem foto + dados pessoais do visitante).
+    """
     visita = get_object_or_404(Visita, pk=pk)
 
     if request.method == 'POST':
@@ -643,8 +649,13 @@ def pre_credenciamento_publico(request, token):
 
 
 @login_required
+@registrar_leitura_sensivel(modelo='CredenciamentoPrevio', contexto='confirmar_visita', id_kwarg='pk')
 def credenciamento_confirmar_visita(request, pk):
-    """Converte um pre-credenciamento preenchido em uma Visita real (chegou agora)."""
+    """Converte um pre-credenciamento preenchido em uma Visita real (chegou agora).
+
+    Auditoria LGPD: acessa CPF, RG, foto e demais dados pessoais do
+    visitante — registramos a leitura no LogAcessoSensivel.
+    """
     if request.method != 'POST':
         return redirect('presenca:credenciamento_lista')
     pre = get_object_or_404(CredenciamentoPrevio, pk=pk)

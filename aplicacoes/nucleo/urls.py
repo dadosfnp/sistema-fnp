@@ -1,6 +1,6 @@
 from django.urls import path
 
-from aplicacoes.nucleo import views, views_lgpd
+from aplicacoes.nucleo import views, views_2fa, views_lgpd
 
 app_name = 'nucleo'
 
@@ -19,4 +19,7 @@ urlpatterns = [
     path('conta/politica-privacidade/', views_lgpd.politica_privacidade, name='politica_privacidade'),
     path('conta/exportar-meus-dados/', views_lgpd.exportar_meus_dados, name='exportar_meus_dados'),
     path('conta/solicitar-exclusao/', views_lgpd.solicitar_exclusao, name='solicitar_exclusao'),
+    path('conta/aguardando-aprovacao/', views_lgpd.aguardando_aprovacao, name='aguardando_aprovacao'),
+    path('conta/2fa/setup/', views_2fa.setup_2fa, name='setup_2fa'),
+    path('conta/2fa/login/', views_2fa.login_2fa, name='login_2fa'),
 ]

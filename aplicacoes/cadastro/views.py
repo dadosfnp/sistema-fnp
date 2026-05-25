@@ -10,6 +10,7 @@ from aplicacoes.cadastro.forms import MunicipioForm, PessoaForm
 from aplicacoes.cadastro.models import Municipio, Pessoa
 from aplicacoes.cadastro.servicos.dashboards import contexto_municipio, contexto_pessoa
 from aplicacoes.nucleo.servicos.auditoria import detectar_alteracoes, registrar_criacao, registrar_edicao
+from aplicacoes.nucleo.servicos.auditoria_leitura import registrar_leitura_sensivel
 
 
 def _eh_editor(request):
@@ -77,8 +78,14 @@ def lista_pessoas(request):
 
 
 @login_required
+@registrar_leitura_sensivel(modelo='Pessoa', contexto='detalhe', id_kwarg='pk')
 def detalhe_pessoa(request, pk):
-    """Exibe detalhes de uma pessoa — delega monta-contexto ao serviço de dashboard."""
+    """Exibe detalhes de uma pessoa — delega monta-contexto ao serviço de dashboard.
+
+    Aplicamos auditoria de leitura LGPD: cada acesso a esta view gera um
+    LogAcessoSensivel com usuário, IP, user-agent e timestamp, permitindo
+    investigação de exfiltração ou consultas anômalas.
+    """
     pessoa = get_object_or_404(Pessoa, pk=pk)
     return render(request, 'cadastro/detalhe_pessoa.html', contexto_pessoa(pessoa))
 
