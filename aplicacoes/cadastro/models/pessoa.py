@@ -3,6 +3,7 @@
 from django.db import models
 
 from aplicacoes.nucleo.models import ModeloBase
+from aplicacoes.nucleo.validators import validar_imagem_segura
 
 
 class Pessoa(ModeloBase):
@@ -26,7 +27,10 @@ class Pessoa(ModeloBase):
     nome = models.CharField('nome', max_length=255)
     email = models.EmailField('e-mail', unique=True, blank=True, null=True)
     telefone = models.CharField('telefone', max_length=20, blank=True)
-    foto = models.ImageField('foto', upload_to='pessoas/fotos/', blank=True)
+    foto = models.ImageField(
+        'foto', upload_to='pessoas/fotos/', blank=True,
+        validators=[validar_imagem_segura],
+    )
     tipo = models.CharField(
         'tipo', max_length=20,
         choices=TipoPessoa.choices, default=TipoPessoa.OUTRO,

@@ -8,10 +8,29 @@ para servir arquivos estáticos coletados em STATIC_ROOT.
 import os
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F401, F403
 
 DEBUG = False
+
+# ---------------------------------------------------------------------------
+# Fail-fast em produção — variáveis sensíveis OBRIGATÓRIAS via ambiente.
+# Subir o processo sem SECRET_KEY decente quebra criptografia de sessão, CSRF
+# e tokens; melhor falhar no boot do que rodar com 'chave-insegura-...' no ar.
+# ---------------------------------------------------------------------------
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY or 'insegura' in SECRET_KEY.lower() or len(SECRET_KEY) < 50:
+    raise ImproperlyConfigured(
+        'SECRET_KEY ausente, fraca ou de desenvolvimento em produção. '
+        'Defina a variável de ambiente SECRET_KEY com no mínimo 50 caracteres aleatórios. '
+        'Gere com: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"'
+    )
+
+if not os.environ.get('DATABASE_URL'):
+    raise ImproperlyConfigured(
+        'DATABASE_URL ausente em produção. Configure a string de conexão PostgreSQL.'
+    )
 
 ALLOWED_HOSTS = [
     host.strip()

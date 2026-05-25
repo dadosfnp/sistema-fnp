@@ -7,6 +7,8 @@ o conteúdo do modal. ``historico_envios`` permanece como página dedicada
 para auditoria.
 """
 
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
@@ -14,11 +16,27 @@ from django.core.mail import EmailMessage, get_connection
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template import Context, Template
+from django.utils import timezone
 
 from aplicacoes.comunicacao.models import Envio, TemplateEmail
 from aplicacoes.comunicacao.servicos import (
     categoria_para_entidade, coletar_destinatarios, montar_link_whatsapp,
 )
+
+# Limites de mala direta por usuário — evita disparo acidental em massa
+# (script malicioso pegando sessão, ou alguém clicando muito rápido).
+# Não usamos django-ratelimit/Redis (vide CLAUDE.md): contagem direta no BD.
+LIMITE_ENVIOS_POR_HORA = 10
+LIMITE_DESTINATARIOS_POR_DISPARO = 500
+
+
+def _rate_limit_excedido(usuario):
+    """True se o usuário já fez >= LIMITE_ENVIOS_POR_HORA envios na última hora."""
+    se_um_hora = timezone.now() - timedelta(hours=1)
+    return (
+        Envio.objects.filter(enviado_por=usuario, criado_em__gte=se_um_hora).count()
+        >= LIMITE_ENVIOS_POR_HORA
+    )
 
 
 def _eh_editor(request):
@@ -97,6 +115,19 @@ def processar_envio(request, app_label, model_name, object_id):
     if request.method != 'POST':
         return HttpResponse(status=405)
 
+    if _rate_limit_excedido(request.user):
+        ctx = _contexto_modal(request, app_label, model_name, object_id)
+        ctx.update({
+            'assunto': request.POST.get('assunto', ''),
+            'corpo': request.POST.get('corpo', ''),
+            'canal': request.POST.get('canal', Envio.Canal.EMAIL),
+            'erro_form': (
+                f'Limite de {LIMITE_ENVIOS_POR_HORA} envios por hora atingido. '
+                'Aguarde antes de disparar novamente — proteção contra envio acidental em massa.'
+            ),
+        })
+        return render(request, 'comunicacao/parciais/modal_envio.html', ctx)
+
     ctx = _contexto_modal(request, app_label, model_name, object_id)
     content_type = ctx['content_type']
     entidade = ctx['entidade']
@@ -111,6 +142,15 @@ def processar_envio(request, app_label, model_name, object_id):
         ctx.update({'assunto': assunto_template, 'corpo': corpo_template,
                     'canal': canal,
                     'erro_form': 'Nenhum destinatário válido.'})
+        return render(request, 'comunicacao/parciais/modal_envio.html', ctx)
+
+    if len(destinatarios) > LIMITE_DESTINATARIOS_POR_DISPARO:
+        ctx.update({'assunto': assunto_template, 'corpo': corpo_template,
+                    'canal': canal,
+                    'erro_form': (
+                        f'Disparo único limitado a {LIMITE_DESTINATARIOS_POR_DISPARO} destinatários '
+                        f'(esta lista tem {len(destinatarios)}). Segmente em grupos menores.'
+                    )})
         return render(request, 'comunicacao/parciais/modal_envio.html', ctx)
 
     enviar_email = canal in (Envio.Canal.EMAIL, Envio.Canal.AMBOS)

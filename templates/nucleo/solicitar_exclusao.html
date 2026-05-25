@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block titulo %}Solicitar exclusão de dados — Sistema FNP{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-2xl mx-auto p-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold text-slate-900">Solicitar exclusão dos meus dados</h1>
+      <p class="text-sm text-slate-500 mt-2">
+        Você pode pedir a exclusão dos seus dados pessoais nos termos da LGPD Art. 18, VI.
+        A solicitação será analisada pelo nosso Encarregado (DPO) — alguns dados podem precisar ser
+        retidos por obrigação legal (auditoria, prestação de contas).
+      </p>
+    </header>
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-900">
+        <p class="font-medium mb-1">Antes de prosseguir:</p>
+        <ul class="list-disc pl-5 space-y-1">
+          <li>Você pode <a href="{% url 'nucleo:exportar_meus_dados' %}" class="underline">exportar uma cópia dos seus dados</a> antes da exclusão.</li>
+          <li>Após análise, dados não retidos legalmente serão eliminados em até 15 dias úteis.</li>
+          <li>Você receberá retorno por e-mail (<strong>{{ request.user.email|default:"sem e-mail cadastrado" }}</strong>).</li>
+        </ul>
+      </div>
+
+      <label class="block">
+        <span class="text-sm font-medium text-slate-700">Motivo do pedido (opcional)</span>
+        <textarea name="motivo" rows="4" maxlength="2000"
+                  class="mt-1 block w-full rounded-lg border-slate-300 shadow-sm focus:border-fnp-500 focus:ring-fnp-500 text-sm"
+                  placeholder="Ajuda o DPO a entender o contexto. Pode deixar em branco."></textarea>
+      </label>
+
+      <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+        <a href="/" class="text-sm text-slate-500 hover:text-slate-700">Cancelar</a>
+        <button type="submit" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg">
+          Enviar solicitação
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

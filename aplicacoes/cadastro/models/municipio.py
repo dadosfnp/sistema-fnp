@@ -3,6 +3,7 @@
 from django.db import models
 
 from aplicacoes.nucleo.models import ModeloBase
+from aplicacoes.nucleo.validators import validar_imagem_segura
 
 
 class Municipio(ModeloBase):
@@ -35,7 +36,10 @@ class Municipio(ModeloBase):
     regiao = models.CharField(
         'região', max_length=20, choices=Regiao.choices, blank=True,
     )
-    brasao = models.ImageField('brasao', upload_to='municipios/brasoes/', blank=True)
+    brasao = models.ImageField(
+        'brasao', upload_to='municipios/brasoes/', blank=True,
+        validators=[validar_imagem_segura],
+    )
     eh_capital = models.BooleanField('é capital?', default=False)
     associado_fnp = models.BooleanField('associado FNP?', default=False)
     regiao_metropolitana = models.CharField(

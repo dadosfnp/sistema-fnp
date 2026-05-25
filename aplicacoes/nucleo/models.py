@@ -265,3 +265,76 @@ class LogAlteracao(models.Model):
 
     def __str__(self):
         return f'{self.usuario} — {self.get_acao_display()} — {self.modelo} — {self.objeto_repr}'
+
+
+class AceiteTermo(models.Model):
+    """Aceite do termo de uso + política de privacidade (LGPD Art. 8º).
+
+    Registra quando cada usuário leu e aceitou os termos atuais — o
+    middleware ``ExigirAceiteTermoMiddleware`` força o usuário sem aceite
+    válido a passar pela tela ``/conta/termo-de-uso/`` antes de qualquer
+    outra navegação. ``versao`` permite forçar re-aceite quando os termos
+    forem revisados (incrementar VERSAO_ATUAL_TERMO em settings ou aqui).
+    """
+
+    # Incrementar quando os termos forem revisados — força re-aceite de todos.
+    VERSAO_ATUAL = '2026-05'
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='aceites_termo',
+        verbose_name='usuario',
+    )
+    versao = models.CharField('versao do termo aceito', max_length=20)
+    ip = models.GenericIPAddressField('IP no aceite', null=True, blank=True)
+    user_agent = models.CharField('user agent', max_length=255, blank=True)
+    aceito_em = models.DateTimeField('aceito em', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'aceite de termo'
+        verbose_name_plural = 'aceites de termo'
+        ordering = ['-aceito_em']
+        unique_together = ['usuario', 'versao']
+        indexes = [models.Index(fields=['usuario', '-aceito_em'])]
+
+    def __str__(self):
+        return f'{self.usuario} — termo {self.versao} aceito em {self.aceito_em:%d/%m/%Y %H:%M}'
+
+
+class SolicitacaoExclusao(models.Model):
+    """Pedido de exclusão de dados pelo titular (LGPD Art. 18, VI).
+
+    A solicitação é registrada para auditoria — a exclusão efetiva é feita
+    pelo DPO/admin via comando ``purgar_dados_antigos`` ou ação manual,
+    preservando o rastro legal de quem pediu, quando e por quê.
+    """
+
+    class Status(models.TextChoices):
+        PENDENTE = 'pendente', 'Pendente'
+        EM_ANALISE = 'em_analise', 'Em analise'
+        ATENDIDA = 'atendida', 'Atendida'
+        NEGADA = 'negada', 'Negada (obrigacao legal de reter)'
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitacoes_exclusao',
+        verbose_name='usuario solicitante',
+    )
+    email_contato = models.EmailField('e-mail de contato')
+    motivo = models.TextField('motivo do pedido', blank=True)
+    status = models.CharField(
+        'status', max_length=15, choices=Status.choices, default=Status.PENDENTE,
+    )
+    resposta_dpo = models.TextField('resposta do DPO', blank=True)
+    criado_em = models.DateTimeField('criado em', auto_now_add=True)
+    atendido_em = models.DateTimeField('atendido em', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'solicitacao de exclusao (LGPD)'
+        verbose_name_plural = 'solicitacoes de exclusao (LGPD)'
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return f'{self.email_contato} — {self.get_status_display()}'

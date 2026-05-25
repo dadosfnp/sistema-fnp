@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block titulo %}Política de Privacidade — Sistema FNP{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-3xl mx-auto p-6">
+  <article class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 prose prose-slate max-w-none">
+    <header class="not-prose mb-6">
+      <h1 class="text-2xl font-semibold text-slate-900">Política de Privacidade</h1>
+      <p class="text-sm text-slate-500 mt-1">Versão {{ versao }} — atualizada em {{ atualizado_em }}</p>
+    </header>
+
+    <h2>1. Quem somos</h2>
+    <p>A <strong>Frente Nacional de Prefeitos (FNP)</strong> é a controladora dos dados pessoais tratados nesta plataforma, em conformidade com a Lei nº 13.709/2018 (LGPD).</p>
+
+    <h2>2. Encarregado pelo Tratamento de Dados (DPO)</h2>
+    <p>Contato para exercer direitos LGPD ou esclarecer dúvidas:<br>
+       <strong>E-mail:</strong> dpo@fnp.org.br<br>
+       <strong>Endereço:</strong> SBN — Quadra 1, Bloco H, Edifício Executive Tower, Brasília/DF</p>
+
+    <h2>3. Dados pessoais que tratamos</h2>
+    <ul>
+      <li><strong>Identificação:</strong> nome, cargo, partido, organização</li>
+      <li><strong>Contato:</strong> e-mail e telefone (uso institucional)</li>
+      <li><strong>Imagem:</strong> foto para uso em comunicações institucionais (mediante autorização)</li>
+      <li><strong>Vínculos:</strong> município, mandato, períodos de exercício</li>
+      <li><strong>Engajamento:</strong> participação em eventos, missões, atividades, instâncias</li>
+      <li><strong>Técnicos:</strong> IP, user-agent, logs de acesso e alteração</li>
+    </ul>
+
+    <h2>4. Finalidades</h2>
+    <p>Os dados são tratados exclusivamente para:</p>
+    <ul>
+      <li>Gestão institucional da FNP e relação com municípios associados</li>
+      <li>Comunicação oficial sobre eventos, missões, projetos e instâncias</li>
+      <li>Controle de adimplência e prestação de contas</li>
+      <li>Estatísticas agregadas (sem identificação de indivíduos)</li>
+      <li>Segurança da informação e auditoria interna</li>
+    </ul>
+
+    <h2>5. Bases legais (LGPD Art. 7º)</h2>
+    <ul>
+      <li><strong>Execução de contrato:</strong> dados de associados FNP</li>
+      <li><strong>Legítimo interesse:</strong> dados de contato institucional de prefeitos e secretários</li>
+      <li><strong>Consentimento:</strong> uso de imagem para comunicações públicas</li>
+      <li><strong>Cumprimento de obrigação legal:</strong> auditoria e prestação de contas</li>
+    </ul>
+
+    <h2>6. Compartilhamento</h2>
+    <p>Não vendemos, alugamos ou compartilhamos dados pessoais com terceiros para fins comerciais. Compartilhamento ocorre apenas:</p>
+    <ul>
+      <li>Internamente, entre equipe FNP autorizada</li>
+      <li>Com prestadores de serviço sob contrato (hospedagem, e-mail) — com cláusulas LGPD</li>
+      <li>Com autoridades públicas, quando exigido por lei</li>
+    </ul>
+
+    <h2>7. Retenção</h2>
+    <p>Dados são mantidos enquanto durar o vínculo institucional + período legal de retenção (5 anos para fins fiscais e auditoria). Após esse prazo, dados são anonimizados ou eliminados.</p>
+
+    <h2>8. Seus direitos (LGPD Art. 18)</h2>
+    <ul>
+      <li>Confirmação e acesso aos dados</li>
+      <li>Correção de dados incompletos, inexatos ou desatualizados</li>
+      <li>Anonimização, bloqueio ou eliminação de dados desnecessários</li>
+      <li>Portabilidade (exportação em formato estruturado)</li>
+      <li>Informação sobre compartilhamentos</li>
+      <li>Revogação do consentimento</li>
+    </ul>
+    <p>Para exercer qualquer direito, entre em contato com o DPO (item 2) ou use as ferramentas em <em>Minha conta</em>.</p>
+
+    <h2>9. Segurança</h2>
+    <p>Adotamos medidas técnicas e organizacionais: criptografia em trânsito (TLS), controle de acesso baseado em perfis, autenticação por senha, registro de auditoria, validação de uploads, mascaramento de PII em logs persistentes, backup criptografado e revisão periódica de privilégios.</p>
+
+    <h2>10. Cookies</h2>
+    <p>Usamos apenas cookies essenciais (sessão, CSRF). Não usamos cookies de rastreamento publicitário nem ferramentas de terceiros como Google Analytics.</p>
+
+    <h2>11. Alterações nesta política</h2>
+    <p>Esta política pode ser atualizada para refletir mudanças regulatórias ou no sistema. A versão atual está sempre disponível nesta página. Mudanças relevantes exigem novo aceite expresso.</p>
+
+    <h2>12. Reclamações</h2>
+    <p>Se entender que seus direitos foram violados, você pode contatar a <strong>Autoridade Nacional de Proteção de Dados (ANPD)</strong> em <a href="https://www.gov.br/anpd" target="_blank" rel="noopener">gov.br/anpd</a>.</p>
+  </article>
+</div>
+{% endblock %}

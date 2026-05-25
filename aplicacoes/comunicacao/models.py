@@ -12,6 +12,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
 from aplicacoes.nucleo.models import ModeloBase
+from aplicacoes.nucleo.validators import validar_anexo_seguro
 
 
 class TemplateEmail(ModeloBase):
@@ -135,7 +136,8 @@ class Envio(ModeloBase):
         upload_to='envios/%Y/%m/',
         blank=True,
         null=True,
-        help_text='Arquivo opcional anexado ao envio.',
+        validators=[validar_anexo_seguro],
+        help_text='Arquivo opcional anexado ao envio (máx. 25 MB, executáveis bloqueados).',
     )
     canal = models.CharField(
         'canal de envio',

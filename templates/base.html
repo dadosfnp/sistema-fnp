@@ -432,6 +432,25 @@
             <main class="flex-1 overflow-y-auto p-6 bg-gray-50/80 dark:bg-gray-900 transition-colors">
                 {% block conteudo %}{% endblock %}
             </main>
+
+            {# Rodape LGPD — DPO + links de privacidade. Discreto, mas presente em todas as paginas. #}
+            <footer class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-3 px-6 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <span>© Frente Nacional de Prefeitos</span>
+                    <span class="text-gray-300">|</span>
+                    <a href="{% url 'nucleo:politica_privacidade' %}" class="hover:text-fnp-500">Política de Privacidade</a>
+                    {% if user.is_authenticated %}
+                    <span class="text-gray-300">|</span>
+                    <a href="{% url 'nucleo:exportar_meus_dados' %}" class="hover:text-fnp-500">Exportar meus dados</a>
+                    <span class="text-gray-300">|</span>
+                    <a href="{% url 'nucleo:solicitar_exclusao' %}" class="hover:text-fnp-500">Solicitar exclusão</a>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                    <span>DPO: <a href="mailto:dpo@fnp.org.br" class="hover:text-fnp-500">dpo@fnp.org.br</a></span>
+                </div>
+            </footer>
         </div>
     </div>
 
@@ -683,8 +702,8 @@
         </div>
     </div>
 
-    {# Render do CSRF token garante que o middleware seta o cookie csrftoken #}
-    <span style="display:none">{% csrf_token %}</span>
+    {# CSRF cookie é garantido por @ensure_csrf_cookie nas views de entrada
+       (entrar/inicio). Não precisamos mais do span global aqui. #}
 
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>

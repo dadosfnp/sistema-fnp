@@ -16,6 +16,7 @@ from django.db import models
 
 from aplicacoes.cadastro.models import Municipio, Pessoa
 from aplicacoes.nucleo.models import ModeloBase
+from aplicacoes.nucleo.validators import validar_imagem_segura
 
 
 class Presenca(ModeloBase):
@@ -172,6 +173,7 @@ class Visita(ModeloBase):
         'foto de credenciamento',
         upload_to='visitas/%Y/%m/',
         blank=True, null=True,
+        validators=[validar_imagem_segura],
         help_text='Foto da pessoa visitando (webcam local ou enviada via pré-credenciamento).',
     )
     pre_credenciado = models.BooleanField(
@@ -251,6 +253,7 @@ class CredenciamentoPrevio(ModeloBase):
         'foto enviada pelo visitante',
         upload_to='credenciamentos/%Y/%m/',
         blank=True, null=True,
+        validators=[validar_imagem_segura],
     )
     documentos_aceitos = models.BooleanField(
         'aceitou termos LGPD?',

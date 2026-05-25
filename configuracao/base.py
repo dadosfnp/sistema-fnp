@@ -11,7 +11,9 @@ from django.urls import reverse_lazy
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'chave-insegura-troque-em-producao')
+# Em base.py mantemos um fallback para dev/testes (sem env var), mas producao.py
+# faz fail-fast se SECRET_KEY não vier do ambiente — vide configuracao/producao.py.
+SECRET_KEY = os.environ.get('SECRET_KEY', 'chave-insegura-apenas-dev-NAO-USE-EM-PRODUCAO')
 
 DEBUG = False
 
@@ -93,6 +95,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'aplicacoes.nucleo.middleware.IsolarPortalPrefeitoMiddleware',
+    # LGPD — força aceite do termo de uso. Vem depois do Auth e do Isolar
+    # para que prefeitos do portal externo também sejam exigidos.
+    'aplicacoes.nucleo.middleware.ExigirAceiteTermoMiddleware',
 ]
 
 # CORS — libera /media/ (fotos) e /api/v1/ (REST) para origens same-origin

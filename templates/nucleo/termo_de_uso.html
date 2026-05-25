@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Termo de uso — Sistema FNP{% endblock %}
+
+{% block conteudo %}
+<div class="max-w-3xl mx-auto p-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold text-slate-900">Termo de uso e Política de Privacidade</h1>
+      <p class="text-sm text-slate-500 mt-1">Versão {{ versao }} — leia e confirme antes de continuar</p>
+    </header>
+
+    <div class="prose prose-slate max-w-none text-sm leading-relaxed">
+      <h2>1. Objeto</h2>
+      <p>O Sistema FNP é uma plataforma de gestão institucional usada pela equipe interna da Frente Nacional de Prefeitos (FNP) para cadastro de pessoas, municípios, controle de adimplência, engajamento e comunicação.</p>
+
+      <h2>2. Dados pessoais tratados (LGPD Art. 6º, 7º)</h2>
+      <p>Tratamos os seguintes dados pessoais com base em <em>execução de contrato</em> e <em>legítimo interesse</em>:</p>
+      <ul>
+        <li>Nome, e-mail, telefone, cargo e organização de prefeitos, secretários e equipe interna</li>
+        <li>Foto institucional, biografia curta, mandato e partido (dados públicos)</li>
+        <li>Registros de participação em eventos, missões e atividades da FNP</li>
+        <li>Logs de auditoria (IP, ações realizadas) — necessários para segurança e prestação de contas</li>
+      </ul>
+
+      <h2>3. Compartilhamento</h2>
+      <p>Os dados <strong>não</strong> são vendidos nem compartilhados com terceiros para fins comerciais. Compartilhamento interno limita-se a equipe FNP autorizada e órgãos públicos quando exigido por lei.</p>
+
+      <h2>4. Seus direitos (LGPD Art. 18)</h2>
+      <p>Você pode, a qualquer momento:</p>
+      <ul>
+        <li><strong>Acessar</strong> seus dados — botão "Exportar meus dados" no menu do usuário</li>
+        <li><strong>Corrigir</strong> dados incompletos ou desatualizados — contate seu gestor</li>
+        <li><strong>Solicitar exclusão</strong> — formulário em "Solicitar exclusão de dados"</li>
+        <li><strong>Revogar consentimento</strong> — implica suspensão do acesso ao sistema</li>
+      </ul>
+
+      <h2>5. Segurança</h2>
+      <p>Empregamos: criptografia em trânsito (HTTPS), controle de acesso por perfil, log de auditoria, mascaramento de PII em logs, validação rigorosa de uploads.</p>
+
+      <h2>6. Encarregado (DPO)</h2>
+      <p>Em caso de dúvidas ou requisições LGPD, contate o Encarregado pelo Tratamento de Dados pelo e-mail <strong>dpo@fnp.org.br</strong>.</p>
+    </div>
+
+    <form method="post" class="mt-8 pt-6 border-t border-slate-200">
+      {% csrf_token %}
+      <input type="hidden" name="proximo" value="{{ proximo }}">
+
+      {% if erro %}
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{{ erro }}</div>
+      {% endif %}
+
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" name="aceito" value="sim" class="mt-1 h-4 w-4 rounded border-slate-300 text-fnp-500 focus:ring-fnp-500" required>
+        <span class="text-sm text-slate-700">
+          Li e concordo com o <strong>Termo de uso</strong> e a <strong>Política de Privacidade</strong> do Sistema FNP, e autorizo o tratamento dos meus dados pessoais conforme descrito acima.
+        </span>
+      </label>
+
+      <div class="mt-6 flex items-center justify-between">
+        <a href="{% url 'nucleo:sair' %}" class="text-sm text-slate-500 hover:text-slate-700">Sair sem aceitar</a>
+        <button type="submit" class="px-5 py-2 bg-fnp-500 hover:bg-fnp-600 text-white text-sm font-medium rounded-lg">
+          Confirmar e continuar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from aplicacoes.adimplencia.models import Adimplencia
 from aplicacoes.atividades.models import Atividade
@@ -17,8 +18,14 @@ from aplicacoes.missoes.models import Missao
 from aplicacoes.projetos.models import Projeto
 
 
+@ensure_csrf_cookie
 def entrar(request):
-    """Processa login via POST (usuario/senha) e renderiza tela de entrada."""
+    """Processa login via POST (usuario/senha) e renderiza tela de entrada.
+
+    O decorador ``ensure_csrf_cookie`` força o middleware a gravar o cookie
+    ``csrftoken`` já na primeira página vista — eliminamos o ``<span>`` global
+    do ``base.html`` que existia só para esse efeito colateral.
+    """
     erro = ''
     if request.method == 'POST':
         usuario = request.POST.get('usuario', '').strip()
@@ -33,6 +40,7 @@ def entrar(request):
     return render(request, 'nucleo/entrar.html', {'erro': erro})
 
 
+@ensure_csrf_cookie
 @login_required
 def inicio(request):
     """Dashboard principal — layout focado em "o que importa hoje + 3 KPIs principais".
@@ -309,53 +317,91 @@ def busca_global(request):
 
     Aceita ``q`` via GET e retorna até 5 hits por categoria com link de
     detalhe e ícone. Limita resultados para manter latência baixa.
+
+    Hardening LGPD: o conjunto de categorias retornadas é filtrado pelo
+    perfil do usuário. Perfis ``prefeito`` (portal externo) só veem o
+    próprio município e suas pessoas/missões — nunca dados de outros
+    municípios. Visualizadores comuns ainda veem nomes (não há PII no
+    retorno), mas a categoria Pessoa só aparece para quem pode acessar
+    o cadastro de pessoas (``pode_ver_dados_lgpd`` ou editor/admin).
     """
     termo = (request.GET.get('q') or '').strip()
     if len(termo) < 2:
         return JsonResponse({'resultados': []})
 
+    # Determina escopo do usuário a partir do Perfil
+    perfil = getattr(request.user, 'perfil', None)
+    eh_admin = request.user.is_superuser or (perfil and perfil.tipo == 'admin')
+    eh_prefeito_portal = perfil and perfil.tipo == 'prefeito'
+    pode_ver_pessoas = (
+        eh_admin
+        or (perfil and perfil.tipo in {'editor', 'visualizador'})
+        or (perfil and perfil.pode('pode_ver_dados_lgpd'))
+    )
+    municipio_vinculado_id = (
+        perfil.municipio_vinculado_id if eh_prefeito_portal and perfil else None
+    )
+
     resultados = []
 
-    for p in Pessoa.objects.filter(nome__icontains=termo).only('id', 'nome', 'cargo')[:5]:
-        resultados.append({
-            'tipo': 'Pessoa', 'icone': 'user',
-            'titulo': p.nome, 'subtitulo': p.cargo or '—',
-            'url': reverse('cadastro:detalhe_pessoa', args=[p.pk]),
-        })
+    if pode_ver_pessoas:
+        pessoas_qs = Pessoa.objects.filter(nome__icontains=termo)
+        if eh_prefeito_portal:
+            # Só pessoas com vínculo vigente no município do portal
+            if municipio_vinculado_id:
+                pessoas_qs = pessoas_qs.filter(
+                    vinculos__municipio_id=municipio_vinculado_id,
+                    vinculos__vigente=True,
+                ).distinct()
+            else:
+                pessoas_qs = pessoas_qs.none()
+        for p in pessoas_qs.only('id', 'nome', 'cargo')[:5]:
+            resultados.append({
+                'tipo': 'Pessoa', 'icone': 'user',
+                'titulo': p.nome, 'subtitulo': p.cargo or '—',
+                'url': reverse('cadastro:detalhe_pessoa', args=[p.pk]),
+            })
 
-    for m in Municipio.objects.filter(Q(nome__icontains=termo) | Q(uf__iexact=termo)).only('id', 'nome', 'uf', 'regiao')[:5]:
+    municipios_qs = Municipio.objects.filter(
+        Q(nome__icontains=termo) | Q(uf__iexact=termo)
+    )
+    if eh_prefeito_portal:
+        municipios_qs = municipios_qs.filter(id=municipio_vinculado_id) if municipio_vinculado_id else municipios_qs.none()
+    for m in municipios_qs.only('id', 'nome', 'uf', 'regiao')[:5]:
         resultados.append({
             'tipo': 'Município', 'icone': 'building-2',
             'titulo': f'{m.nome}/{m.uf}', 'subtitulo': m.get_regiao_display() or '—',
             'url': reverse('cadastro:detalhe_municipio', args=[m.pk]),
         })
 
-    for inst in Instancia.objects.filter(nome__icontains=termo).only('id', 'nome', 'origem')[:5]:
-        resultados.append({
-            'tipo': 'Instância', 'icone': 'messages-square',
-            'titulo': inst.nome, 'subtitulo': inst.get_origem_display() or '—',
-            'url': reverse('instancias:detalhe_instancia', args=[inst.pk]),
-        })
+    # Portal-prefeito não acessa instâncias/projetos/eventos/missões internas
+    if not eh_prefeito_portal:
+        for inst in Instancia.objects.filter(nome__icontains=termo).only('id', 'nome', 'origem')[:5]:
+            resultados.append({
+                'tipo': 'Instância', 'icone': 'messages-square',
+                'titulo': inst.nome, 'subtitulo': inst.get_origem_display() or '—',
+                'url': reverse('instancias:detalhe_instancia', args=[inst.pk]),
+            })
 
-    for ev in Evento.objects.filter(titulo__icontains=termo).only('id', 'titulo', 'tipo', 'data_inicio')[:5]:
-        resultados.append({
-            'tipo': 'Evento', 'icone': 'calendar-days',
-            'titulo': ev.titulo, 'subtitulo': f'{ev.get_tipo_display()} · {ev.data_inicio.strftime("%d/%m/%Y")}',
-            'url': reverse('eventos:detalhe_evento', args=[ev.pk]),
-        })
+        for ev in Evento.objects.filter(titulo__icontains=termo).only('id', 'titulo', 'tipo', 'data_inicio')[:5]:
+            resultados.append({
+                'tipo': 'Evento', 'icone': 'calendar-days',
+                'titulo': ev.titulo, 'subtitulo': f'{ev.get_tipo_display()} · {ev.data_inicio.strftime("%d/%m/%Y")}',
+                'url': reverse('eventos:detalhe_evento', args=[ev.pk]),
+            })
 
-    for proj in Projeto.objects.filter(nome__icontains=termo).only('id', 'nome', 'status')[:3]:
-        resultados.append({
-            'tipo': 'Projeto', 'icone': 'clipboard-list',
-            'titulo': proj.nome, 'subtitulo': proj.get_status_display() or '—',
-            'url': reverse('projetos:detalhe_projeto', args=[proj.pk]),
-        })
+        for proj in Projeto.objects.filter(nome__icontains=termo).only('id', 'nome', 'status')[:3]:
+            resultados.append({
+                'tipo': 'Projeto', 'icone': 'clipboard-list',
+                'titulo': proj.nome, 'subtitulo': proj.get_status_display() or '—',
+                'url': reverse('projetos:detalhe_projeto', args=[proj.pk]),
+            })
 
-    for miss in Missao.objects.filter(titulo__icontains=termo).only('id', 'titulo', 'tipo', 'cidade')[:3]:
-        resultados.append({
-            'tipo': 'Missão', 'icone': 'plane-takeoff',
-            'titulo': miss.titulo, 'subtitulo': f'{miss.get_tipo_display()} · {miss.cidade or "—"}',
-            'url': reverse('missoes:detalhe_missao', args=[miss.pk]),
-        })
+        for miss in Missao.objects.filter(titulo__icontains=termo).only('id', 'titulo', 'tipo', 'cidade')[:3]:
+            resultados.append({
+                'tipo': 'Missão', 'icone': 'plane-takeoff',
+                'titulo': miss.titulo, 'subtitulo': f'{miss.get_tipo_display()} · {miss.cidade or "—"}',
+                'url': reverse('missoes:detalhe_missao', args=[miss.pk]),
+            })
 
     return JsonResponse({'resultados': resultados, 'total': len(resultados), 'termo': termo})

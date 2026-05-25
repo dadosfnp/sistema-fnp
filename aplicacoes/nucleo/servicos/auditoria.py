@@ -7,6 +7,38 @@ de tabelas dedicadas por categoria — basta filtrar por esses dois campos.
 """
 
 from aplicacoes.nucleo.models import LogAlteracao
+from aplicacoes.nucleo.validators import mascarar_pii
+
+# Campos que podem conter PII e devem ser mascarados em logs persistentes.
+# Mantemos a chave (nome do campo) mas substituímos o valor por máscara.
+_CAMPOS_PII = {
+    'cpf', 'rg', 'email', 'telefone', 'celular', 'whatsapp',
+    'endereco', 'cep', 'numero', 'complemento', 'nascimento', 'data_nascimento',
+}
+
+
+def _mascarar_alteracoes(campos_alterados):
+    """Substitui valores de campos PII por máscara e roda mascarar_pii nos demais.
+
+    Por que: LogAlteracao é uma tabela persistente consultável por vários
+    perfis — guardar CPF/e-mail/telefone em claro viola LGPD Art. 6º (princípio
+    da necessidade) e Art. 46 (medidas de segurança). Mascarar na entrada
+    impede exposição mesmo se a query de log vazar.
+    """
+    if not campos_alterados:
+        return campos_alterados
+    saida = {}
+    for campo, valores in campos_alterados.items():
+        if campo in _CAMPOS_PII:
+            saida[campo] = {'antes': '***', 'depois': '***'}
+        elif isinstance(valores, dict):
+            saida[campo] = {
+                'antes': mascarar_pii(valores.get('antes', '')),
+                'depois': mascarar_pii(valores.get('depois', '')),
+            }
+        else:
+            saida[campo] = mascarar_pii(str(valores)) if valores is not None else valores
+    return saida
 
 
 def registrar_criacao(usuario, objeto):
@@ -21,7 +53,7 @@ def registrar_criacao(usuario, objeto):
         acao=LogAlteracao.TipoAcao.CRIACAO,
         modelo=objeto.__class__.__name__,
         objeto_id=str(objeto.pk),
-        objeto_repr=str(objeto)[:255],
+        objeto_repr=mascarar_pii(str(objeto))[:255],
     )
 
 
@@ -40,8 +72,8 @@ def registrar_edicao(usuario, objeto, campos_alterados):
         acao=LogAlteracao.TipoAcao.EDICAO,
         modelo=objeto.__class__.__name__,
         objeto_id=str(objeto.pk),
-        objeto_repr=str(objeto)[:255],
-        campos_alterados=campos_alterados,
+        objeto_repr=mascarar_pii(str(objeto))[:255],
+        campos_alterados=_mascarar_alteracoes(campos_alterados),
     )
 
 
@@ -57,7 +89,7 @@ def registrar_exclusao(usuario, objeto):
         acao=LogAlteracao.TipoAcao.EXCLUSAO,
         modelo=objeto.__class__.__name__,
         objeto_id=str(objeto.pk),
-        objeto_repr=str(objeto)[:255],
+        objeto_repr=mascarar_pii(str(objeto))[:255],
     )
 
 
