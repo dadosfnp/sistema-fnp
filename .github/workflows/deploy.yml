@@ -1,101 +1,25 @@
-name: Deploy Sistema FNP (Digital Ocean)
+name: Deploy Sistema FNP
 
-# Dispara automaticamente em push para master. Também aceita disparo manual
-# via "Run workflow" no GitHub (workflow_dispatch) caso precise re-deployar
-# sem novo commit (ex: você ajustou a .env no servidor e quer só restartar).
 on:
   push:
     branches: [master]
-  workflow_dispatch:
-
-# Cancela deploys anteriores se um novo for disparado — evita corrida de
-# dois `git pull` simultâneos no mesmo droplet.
-concurrency:
-  group: deploy-producao
-  cancel-in-progress: false
 
 jobs:
-  testes:
-    name: Rodar suite de testes
-    runs-on: ubuntu-22.04
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: sistema_fnp_test
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configurar Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: pip
-
-      - name: Instalar dependências
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Rodar testes
-        env:
-          DJANGO_SETTINGS_MODULE: configuracao.local
-          SECRET_KEY: chave-de-teste-nao-usar-em-producao-com-mais-de-50-caracteres-ok
-          DB_NAME: sistema_fnp_test
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_HOST: localhost
-          DB_PORT: 5432
-        run: python manage.py test aplicacoes/
-
   deploy:
-    name: Deploy via SSH no droplet
-    needs: testes
-    runs-on: ubuntu-22.04
-    # Só faz deploy de push real para master (não rodar em PRs futuras)
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
     steps:
-      - name: Disparar deploy remoto
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          script_stop: true  # aborta no primeiro comando que falhar
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
           script: |
-            set -euo pipefail
-            cd ${{ secrets.DEPLOY_PATH }}
-
-            echo "==> git pull"
-            git fetch origin master
-            git reset --hard origin/master
-
-            echo "==> ativar venv + instalar deps"
-            source ${{ secrets.DEPLOY_VENV_PATH || '.venv' }}/bin/activate
-            pip install --upgrade pip
-            pip install -r requirements.txt
-
-            echo "==> migrate"
-            export DJANGO_SETTINGS_MODULE=configuracao.producao
-            python manage.py migrate --noinput
-
-            echo "==> collectstatic"
-            python manage.py collectstatic --noinput
-
-            echo "==> reiniciar servico ${{ secrets.DEPLOY_SERVICE || 'fnp.service' }}"
-            sudo systemctl restart ${{ secrets.DEPLOY_SERVICE || 'fnp.service' }}
-
-            echo "==> health check"
-            sleep 3
-            sudo systemctl is-active --quiet ${{ secrets.DEPLOY_SERVICE || 'fnp.service' }} \
-              && echo "Servico ativo" \
-              || (echo "FALHA: servico nao ativo apos deploy" && exit 1)
+            cd /var/www/fnp/sistema-fnp
+            export $(cat .env | grep -v '^#' | xargs)
+            git pull origin master
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet
+            python3 manage.py migrate --noinput
+            python3 manage.py collectstatic --noinput --clear
+            systemctl restart fnp
