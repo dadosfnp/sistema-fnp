@@ -90,19 +90,28 @@ STORAGES = {
     },
 }
 
+# Flags que exigem HTTPS — configuráveis via .env para permitir teste
+# transitório via IP HTTP enquanto o certbot não emitiu o cert do domínio.
+# IMPORTANTE: voltar todos para True assim que o SSL estiver no ar — manter
+# False em produção real expõe sessão e CSRF em texto claro na rede.
+def _env_bool(nome, default='True'):
+    return os.environ.get(nome, default) == 'True'
+
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = _env_bool('SESSION_COOKIE_SECURE')
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 60 * 60 * 8  # 8h — alinhado a dia útil
-CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = _env_bool('CSRF_COOKIE_SECURE')
 CSRF_COOKIE_HTTPONLY = True
-SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'True') == 'True'
+SECURE_SSL_REDIRECT = _env_bool('SECURE_SSL_REDIRECT')
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
-SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30  # 30 dias — escalar pra 1 ano depois de validar
+# HSTS: 0 desativa o "force HTTPS" que o browser cacheia. Mantenha 0
+# enquanto estiver testando via IP HTTP; depois religue para 30 dias+.
+SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', 60 * 60 * 24 * 30))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = False
 X_FRAME_OPTIONS = 'DENY'
