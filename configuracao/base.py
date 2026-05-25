@@ -35,6 +35,7 @@ THIRD_PARTY_APPS = [
     'django.contrib.admin',  # deve vir após unfold
     'rest_framework',
     'rest_framework.authtoken',
+    'corsheaders',
 ]
 
 # DRF — autenticação por token + session, somente leitura para clientes externos
@@ -83,6 +84,8 @@ INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + LOCAL_APPS
 # ---------------------------------------------------------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # CORS antes de tudo, para liberar /media/ e /api/ ao face-api.js e clientes externos
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -91,6 +94,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'aplicacoes.nucleo.middleware.IsolarPortalPrefeitoMiddleware',
 ]
+
+# CORS — libera /media/ (fotos) e /api/v1/ (REST) para origens same-origin
+# por padrão. Em produção, ajustar CORS_ALLOWED_ORIGINS se for consumir de outro domínio.
+CORS_URLS_REGEX = r'^/(media|api)/.*$'
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS: list = []  # populado em local.py e producao.py
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'configuracao.urls'
 

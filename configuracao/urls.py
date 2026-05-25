@@ -40,3 +40,17 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # Em produção, serve /media/ via Django mesmo (volume baixo OK até a FNP
+    # migrar para S3/R2 — ver documentacao/producao-readiness.md §2).
+    # Sem isso, fotos de pré-credenciamento retornam 404 e o reconhecimento
+    # facial não consegue carregar.
+    from django.urls import re_path
+    from django.views.static import serve as serve_estatico
+    urlpatterns += [
+        re_path(
+            r'^' + settings.MEDIA_URL.lstrip('/') + r'(?P<path>.*)$',
+            serve_estatico,
+            {'document_root': settings.MEDIA_ROOT},
+        ),
+    ]

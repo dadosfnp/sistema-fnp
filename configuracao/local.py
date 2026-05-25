@@ -10,6 +10,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+# CORS em dev: libera tudo (em prod usamos allowlist)
+CORS_ALLOW_ALL_ORIGINS = True
+
 # Banco de dados local — SQLite enquanto PostgreSQL não estiver disponível
 # Quando instalar o PostgreSQL, remova este bloco para usar o DATABASES do base.py
 DATABASES = {

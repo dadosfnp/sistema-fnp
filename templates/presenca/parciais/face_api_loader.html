@@ -43,15 +43,50 @@
     /**
      * Extrai embedding facial (Float32Array de 128 dimensões) de um elemento
      * <canvas>, <img> ou <video>. Retorna null se não detectar rosto.
+     *
+     * Tenta inputSizes maiores se o primeiro falha, com threshold permissivo
+     * para fotos com luz/enquadramento ruins (caso típico do celular).
      */
     window.faceApiExtrair = async function(elemento) {
         await window.faceApiCarregar();
-        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 });
-        const det = await faceapi.detectSingleFace(elemento, opts)
-            .withFaceLandmarks(true)
-            .withFaceDescriptor();
-        if (!det) return null;
-        return Array.from(det.descriptor);
+        for (const inputSize of [416, 320, 224]) {
+            const opts = new faceapi.TinyFaceDetectorOptions({
+                inputSize, scoreThreshold: 0.3,
+            });
+            try {
+                const det = await faceapi.detectSingleFace(elemento, opts)
+                    .withFaceLandmarks(true)
+                    .withFaceDescriptor();
+                if (det) return Array.from(det.descriptor);
+            } catch (e) {
+                console.warn('faceApiExtrair tentativa inputSize=' + inputSize, e);
+            }
+        }
+        return null;
+    };
+
+    /**
+     * Carrega imagem de uma URL contornando CORS via fetch + Blob URL.
+     *
+     * Imagens servidas de /media/ no Django não têm headers CORS, o que faz
+     * o canvas ficar "tainted" quando <img crossOrigin="anonymous"> é usado.
+     * Fetch retorna Blob, criamos ObjectURL same-origin que não taints o canvas.
+     */
+    window.faceApiCarregarImagem = async function(url) {
+        const resp = await fetch(url, { credentials: 'same-origin' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' em ' + url);
+        const blob = await resp.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+            return await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('Falha decodificando ' + url));
+                img.src = objectUrl;
+            });
+        } finally {
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+        }
     };
 
     /**

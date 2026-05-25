@@ -194,35 +194,30 @@ function identificador() {
             const pendentes = this.candidatos.filter(c => !c.embedding || c.embedding.length !== 128);
             if (pendentes.length === 0) return;
             this.extraindoEmbeddings = true;
+            console.log(`[face-api] extraindo embedding de ${pendentes.length} candidatos`);
             for (const cand of pendentes) {
                 try {
-                    const img = await this._carregarImagem(cand.foto_url);
+                    // Carrega via fetch+Blob — contorna CORS de /media/ no Render
+                    const img = await window.faceApiCarregarImagem(cand.foto_url);
                     const emb = await window.faceApiExtrair(img);
                     if (emb) {
                         cand.embedding = emb;
                         this.candidatosProntos++;
-                        // Cache no servidor
+                        console.log(`[face-api] ✓ ${cand.nome} (${this.candidatosProntos}/${this.totalCandidatos})`);
                         fetch(`/presenca/identificar/${cand.id}/embedding/`, {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json', 'X-CSRFToken': window.csrftoken ? window.csrftoken() : ''},
                             body: JSON.stringify({embedding: emb}),
                         }).catch(() => {});
+                    } else {
+                        console.warn(`[face-api] rosto não detectado em ${cand.nome} (${cand.foto_url})`);
                     }
                 } catch (e) {
-                    console.warn(`Falha em ${cand.nome}`, e);
+                    console.warn(`[face-api] falha em ${cand.nome}:`, e.message);
                 }
             }
             this.extraindoEmbeddings = false;
-        },
-
-        _carregarImagem(url) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => resolve(img);
-                img.onerror = reject;
-                img.src = url;
-            });
+            console.log(`[face-api] concluído: ${this.candidatosProntos}/${this.totalCandidatos} prontos`);
         },
 
         async iniciarWebcam() {

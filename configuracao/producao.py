@@ -28,6 +28,10 @@ CSRF_TRUSTED_ORIGINS = [
     for host in ALLOWED_HOSTS
 ]
 
+# CORS — em produção libera só os hosts do próprio sistema (face-api.js
+# acessando /media/ e clientes da API REST que rodam no mesmo domínio).
+CORS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS[:]
+
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL', ''),
